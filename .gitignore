@@ -12,7 +12,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-*.bin
 
 # Prerequisites
 *.d
@@ -24,7 +23,6 @@ Release/
 *.slo
 *.lo
 *.o
-*.bin
 
 # Precompiled Headers
 *.gch
