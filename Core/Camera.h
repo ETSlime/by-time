@@ -86,7 +86,7 @@ private:
 	float				m_len;			// ƒJƒƒ‰‚Ì‹“_‚Æ’‹“_‚Ì‹——£
 	float				m_fov;
 	float				m_nearZ;
-	float				m_farZ = 1;
+	float				m_farZ;
 
 	CameraType			m_CameraType = CameraType::SCENE;
 
