@@ -8,17 +8,19 @@
 //=============================================================================
 #pragma once
 #include "main.h"
-#include "Utility/SingletonBase.h"
-#include "UI/UIManager.h"
+#include "Core/Camera.h"
+#include "Core/AsyncResourceLoader.h"
+#include "Core/AsyncModelLoader.h"
+#include "Core/CursorManager.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Graphics/ShadowMapRenderer.h"
+#include "UI/UIManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/Ground.h"
 #include "Effects/Skybox.h"
-#include "Core/Camera.h"
-#include "Core/Graphics/ShadowMapRenderer.h"
-#include "Core/CursorManager.h"
 #include "Effects/EffectSystem.h"
+#include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
 
 //*****************************************************************************
@@ -53,16 +55,16 @@ public:
     bool IsAltDown(void) const { return m_isAltDown; } // Altキーが押されているかどうか
 
     // 会話モード切替
-    void EnterDialogue(void);
-    void ExitDialogue(void);
+    void EnterDialogue(void) { m_inDialogue = true; }
+    void ExitDialogue(void) { m_inDialogue = false; }
     bool IsInDialogue(void) const { return m_inDialogue; }
 
     // ミニマップ表示切替
-    void ToggleMiniMap(void);
+    void ToggleMiniMap(void) { m_showMiniMap = !m_showMiniMap; }
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
     // モード切り替え
-    void SetMode(GameMode mode);
+    void SetMode(GameMode mode) { m_mode = mode; }
     GameMode GetMode() const { return m_mode; }
 
 protected:
@@ -79,7 +81,9 @@ protected:
         , m_shadowMapRenderer(ShadowMapRenderer::get_instance())
         , m_cursorManager(CursorManager::get_instance())
         , m_effectSystem(EffectSystem::get_instance())
-        , m_shaderManager(ShaderManager::get_instance()) {}
+        , m_shaderManager(ShaderManager::get_instance())
+        , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
+        , m_asyncModelLoader(AsyncModelLoader::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -88,14 +92,16 @@ protected:
 
 
 private:
+    
+	void PreloadResources(void); // リソースの事前ロード
+    void HandleInput(void);
+    void HandlePauseInput(void);
+
     // 内部状態
     bool m_isPaused = false;
     bool m_inDialogue = false;
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか
-
-    void HandleInput(void);
-    void HandlePauseInput(void);
 
     GameMode m_mode = GameMode::GAME;
 
@@ -114,6 +120,8 @@ private:
     EffectSystem& m_effectSystem;
     ShaderManager& m_shaderManager;
     InputManager& m_inputManager;
+    AsyncResourceLoader& m_asyncResourceLoader;
+    AsyncModelLoader& m_asyncModelLoader;
 
     // モードごとの更新と描画関数
     void UpdateTitle(void);

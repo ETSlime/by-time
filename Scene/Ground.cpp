@@ -144,11 +144,11 @@ Ground::Ground()
 	fireparams.startSpeedMax = 3.0f;
 	EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	
-	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	//banyanGO->Instantiate(MODEL_BANYAN_PATH);
-	//banyanGO->SetPosition(XMFLOAT3(-12280.0f, -2254.0f, -4650.0f));
-	//banyanGO->SetScale(XMFLOAT3(50.0f, 50.0f, 50.0f));
-	//groundGO.push_back(banyanGO);
+	GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
+	banyanGO->Instantiate(MODEL_BANYAN_PATH);
+	banyanGO->SetPosition(XMFLOAT3(-12280.0f, -2254.0f, -4650.0f));
+	banyanGO->SetScale(XMFLOAT3(50.0f, 50.0f, 50.0f));
+	m_groundGO.push_back(banyanGO);
 
 	InstanceParams instanceParams;
 	instanceParams.type = EnvironmentObjectType::Bush_2;

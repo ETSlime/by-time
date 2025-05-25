@@ -8,15 +8,15 @@
 // キャラの共通インターフェース（ISkinnedMeshModelChar）もここにいて、アニメーションのきっかけを提供するの
 // 
 //=============================================================================
+#include "Core/Timer.h"
+#include "Core/Camera.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Graphics/ShadowMeshCollector.h"
+#include "Scene/Scene.h"
 #include "Model/Model.h"
 #include "Model/SkinnedMeshModel.h"
 #include "Collision/CollisionManager.h"
-#include "Core/Timer.h"
-#include "Core/Graphics/ShadowMeshCollector.h"
-#include "Scene/Scene.h"
 #include "Utility/DebugBoundingBoxRenderer.h"
-#include "Core/Camera.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -138,14 +138,15 @@ struct InstanceModelAttribute
 
 struct SkinnedMeshModelInstance
 {
-	char*				modelPath = nullptr;
-	char*				modelName = nullptr;
-	char*				modelFullPath = nullptr;
+	char				modelPath[MODEL_PATH_LENGTH]{};
+	char				modelName[MODEL_NAME_LENGTH]{};
+	char				modelFullPath[MODEL_PATH_LENGTH+MODEL_NAME_LENGTH]{};
 	bool				use = false;
 	bool				load = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 	SkinnedMeshModel*	pModel = nullptr;
+	bool				modelBuildTaskRegistered = false;
 	Transform			transform;
 
 	Attributes		attributes;
@@ -162,13 +163,14 @@ struct SkinnedMeshModelInstance
 
 struct ModelInstance
 {
-	char*				modelPath = nullptr;
+	char				modelPath[MODEL_PATH_LENGTH]{};
 	int					state;
 	bool				use = false;
 	bool				load = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 	Model*				pModel = nullptr;				// モデル情報
+	bool				modelBuildTaskRegistered = false;
 	XMFLOAT4			diffuse[MODEL_MAX_MATERIAL];	// モデルの色
 	Transform			transform;
 
@@ -209,8 +211,8 @@ class GameObject : public IGameObject, public IDebugUI
 public:
 	GameObject();
 	~GameObject();
-	void Instantiate(char* modelPath);
-	void Instantiate(char* modelPath, char* modelName, SkinnedModelType modelType = SkinnedModelType::Default, 
+	void Instantiate(const char* modelPath);
+	void Instantiate(const char* modelPath, const char* modelName, SkinnedModelType modelType = SkinnedModelType::Default, 
 		AnimClipName clipName = AnimClipName::ANIM_NONE);
 	virtual void Update();
 	virtual void Draw();
@@ -296,6 +298,21 @@ public:
 			}
 		}
 
+	}
+
+	bool Deferred_CanRun_ModelReady(void* ptr)
+	{
+		GameObject* obj = (GameObject*)ptr;
+		Model* model = obj->GetModel();
+		return model && model->HasModelData();
+	}
+
+	void Deferred_BuildTrianglesAndOctree(void* ptr)
+	{
+		GameObject* obj = (GameObject*)ptr;
+		Model* model = obj->GetModel();
+		model->BuildTrianglesByBoundingBox(obj->GetCollider().aabb);
+		model->BuildOctree();
 	}
 
 
@@ -408,7 +425,7 @@ GameObject<T>::~GameObject()
 			modelPool->count--;
 			if (modelPool->count == 0)
 			{
-				delete modelPool->pModel;
+				SAFE_DELETE(modelPool->pModel);
 				Model::RemoveModel(instance.modelPath);
 			}
 		}
@@ -421,16 +438,40 @@ template <>
 GameObject<SkinnedMeshModelInstance>::~GameObject();
 
 template <typename T>
-void GameObject<T>::Instantiate(char* modelPath)
+void GameObject<T>::Instantiate(const char* modelPath)
 {
-	instance.modelPath = modelPath;
+	if (instance.load) return; // 既にロード済みなら何もしない
+
+	if (strlen(instance.modelPath) == 0)
+		strcat_s(instance.modelPath, MODEL_PATH_LENGTH, modelPath);
+
 	instance.pModel = Model::StoreModel(modelPath);
-	instance.load = true;
-	instance.use = true;
+
+	if (!instance.modelBuildTaskRegistered)
+	{
+		DeferredTaskSystem:: AddTask(
+			Deferred_BuildTrianglesAndOctree,
+			this,
+			Deferred_CanRun_ModelReady,
+			false
+		);
+		instance.modelBuildTaskRegistered = true;
+	}
+
+	if (instance.pModel)
+	{
+		instance.load = true;
+		instance.use = true;
+	}
+	else
+	{
+		instance.load = false;
+		instance.use = false;
+	}
 }
 
 template <>
-void GameObject<SkinnedMeshModelInstance>::Instantiate(char* modelPath, char* modelName, 
+void GameObject<SkinnedMeshModelInstance>::Instantiate(const char* modelPath, const char* modelName, 
 	SkinnedModelType modelType, AnimClipName clipName);
 
 template<>
@@ -439,6 +480,9 @@ void GameObject< SkinnedMeshModelInstance>::Update();
 template <typename T>
 void GameObject<T>::Update()
 {
+	if (instance.pModel == nullptr)
+		Instantiate(instance.modelPath);
+
 	XMMATRIX mtxScl, mtxRot, mtxTranslate, mtxWorld;
 
 	// ワールドマトリックスの初期化
@@ -495,6 +539,11 @@ void GameObject<T>::Update()
 template <typename T>
 void GameObject<T>::Draw()
 {
+	if (instance.pModel == nullptr || !instance.load || !instance.use)
+	{
+		return; // モデルがロードされていない場合は描画しない
+	}
+
 	// ワールドマトリックスの設定
 	renderer.SetCurrentWorldMatrix(&instance.transform.mtxWorld);
 

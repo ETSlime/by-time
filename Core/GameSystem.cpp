@@ -142,24 +142,9 @@ void GameSystem::ResumeGame(void)
     m_inputManager.SetMouseRecentered(true); // カメラ用：次のフレームでマウス位置リセットを要求
 }
 
-void GameSystem::EnterDialogue(void)
+void GameSystem::PreloadResources(void)
 {
-    m_inDialogue = true;
-}
 
-void GameSystem::ExitDialogue(void)
-{
-    m_inDialogue = false;
-}
-
-void GameSystem::ToggleMiniMap()
-{
-    m_showMiniMap = !m_showMiniMap;
-}
-
-void GameSystem::SetMode(GameMode mode)
-{
-    m_mode = mode;
 }
 
 void GameSystem::HandleInput(void)
@@ -194,6 +179,8 @@ void GameSystem::UpdateTitle(void)
 
 void GameSystem::UpdateGame(void)
 {
+    m_asyncModelLoader.Update(); // 非同期読み込み状態を更新
+
     if (m_isPaused)
         return;
 

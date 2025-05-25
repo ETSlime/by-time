@@ -38,6 +38,9 @@
     <Filter Include="Scene\Character">
       <UniqueIdentifier>{460cb7ef-9a3d-474b-aa85-35a097e1f1a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Async">
+      <UniqueIdentifier>{5424414d-e483-46e2-bf3a-1e40ac85fffd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -233,6 +236,21 @@
     <ClInclude Include="Utility\HashMap.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="Model\OBJLoader.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Async\AsyncModelLoader.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Async\AsyncResourceLoader.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Async\DeferredTaskSystem.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredTaskBinder.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -377,5 +395,17 @@
       <Filter>Scene\Character</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model\OBJLoader.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Async\AsyncModelLoader.cpp">
+      <Filter>Core\Async</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Async\AsyncResourceLoader.cpp">
+      <Filter>Core\Async</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Async\DeferredTaskSystem.cpp">
+      <Filter>Core\Async</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

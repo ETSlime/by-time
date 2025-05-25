@@ -495,7 +495,7 @@ bool Environment::LoadEnvironmentObj(EnvironmentObject* obj)
 			return false;
 	}
 
-    const MODEL_DATA* modelData = obj->modelGO->GetModel()->GetModelData();
+    const StaticModelData* modelData = obj->modelGO->GetModel()->GetModelData();
     BOUNDING_BOX boudningBox = obj->modelGO->GetModel()->GetBoundingBox();
     obj->modelGO->SetIsInstanced(true); // インスタンス化フラグを立てる
 

@@ -202,6 +202,16 @@ public:
         return 0;
     }
 
+    bool empty() const
+    {
+        for (int i = 0; i < size; ++i)
+        {
+            if (buckets[i] != nullptr)
+                return false;
+        }
+        return true;
+    }
+
     bool contains(const Key& key) const 
     { 
         return count(key) != 0; 

@@ -12,7 +12,7 @@
 //*****************************************************************************
 // ÉOÉçÅ[ÉoÉãïœêî
 //*****************************************************************************
-HashMap<char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> SkinnedMeshModel::modelHashMap(
+HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> SkinnedMeshModel::modelHashMap(
     MAX_MODEL_NUM,
     CharPtrHash(),
     CharPtrEquals()
@@ -690,7 +690,7 @@ XMMATRIX CreateRotationMatrix(float pitch, float yaw, float roll)
     return XMMatrixTranspose(Rz * Ry * Rx);
 }
 
-SkinnedMeshModel* SkinnedMeshModel::StoreModel(char* modelPath, char* modelName, char* modelFullPath, 
+SkinnedMeshModel* SkinnedMeshModel::StoreModel(const char* modelPath, const char* modelName, const char* modelFullPath, 
     SkinnedModelType modelType, AnimClipName clipName)
 {
     SkinnedMeshModelPool* modelPool = GetModel(modelFullPath);
@@ -718,7 +718,7 @@ SkinnedMeshModel* SkinnedMeshModel::StoreModel(char* modelPath, char* modelName,
     }
 }
 
-SkinnedMeshModelPool* SkinnedMeshModel::GetModel(char* modelFullPath)
+SkinnedMeshModelPool* SkinnedMeshModel::GetModel(const char* modelFullPath)
 {
     return modelHashMap.search(modelFullPath);
 }

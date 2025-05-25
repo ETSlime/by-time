@@ -219,15 +219,15 @@ public:
 	const SimpleArray<SkinnedMeshPart>& GetMeshParts() const;
 	SkinnedModelType GetModelType(void) const { return modelType; }
 
-	static SkinnedMeshModel* StoreModel(char* modelPath, char* modelName, char* modelFullPath, 
+	static SkinnedMeshModel* StoreModel(const char* modelPath, const char* modelName, const char* modelFullPath, 
 		SkinnedModelType modelType, AnimClipName clipName);
-	static SkinnedMeshModelPool* GetModel(char* modelFullPath);
+	static SkinnedMeshModelPool* GetModel(const char* modelFullPath);
 	static void RemoveModel(char* modelPath);
 
 
 private:
 
-	static HashMap<char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
+	static HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
 
 	void UpdateLimbGlobalTransform(FbxNode* node, FbxNode* deformNode, int& curIdx, int prevIdx, uint64_t time, BoneTransformData* boneTransformData, AnimationInfo& animInfo);
 	void GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, ModelData* modelData);

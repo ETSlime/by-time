@@ -31,7 +31,9 @@ enum TextureType
 // 構造体定義
 //*****************************************************************************
 
+ // 前向宣言
 class Model;
+class AsyncModelLoader;
 
 // マテリアル構造体
 struct MODEL_MATERIAL
@@ -84,7 +86,7 @@ struct SUBSET
 };
 
 // モデル構造体
-struct MODEL_DATA
+struct StaticModelData
 {
 	VERTEX_3D*		VertexArray;
 	unsigned int	VertexNum;
@@ -97,7 +99,7 @@ struct MODEL_DATA
 
 	SimpleArray<Triangle*> triangles;
 
-	MODEL_DATA()
+	StaticModelData()
 	{
 		VertexArray = nullptr;
 		IndexArray = nullptr;
@@ -107,7 +109,7 @@ struct MODEL_DATA
 		SubsetNum = 0;
 	}
 
-	~MODEL_DATA()
+	~StaticModelData()
 	{
 		SAFE_DELETE_ARRAY(VertexArray);
 		SAFE_DELETE_ARRAY(IndexArray);
@@ -141,8 +143,10 @@ struct StaticMeshPart
 
 class Model
 {
+	friend class AsyncModelLoader;
+
 public:
-	Model(char* FileName);
+	Model(const char* FileName, StaticModelData* modelData);
 	Model() = delete;
 
 	~Model();
@@ -159,37 +163,36 @@ public:
 	void BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool alwaysFaceUp = false);
 	bool BuildOctree(void);
 
-	const MODEL_DATA* GetModelData(void) { return modelData; }
-	const SUBSET* GetSubset(void) { return modelData->SubsetArray; }
-	unsigned int GetSubNum(void) { return modelData->SubsetNum; }
-	BOUNDING_BOX GetBoundingBox(void) const { return modelData->boundingBox; }
-	void SetDrawBoundingBox(bool draw) { drawBoundingBox = draw; }
+	const StaticModelData* GetModelData(void) { return m_modelData; }
+	const SUBSET* GetSubset(void) { return m_modelData->SubsetArray; }
+	unsigned int GetSubNum(void) { return m_modelData->SubsetNum; }
+	BOUNDING_BOX GetBoundingBox(void) const { return m_modelData->boundingBox; }
+	void SetDrawBoundingBox(bool draw) { m_drawBoundingBox = draw; }
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 	const SimpleArray<StaticMeshPart>& GetMeshParts(void) const;
 
-	static Model* StoreModel(char* modelPath);
-	static MODEL_POOL* GetModel(char* modelPath);
-	static void RemoveModel(char* modelPath);
+	static Model* StoreModel(const char* modelPath);
+	static MODEL_POOL* GetModel(const char* modelPath);
+	static void RemoveModel(const char* modelPath);
 
 private:
-	void LoadObj(char* FileName, MODEL_DATA* Model);
-	void LoadMaterial(char* FileName, MODEL_MATERIAL** MaterialArray, unsigned int* MaterialNum);
-	void LoadTextureName(char*FileName, FILE* fp, MODEL_MATERIAL* Material, int mc, TextureType type);
+
+	void CreateGPUResources(StaticModelData* modelData);
 	void CreateBoundingBoxVertex(void);
 	void BuildMeshParts(void);
 
 	mutable SimpleArray<StaticMeshPart> m_meshParts;
-	static HashMap<char*, MODEL_POOL, CharPtrHash, CharPtrEquals> modelHashMap;
+	static HashMap<const char*, MODEL_POOL, CharPtrHash, CharPtrEquals> m_modelHashMap;
 
-	ID3D11Buffer*	VertexBuffer;
-	ID3D11Buffer*	IndexBuffer;
+	ID3D11Buffer* m_vertexBuffer = nullptr;
+	ID3D11Buffer* m_indexBuffer = nullptr;
 
-	MODEL_DATA*		modelData;
-	bool			loadTangent = false;
-	bool			drawBoundingBox = false;
+	StaticModelData* m_modelData = nullptr;
+	bool			m_drawBoundingBox = false;
+	bool			m_GPUResource = false; // GPUリソースを生成したかどうか
 
-	ID3D11Buffer* BBVertexBuffer;
+	ID3D11Buffer* m_BBVertexBuffer;
 
-	Renderer& renderer = Renderer::get_instance();
+	Renderer& m_renderer = Renderer::get_instance();
 	ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
 };

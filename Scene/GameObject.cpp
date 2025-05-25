@@ -28,25 +28,18 @@ GameObject<SkinnedMeshModelInstance>::~GameObject()
 }
 
 template <>
-void GameObject<SkinnedMeshModelInstance>::Instantiate(char* modelPath, char* modelName, 
+void GameObject<SkinnedMeshModelInstance>::Instantiate(const char* modelPath, const char* modelName, 
 	SkinnedModelType modelType, AnimClipName clipName)
 {
-	char* modelFullPath = new char[MODEL_NAME_LENGTH] {};
-
-	strcat(modelFullPath, modelPath);
-
+	strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, modelPath);
 	size_t modelPathLength = strlen(modelPath);
 	if (modelPathLength > 0 && modelPath[modelPathLength - 1] != '/' && modelPath[modelPathLength - 1] != '\\')
-	{
-		strcat(modelFullPath, "/");
-	}
+		strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, "/");
 
-	strcat(modelFullPath, modelName);
-
-	instance.modelFullPath = modelFullPath;
-	instance.modelPath = modelPath;
-	instance.modelName = modelName;
-	instance.pModel = SkinnedMeshModel::StoreModel(modelPath, modelName, modelFullPath, modelType, clipName);
+	strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, modelName);
+	strcat_s(instance.modelPath, MODEL_PATH_LENGTH, modelPath);
+	strcat_s(instance.modelName, MODEL_NAME_LENGTH, modelName);
+	instance.pModel = SkinnedMeshModel::StoreModel(modelPath, modelName, instance.modelFullPath, modelType, clipName);
 	if (instance.pModel)
 	{
 		instance.load = true;

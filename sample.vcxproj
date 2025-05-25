@@ -141,6 +141,9 @@
     <ClInclude Include="Collision\AABBUtils.h" />
     <ClInclude Include="Collision\CollisionManager.h" />
     <ClInclude Include="Collision\OctreeNode.h" />
+    <ClInclude Include="Core\Async\AsyncModelLoader.h" />
+    <ClInclude Include="Core\Async\AsyncResourceLoader.h" />
+    <ClInclude Include="Core\Async\DeferredTaskSystem.h" />
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\CursorManager.h" />
     <ClInclude Include="Core\GameSystem.h" />
@@ -157,6 +160,7 @@
     <ClInclude Include="Core\Shader\ShaderResourceBinder.h" />
     <ClInclude Include="Core\TextureMgr.h" />
     <ClInclude Include="Core\Timer.h" />
+    <ClInclude Include="DeferredTaskBinder.h" />
     <ClInclude Include="Effects\EffectSystem.h" />
     <ClInclude Include="Effects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\IEffectRenderer.h" />
@@ -169,6 +173,7 @@
     <ClInclude Include="Model\FBXLoader.h" />
     <ClInclude Include="Model\Model.h" />
     <ClInclude Include="Model\ModelCacheLoader.h" />
+    <ClInclude Include="Model\OBJLoader.h" />
     <ClInclude Include="Model\SkinnedMeshModel.h" />
     <ClInclude Include="Scene\Character\Hilichurl.h" />
     <ClInclude Include="Scene\Character\Lumine.h" />
@@ -206,6 +211,9 @@
     <ClCompile Include="AI\AnimStateMachine.cpp" />
     <ClCompile Include="Collision\AABBUtils.cpp" />
     <ClCompile Include="Collision\CollisionManager.cpp" />
+    <ClCompile Include="Core\Async\AsyncModelLoader.cpp" />
+    <ClCompile Include="Core\Async\AsyncResourceLoader.cpp" />
+    <ClCompile Include="Core\Async\DeferredTaskSystem.cpp" />
     <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Core\CursorManager.cpp" />
     <ClCompile Include="Core\GameSystem.cpp" />
@@ -229,6 +237,7 @@
     <ClCompile Include="Model\FBXLoader.cpp" />
     <ClCompile Include="Model\Model.cpp" />
     <ClCompile Include="Model\ModelCacheLoader.cpp" />
+    <ClCompile Include="Model\OBJLoader.cpp" />
     <ClCompile Include="Model\SkinnedMeshModel.cpp" />
     <ClCompile Include="Scene\Character\Hilichurl.cpp" />
     <ClCompile Include="Scene\Character\Lumine.cpp" />
