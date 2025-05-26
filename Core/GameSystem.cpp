@@ -11,6 +11,8 @@
 
 void GameSystem::Init(void)
 {
+    m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
+
     m_effectSystem.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()); // エフェクトシステムの初期化
 
     m_player = new Player(); // プレイヤーの初期化
@@ -36,11 +38,16 @@ void GameSystem::Shutdown(void)
 
     m_uiManager.Uninit(); // UIManagerの解放
 
-    m_effectSystem.Shutdown();
+	m_effectSystem.Shutdown(); // エフェクトシステムの解放
+
+	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
 
 void GameSystem::Update(void)
 {
+    m_asyncModelLoader.Update(); // 非同期読み込み状態を更新
+    m_deferredTaskSystem.Update(); // 遅延タスクの更新
+
     HandleInput();// 入力処理
 
     bool isPaused = IsPaused(); // ゲームが一時停止中かどうかを確認
@@ -179,8 +186,6 @@ void GameSystem::UpdateTitle(void)
 
 void GameSystem::UpdateGame(void)
 {
-    m_asyncModelLoader.Update(); // 非同期読み込み状態を更新
-
     if (m_isPaused)
         return;
 

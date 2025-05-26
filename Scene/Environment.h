@@ -196,11 +196,14 @@ public:
 
 	void SetDrawBoundingBox(bool draw) { m_drawBoundingBox = draw; }
 
+    static const char* GetModelPathByType(EnvironmentObjectType type);
+
 private:
 
     bool Initialize(void);
     void RenderEnvironmentObj(EnvironmentObject* obj);
     EnvironmentObject* InitializeEnvironmentObj(EnvironmentObjectType type);
+    EnvironmentObject* InitializeEnvironmentObjAttributes(EnvironmentObjectType type);
     bool GetInitRotation(EnvironmentObject* obj, XMFLOAT4& rotation, const Triangle* triangle);
     float GetRandomScale(EnvironmentObjectType type);
     bool CreateInstanceBuffer(EnvironmentObject* obj, const SimpleArray<InstanceData>& instanceDataArray);
@@ -241,4 +244,13 @@ private:
     DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
     Camera& m_camera = Camera::get_instance();
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
+};
+
+
+struct GenerateInstanceContext
+{
+    Environment* environment;
+    InstanceParams instanceParams;
+    IGameObject* fieldGO;
+    const char* modelPath;
 };

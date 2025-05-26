@@ -159,8 +159,8 @@ public:
 	// モデルの指定マテリアルのディフューズをセットする。
 	void SetModelDiffuse(int mno, XMFLOAT4 diffuse);
 
-	void BuildTrianglesByBoundingBox(BOUNDING_BOX box);
-	void BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool alwaysFaceUp = false);
+	void BuildBoundingBoxTriangles(const BOUNDING_BOX& box);
+	void BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
 	bool BuildOctree(void);
 
 	const StaticModelData* GetModelData(void) { return m_modelData; }
@@ -170,6 +170,9 @@ public:
 	void SetDrawBoundingBox(bool draw) { m_drawBoundingBox = draw; }
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 	const SimpleArray<StaticMeshPart>& GetMeshParts(void) const;
+
+	void Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	void Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
 
 	static Model* StoreModel(const char* modelPath);
 	static MODEL_POOL* GetModel(const char* modelPath);

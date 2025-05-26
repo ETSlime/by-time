@@ -77,7 +77,26 @@ bool Environment::Initialize(void)
 
 EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType type)
 {
-    EnvironmentObject* obj;
+    EnvironmentObject* obj = InitializeEnvironmentObjAttributes(type);
+
+    if (obj == nullptr)
+        return nullptr; // オブジェクトの初期化に失敗した場合はnullptrを返す
+
+    if (!LoadEnvironmentObj(obj))
+    {
+        SAFE_DELETE(obj);
+        return nullptr;
+    }
+
+    m_environmentObjects.push_back(obj);
+
+    return obj;
+}
+
+EnvironmentObject* Environment::InitializeEnvironmentObjAttributes(EnvironmentObjectType type)
+{
+    EnvironmentObject* obj = nullptr;
+
 
     switch (type)
     {
@@ -90,11 +109,11 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.collision = false;
         obj->attributes.adaptedToTerrain = true;
         obj->attributes.billboard = false;
-		obj->attributes.isDynamic = false;
+        obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = GRASS_MAX_SLOPE_ANGLE;
         obj->modelPath = GRASS_1_MODEL_PATH;
         obj->extDiffuseTexPath = GRASS_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Grass_2:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -108,7 +127,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = GRASS_MAX_SLOPE_ANGLE;
         obj->modelPath = GRASS_2_MODEL_PATH;
         obj->extDiffuseTexPath = GRASS_2_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Clover_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -122,7 +141,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = CLOVER_MAX_SLOPE_ANGLE;
         obj->modelPath = CLOVER_1_MODEL_PATH;
         obj->extDiffuseTexPath = CLOVER_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Bush_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -135,7 +154,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = BUSH_MAX_SLOPE_ANGLE;
         obj->modelPath = BUSH_1_MODEL_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Bush_2:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -148,7 +167,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = BUSH_MAX_SLOPE_ANGLE;
         obj->modelPath = BUSH_2_MODEL_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Flower_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -162,7 +181,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = FLOWER_MAX_SLOPE_ANGLE;
         obj->modelPath = FLOWER_1_MODEL_PATH;
         obj->extDiffuseTexPath = FLOWER_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Shrubbery_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -176,7 +195,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = SHRUBBERY_MAX_SLOPE_ANGLE;
         obj->modelPath = SHRUBBERY_1_MODEL_PATH;
         obj->extDiffuseTexPath = SHRUBBERY_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Tree_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -190,20 +209,35 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = TREE_MAX_SLOPE_ANGLE;
         obj->modelPath = TREE_1_MODEL_PATH;
         obj->extDiffuseTexPath = TREE_1_TEX_PATH;
-        break;
+        return obj;
     default:
-        return nullptr;
+		return nullptr; // 未対応のタイプはnullptrを返す
     }
+}
 
-    if (!LoadEnvironmentObj(obj))
+const char* Environment::GetModelPathByType(EnvironmentObjectType type)
+{
+    switch (type)
     {
-        SAFE_DELETE(obj);
-        return nullptr;
+	case EnvironmentObjectType::Grass_1:
+		return GRASS_1_MODEL_PATH;
+	case EnvironmentObjectType::Grass_2:
+		return GRASS_2_MODEL_PATH;
+	case EnvironmentObjectType::Clover_1:
+		return CLOVER_1_MODEL_PATH;
+	case EnvironmentObjectType::Bush_1:
+		return BUSH_1_MODEL_PATH;
+	case EnvironmentObjectType::Bush_2:
+		return BUSH_2_MODEL_PATH;
+	case EnvironmentObjectType::Flower_1:
+		return FLOWER_1_MODEL_PATH;
+	case EnvironmentObjectType::Shrubbery_1:
+		return SHRUBBERY_1_MODEL_PATH;
+	case EnvironmentObjectType::Tree_1:
+		return TREE_1_MODEL_PATH;
+	default:
+		return nullptr; // 未対応のタイプはnullptrを返す
     }
-
-    m_environmentObjects.push_back(obj);
-
-    return obj;
 }
 
 Environment::~Environment()
@@ -466,8 +500,10 @@ float Environment::RayIntersectTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT
 bool Environment::LoadEnvironmentObj(EnvironmentObject* obj)
 {
     obj->modelGO = new GameObject<ModelInstance>();
-    obj->modelGO->Instantiate(obj->modelPath);
-	obj->modelGO->SetModelType(ModelType::Instanced);
+    GameObjectConfig config{};
+	config.modelPath = obj->modelPath;
+	config.modelType = ModelType::Instanced;
+    obj->modelGO->Instantiate(config);
 
     const SUBSET* subset = obj->modelGO->GetModel()->GetSubset();
     unsigned int subsetNum = obj->modelGO->GetModel()->GetSubNum();

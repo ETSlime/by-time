@@ -248,7 +248,7 @@
     <ClInclude Include="Core\Async\DeferredTaskSystem.h">
       <Filter>Core\Async</Filter>
     </ClInclude>
-    <ClInclude Include="DeferredTaskBinder.h">
+    <ClInclude Include="Core\Async\DeferredTaskAPI.h">
       <Filter>Core\Async</Filter>
     </ClInclude>
   </ItemGroup>

@@ -25,13 +25,13 @@
 Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType::Hilichurl, transform)
 {
 	Instantiate("data/MODEL/enemy/Hilichurl", "Character_output.fbx", SkinnedModelType::Hilichurl);
-	instance.collider.type = ColliderType::ENEMY;
+	instance.collider.tag = ColliderTag::ENEMY;
 	instance.collider.owner = this;
 	instance.collider.enable = true;
 	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 
 	LoadWeapon("data/MODEL/enemy/Hilichurl", "Stick.fbx");
-	weapon.SetColliderType(ColliderType::ENEMY_ATTACK);
+	weapon.SetColliderTag(ColliderTag::ENEMY_ATTACK);
 	weapon.SetColliderOwner(&weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&weapon.GetCollider());
 

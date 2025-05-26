@@ -72,21 +72,21 @@ public:
 
 private:
 
-	XMFLOAT4X4			m_mtxView;		// ビューマトリックス
-	XMFLOAT4X4			m_mtxInvView;		// ビューマトリックス
-	XMFLOAT4X4			m_mtxProjection;	// プロジェクションマトリックス
-	XMMATRIX			m_projScene;
-	XMMATRIX			m_projSkybox;
+	XMFLOAT4X4			m_mtxView{};		// ビューマトリックス
+	XMFLOAT4X4			m_mtxInvView{};		// ビューマトリックス
+	XMFLOAT4X4			m_mtxProjection{};	// プロジェクションマトリックス
+	XMMATRIX			m_projScene{};
+	XMMATRIX			m_projSkybox{};
 
-	XMFLOAT3			m_pos;			// カメラの視点(位置)
-	XMFLOAT3			m_at;				// カメラの注視点
-	XMFLOAT3			m_up;				// カメラの上方向ベクトル
-	XMFLOAT3			m_rot;			// カメラの回転
+	XMFLOAT3			m_pos{};			// カメラの視点(位置)
+	XMFLOAT3			m_at{};				// カメラの注視点
+	XMFLOAT3			m_up{};				// カメラの上方向ベクトル
+	XMFLOAT3			m_rot{};			// カメラの回転
 
-	float				m_len;			// カメラの視点と注視点の距離
-	float				m_fov;
-	float				m_nearZ;
-	float				m_farZ;
+	float				m_len = 0.0f;			// カメラの視点と注視点の距離
+	float				m_fov = 0.0f;
+	float				m_nearZ = 0.0f;
+	float				m_farZ = 0.0f;
 
 	CameraType			m_CameraType = CameraType::SCENE;
 

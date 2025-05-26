@@ -35,7 +35,6 @@ public:
 	~Ground();
 	void Update(void);
 	void Draw(void);
-	void CollectStaticShadowMeshes(SimpleArray<StaticRenderData>& outMeshes);
 
 private:
 

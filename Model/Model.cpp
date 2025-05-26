@@ -8,7 +8,7 @@
 #include "main.h"
 #include "Model/Model.h"
 #include "Core/Camera.h"
-#include "Core/AsyncModelLoader.h"
+#include "Core/Async/AsyncModelLoader.h"
 #include "Utility/InputManager.h"
 #include "Utility/Debugproc.h"
 #include "Model/ModelCacheLoader.h"
@@ -31,10 +31,7 @@ HashMap<const char*, MODEL_POOL, CharPtrHash, CharPtrEquals> Model::m_modelHashM
 //=============================================================================
 // 初期化処理
 //=============================================================================
-Model::Model(const char *FileName, StaticModelData* modelData)
-{
-
-}
+Model::Model(const char *FileName, StaticModelData* modelData) {}
 
 
 //=============================================================================
@@ -407,7 +404,7 @@ void Model::BuildMeshParts(void)
 	}
 }
 
-void Model::BuildTrianglesByBoundingBox(BOUNDING_BOX box)
+void Model::BuildBoundingBoxTriangles(const BOUNDING_BOX& box)
 {
 	// AABB の 8 つの頂点を定義
 	XMFLOAT3 v0 = XMFLOAT3(box.minPoint.x, box.minPoint.y, box.minPoint.z);
@@ -454,7 +451,7 @@ void Model::BuildTrianglesByBoundingBox(BOUNDING_BOX box)
 	m_modelData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
 }
 
-void Model::BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool alwaysFaceUp)
+void Model::BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
 {
 	XMFLOAT3 worldPos1, worldPos2;
 
@@ -562,6 +559,20 @@ const SimpleArray<StaticMeshPart>& Model::GetMeshParts(void) const
 		const_cast<Model*>(this)->BuildMeshParts();
 	}
 	return m_meshParts;
+}
+
+void Model::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+{
+	BuildBoundingBoxTriangles(box);
+	BuildOctree();
+	SetDrawBoundingBox(drawBoundingBox);
+}
+
+void Model::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+{
+	BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+	BuildOctree();
+	SetDrawBoundingBox(drawBoundingBox);
 }
 
 Model* Model::StoreModel(const char* modelPath)

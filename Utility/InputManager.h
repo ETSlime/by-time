@@ -116,11 +116,11 @@ private:
 	//------------------------------- keyboard
 	LPDIRECTINPUT8			m_pDInput = NULL;					// IDirectInput8インターフェースへのポインタ
 	LPDIRECTINPUTDEVICE8	m_pDIDevKeyboard = NULL;			// IDirectInputDevice8インターフェースへのポインタ(キーボード)
-	BYTE					m_keyState[NUM_KEY_MAX];			// キーボードの状態を受け取るワーク
-	BYTE					m_keyStateTrigger[NUM_KEY_MAX];		// キーボードの状態を受け取るワーク
-	BYTE					m_keyStateRepeat[NUM_KEY_MAX];		// キーボードの状態を受け取るワーク
-	BYTE					m_keyStateRelease[NUM_KEY_MAX];		// キーボードの状態を受け取るワーク
-	int						m_keyStateRepeatCnt[NUM_KEY_MAX];	// キーボードのリピートカウンタ
+	BYTE					m_keyState[NUM_KEY_MAX]{};			// キーボードの状態を受け取るワーク
+	BYTE					m_keyStateTrigger[NUM_KEY_MAX]{};		// キーボードの状態を受け取るワーク
+	BYTE					m_keyStateRepeat[NUM_KEY_MAX]{};		// キーボードの状態を受け取るワーク
+	BYTE					m_keyStateRelease[NUM_KEY_MAX]{};		// キーボードの状態を受け取るワーク
+	int						m_keyStateRepeatCnt[NUM_KEY_MAX]{};	// キーボードのリピートカウンタ
 
 	//--------------------------------- mouse
 	LPDIRECTINPUTDEVICE8 m_pMouse = NULL; // mouse
@@ -132,8 +132,8 @@ private:
 
 	LPDIRECTINPUTDEVICE8	m_pGamePad[GAMEPADMAX] = { NULL,NULL,NULL,NULL };// パッドデバイス
 
-	DWORD	m_padState[GAMEPADMAX];	// パッド情報（複数対応）
-	DWORD	m_padTrigger[GAMEPADMAX];
+	DWORD	m_padState[GAMEPADMAX]{};	// パッド情報（複数対応）
+	DWORD	m_padTrigger[GAMEPADMAX]{};
 	int		m_padCount = 0;			// 検出したパッドの数
 };
 

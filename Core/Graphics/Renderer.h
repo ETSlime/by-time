@@ -299,7 +299,7 @@ struct RenderProgressBuffer
 {
 	float progress = 0.0f;
 	int isRandomFade = true;
-	XMFLOAT2 padding;
+	XMFLOAT2 padding{};
 };
 
 struct InstanceData

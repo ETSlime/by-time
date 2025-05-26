@@ -9,8 +9,8 @@
 #pragma once
 #include "main.h"
 #include "Core/Camera.h"
-#include "Core/AsyncResourceLoader.h"
-#include "Core/AsyncModelLoader.h"
+#include "Core/Async/AsyncResourceLoader.h"
+#include "Core/Async/AsyncModelLoader.h"
 #include "Core/CursorManager.h"
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
@@ -83,7 +83,8 @@ protected:
         , m_effectSystem(EffectSystem::get_instance())
         , m_shaderManager(ShaderManager::get_instance())
         , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
-        , m_asyncModelLoader(AsyncModelLoader::get_instance()) {}
+        , m_asyncModelLoader(AsyncModelLoader::get_instance())
+        , m_deferredTaskSystem(DeferredTaskSystem::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -122,6 +123,7 @@ private:
     InputManager& m_inputManager;
     AsyncResourceLoader& m_asyncResourceLoader;
     AsyncModelLoader& m_asyncModelLoader;
+	DeferredTaskSystem& m_deferredTaskSystem;
 
     // モードごとの更新と描画関数
     void UpdateTitle(void);

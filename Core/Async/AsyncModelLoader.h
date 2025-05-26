@@ -22,7 +22,7 @@
 //*****************************************************************************
 struct ModelLoadTask 
 {
-    char modelPath[MAX_MODEL_PATH];         // .fbx / .obj “™
+    char modelPath[MAX_MODEL_PATH]{};         // .fbx / .obj “™
     bool isDone = false;
     bool hasFailed = false;
     StaticModelData* parsedData = nullptr;

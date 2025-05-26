@@ -6,6 +6,7 @@
 //=============================================================================
 #include "main.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Async//DeferredTaskAPI.h"
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
 #include "Utility/Debugproc.h"
@@ -56,7 +57,7 @@ Ground::Ground()
 	//	treeGO->GetSkinnedMeshModel()->SetBoundingBoxLocationOffset(XMFLOAT3(-0.55f, 0.0f, 0.2f));
 	//	treeGO->SetColliderOwner(treeGO);
 	//	treeGO->SetColliderEnable(true);
-	//	treeGO->SetColliderType(ColliderType::TREE);
+	//	treeGO->SetColliderTag(ColliderTag::TREE);
 	//	CollisionManager::get_instance().RegisterDynamicCollider(&treeGO->GetCollider());
 
 	//	skinnedMeshGroundGO.push_back(treeGO);
@@ -98,17 +99,22 @@ Ground::Ground()
 	//groundGO.push_back(fieldGO);
 
 	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
-	bonfireGO->Instantiate(MODEL_BONFIRE_PATH);
-	bonfireGO->SetScale(XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE));
-	bonfireGO->SetPosition(XMFLOAT3(12582.0f, -2051.0f, -19485.0f));
-	bonfireGO->Update();
-	bonfireGO->SetCastShadow(true);
-	worldMatrix = bonfireGO->GetWorldMatrix();
-	BOUNDING_BOX boundingBox = bonfireGO->GetCollider().aabb;
-	bonfireGO->GetModel()->BuildTrianglesByBoundingBox(boundingBox);
-	bonfireGO->GetModel()->BuildOctree();
-	bonfireGO->GetModel()->SetDrawBoundingBox(true);
+	GameObjectConfig bonfireConfig{};
+	bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
+	bonfireConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
+	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE);
+	bonfireConfig.position = XMFLOAT3(12582.0f, -2051.0f, -19485.0f);
+	bonfireConfig.drawWorldAABB = true;
+	bonfireGO->Instantiate(bonfireConfig);
 	m_groundGO.push_back(bonfireGO);
+
+	GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
+	GameObjectConfig banyanConfig{};
+	banyanConfig.modelPath = MODEL_BANYAN_PATH;
+	banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
+	banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
+	banyanGO->Instantiate(banyanConfig);
+	m_groundGO.push_back(banyanGO);
 
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;
@@ -144,11 +150,6 @@ Ground::Ground()
 	fireparams.startSpeedMax = 3.0f;
 	EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	
-	GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	banyanGO->Instantiate(MODEL_BANYAN_PATH);
-	banyanGO->SetPosition(XMFLOAT3(-12280.0f, -2254.0f, -4650.0f));
-	banyanGO->SetScale(XMFLOAT3(50.0f, 50.0f, 50.0f));
-	m_groundGO.push_back(banyanGO);
 
 	InstanceParams instanceParams;
 	instanceParams.type = EnvironmentObjectType::Bush_2;
@@ -166,8 +167,55 @@ Ground::Ground()
 		0.3f
 	));
 
+	// 環境オブジェクト管理クラスのインスタンス生成
 	m_environment = new Environment();
-	m_environment->GenerateInstanceByParams(instanceParams, fieldGO->GetSkinnedMeshModel(), fieldGO->GetBoundingBoxWorld());
+	const char* environmentModelPath = Environment::GetModelPathByType(instanceParams.type);
+
+	// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
+	if (Model::GetModel(environmentModelPath))
+	{
+		m_environment->GenerateInstanceByParams(
+			instanceParams, 
+			fieldGO->GetSkinnedMeshModel(), 
+			fieldGO->GetBoundingBoxWorld());
+	}
+	else // モデルがロードされていない場合は非同期でロードしてから実行
+	{
+		// 遅延用コンテキスト構築
+		auto* ctx = new GenerateInstanceContext{
+			m_environment,
+			instanceParams,
+			fieldGO,
+			environmentModelPath
+		};
+		DeferredTaskOptions options{};
+		options.async = false; // 非同期実行
+		options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
+
+		RawDeferredTask::Add(
+			ctx,
+			[](void* ptr)
+			{
+				auto* c = static_cast<GenerateInstanceContext*>(ptr);
+				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(c->fieldGO);
+				if (!fieldGO) return;
+				// 環境オブジェクトのインスタンスを生成
+				c->environment->GenerateInstanceByParams(
+					c->instanceParams,
+					fieldGO->GetSkinnedMeshModel(),
+					c->fieldGO->GetBoundingBoxWorld()
+				);
+			},
+			[](void* ptr)
+			{
+				// モデルのロード要求を発行（非同期ロードを開始）
+				auto* c = static_cast<GenerateInstanceContext*>(ptr);
+				Model::StoreModel(c->modelPath);
+				return Model::GetModel(c->modelPath) != nullptr;
+			},
+			options
+		);
+	}
 	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
 }
 
@@ -180,7 +228,7 @@ Ground::~Ground()
 	for (int i = 0; i < size; i++)
 	{
 		if (m_groundGO[i])
-			delete m_groundGO[i];
+			SAFE_DELETE(m_groundGO[i]);
 	}
 }
 
@@ -202,7 +250,7 @@ void Ground::Update(void)
 		if (m_skinnedMeshGroundGO[i]->GetUse() == false) continue;
 		m_skinnedMeshGroundGO[i]->Update();
 
-		//if (skinnedMeshGroundGO[i]->GetCollider().type == ColliderType::TREE)
+		//if (skinnedMeshGroundGO[i]->GetCollider().type == ColliderTag::TREE)
 		//{
 		//	if (skinnedMeshGroundGO[i]->GetAttributes().isGrounded == false)
 		//	{
@@ -258,18 +306,6 @@ void Ground::Draw(void)
 	}
 
 	m_renderer.SetLightModeBuffer(0);
-}
-
-void Ground::CollectStaticShadowMeshes(SimpleArray<StaticRenderData>& outMeshes)
-{
-	//UINT size = groundGO.getSize();
-	//for (UINT i = 0; i < size; ++i)
-	//{
-	//	auto* go = groundGO[i];
-	//	if (!go->GetUse() || !go->GetCastShadow()) continue;
-
-	//	go->CollectShadowMeshes(outMeshes);
-	//}
 }
 
 void Ground::RenderImGui(void)

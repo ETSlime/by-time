@@ -143,6 +143,7 @@
     <ClInclude Include="Collision\OctreeNode.h" />
     <ClInclude Include="Core\Async\AsyncModelLoader.h" />
     <ClInclude Include="Core\Async\AsyncResourceLoader.h" />
+    <ClInclude Include="Core\Async\DeferredTaskAPI.h" />
     <ClInclude Include="Core\Async\DeferredTaskSystem.h" />
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\CursorManager.h" />
@@ -160,7 +161,6 @@
     <ClInclude Include="Core\Shader\ShaderResourceBinder.h" />
     <ClInclude Include="Core\TextureMgr.h" />
     <ClInclude Include="Core\Timer.h" />
-    <ClInclude Include="DeferredTaskBinder.h" />
     <ClInclude Include="Effects\EffectSystem.h" />
     <ClInclude Include="Effects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\IEffectRenderer.h" />

@@ -5,8 +5,8 @@
 //
 //
 //=============================================================================
-#include "Core/AsyncModelLoader.h"
-#include "Core/DeferredTaskSystem.h"
+#include "Core/Async/AsyncModelLoader.h"
+#include "Core/Async/DeferredTaskSystem.h"
 #include "Core/Timer.h"
 #include "Model/FBXLoader.h"
 #include "Model/ModelCacheLoader.h"
@@ -34,12 +34,15 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
     ModelLoadTask* task = new ModelLoadTask();
     strcpy_s(task->modelPath, MAX_MODEL_PATH, modelPath);
 
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
     DeferredTaskSystem::get_instance().AddTask(
         AsyncModelLoader_LoadModel,
         task,
         AsyncModelLoader_CanStart,
-        true
+        options
     );
 
 	// タスクをマップに登録
@@ -63,10 +66,10 @@ void AsyncModelLoader::Update()
         }
 
         // 原地ソート（バブルソート：優先度の高い順）
-        int n = m_cachedSortArray.getSize();
-        for (int i = 0; i < n - 1; ++i)
+        UINT n = m_cachedSortArray.getSize();
+        for (UINT i = 0; i < n - 1; ++i)
         {
-            for (int j = 0; j < n - i - 1; ++j)
+            for (UINT j = 0; j < n - i - 1; ++j)
             {
                 if (m_cachedSortArray[j].info.priority < m_cachedSortArray[j + 1].info.priority)
                 {
@@ -79,7 +82,7 @@ void AsyncModelLoader::Update()
         }
 
         // 優先度順に Enqueue
-        for (int i = 0; i < m_cachedSortArray.getSize(); ++i) 
+        for (UINT i = 0; i < m_cachedSortArray.getSize(); ++i) 
         {
             EnqueueLoad(m_cachedSortArray[i].modelPath);
         }

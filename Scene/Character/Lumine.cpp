@@ -38,13 +38,13 @@
 Lumine::Lumine()
 {
 	Instantiate("data/MODEL/character/Lumine", "Character_output.fbx", SkinnedModelType::Lumine);
-	instance.collider.type = ColliderType::PLAYER;
+	instance.collider.tag = ColliderTag::PLAYER;
 	instance.collider.owner = this;
 	instance.collider.enable = true;
 	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
-	m_weapon.SetColliderType(ColliderType::PLAYER_ATTACK);
+	m_weapon.SetColliderTag(ColliderTag::PLAYER_ATTACK);
 	m_weapon.SetColliderOwner(&m_weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&m_weapon.GetCollider());
 	

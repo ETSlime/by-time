@@ -12,6 +12,7 @@
 #include "Core/Camera.h"
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMeshCollector.h"
+#include "Core/Async/DeferredTaskAPI.h"
 #include "Scene/Scene.h"
 #include "Model/Model.h"
 #include "Model/SkinnedMeshModel.h"
@@ -32,6 +33,13 @@ enum class ModelType
 	Static,
 	SkinnedMesh,
 	Instanced,
+};
+
+enum class ObjectCollisionType
+{
+	NONE,
+	MESH_BOUNDING_BOX,
+	OBJECT_BOUNDING_BOX,
 };
 
 #define DRAW_BOUNDING_BOX       1
@@ -58,72 +66,38 @@ struct Transform
 
 struct Attributes
 {
-	XMFLOAT4X4		mtxWorld;	// ワールドマトリックス
+	XMFLOAT4X4		mtxWorld = XMFLOAT4X4();	// ワールドマトリックス
 
-	bool			load;
+	float			spd = 0.0f;		// 移動スピード
+	float			dir = 0.0f;		// 向き
+	float			targetDir = 0.0f;
+	bool			use = true;
 
-	float			spd;		// 移動スピード
-	float			dir;		// 向き
-	float			targetDir;
-	float			size;		// 当たり判定の大きさ
-	bool			use;
+	bool			stopRun = true;
+	bool			isMoving = false;
+	bool			isRotating = false;
+	bool			isRunning = false;
+	bool			isAttacking = false;
+	bool			isAttacking2 = false;
+	bool			isAttacking3 = false;
+	bool			isDashing = false;
+	bool			isJumping = false;
+	bool			isGrounded = false;
+	bool			isMoveBlocked = false;
+	bool			isHit1 = false;
+	bool			isHit2 = false;
+	float			hitTimer = 0;
 
-	bool			stopRun;
-	bool			isMoving;
-	bool			isRotating;
-	bool			isRunning;
-	bool			isAttacking;
-	bool			isAttacking2;
-	bool			isAttacking3;
-	bool			isDashing;
-	bool			isJumping;
-	bool			isGrounded;
-	bool			isMoveBlocked;
-	bool			isHit1;
-	bool			isHit2;
-	float			hitTimer;
+	bool			charSwitchEffect = false;
 
-	bool			charSwitchEffect;
-
-	bool			attackWindow2;
-	bool			attackWindow3;
-	float			attackWinwdowCnt;
-
-	Attributes()
-	{
-		load = TRUE;
-		spd = 0.0f;
-		dir = 0.0f;
-		size = 0.0f;
-		use = TRUE;
-		targetDir = 0.0f;
-		stopRun = TRUE;
-		isMoving = FALSE;
-		isRotating = FALSE;
-		isRunning = FALSE;
-		isAttacking = FALSE;
-		isAttacking2 = FALSE;
-		isAttacking3 = FALSE;
-		isDashing = FALSE;
-		isJumping = FALSE;
-		isGrounded = FALSE;
-		isMoveBlocked = FALSE;
-		isHit1 = FALSE;
-		isHit2 = FALSE;
-		hitTimer = 0;
-
-		attackWindow2 = FALSE;
-		attackWindow3 = FALSE;
-		attackWinwdowCnt = 0;
-
-		charSwitchEffect = FALSE;
-
-		mtxWorld = XMFLOAT4X4();
-	}
+	bool			attackWindow2 = false;
+	bool			attackWindow3 = false;
+	float			attackWinwdowCnt = 0;
 };
 
 struct InstanceModelAttribute
 {
+	bool			initialized = false;
 	bool			isInstanced = false;
 	bool			isCollision = false;
 	UINT			instanceCount = 0;
@@ -148,9 +122,9 @@ struct SkinnedMeshModelInstance
 	SkinnedMeshModel*	pModel = nullptr;
 	bool				modelBuildTaskRegistered = false;
 	Transform			transform;
-
-	Attributes		attributes;
-	Collider		collider;
+	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	Attributes			attributes;
+	Collider			collider;
 
 	BOOL			isSelected = false;
 	BOOL			isCursorIn = false;
@@ -163,19 +137,19 @@ struct SkinnedMeshModelInstance
 
 struct ModelInstance
 {
-	char				modelPath[MODEL_PATH_LENGTH]{};
-	int					state;
+	char*				modelPath = nullptr;
 	bool				use = false;
 	bool				load = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
+
 	Model*				pModel = nullptr;				// モデル情報
 	bool				modelBuildTaskRegistered = false;
-	XMFLOAT4			diffuse[MODEL_MAX_MATERIAL];	// モデルの色
+	XMFLOAT4			diffuse[MODEL_MAX_MATERIAL]{};	// モデルの色
 	Transform			transform;
-
-	Attributes		attributes;
-	Collider		collider;
+	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	Attributes			attributes;
+	Collider			collider;
 
 	BOOL			isSelected = false;
 	BOOL			isCursorIn = false;
@@ -190,6 +164,18 @@ struct ModelInstance
 
 };
 
+struct GameObjectConfig 
+{
+	const char* modelPath = nullptr;
+	XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
+	XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+	bool castShadow = true;
+	bool drawWorldAABB = false;
+	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ModelType modelType = ModelType::Static;
+};
+
+
 // 非テンプレート基底クラス
 class IGameObject
 {
@@ -197,6 +183,7 @@ public:
 	virtual ~IGameObject() = default;
 
 	virtual bool GetUse() const = 0;
+	virtual bool GetLoad() const = 0;
 	virtual bool GetCastShadow() const = 0;
 	virtual BOUNDING_BOX GetBoundingBoxWorld() const = 0;
 	virtual const XMMATRIX& GetWorldMatrix() const = 0;
@@ -211,7 +198,7 @@ class GameObject : public IGameObject, public IDebugUI
 public:
 	GameObject();
 	~GameObject();
-	void Instantiate(const char* modelPath);
+	void Instantiate(const GameObjectConfig& config);
 	void Instantiate(const char* modelPath, const char* modelName, SkinnedModelType modelType = SkinnedModelType::Default, 
 		AnimClipName clipName = AnimClipName::ANIM_NONE);
 	virtual void Update();
@@ -247,11 +234,14 @@ public:
 
 	inline XMFLOAT4* GetDiffuse() { return instance.diffuse; }
 	inline bool GetUse() const override { return instance.use; }
+	inline bool GetLoad() const override { return instance.load; }
 	inline void SetUse(bool use) { instance.use = use; }
 	inline bool GetCastShadow() const override { return instance.castShadow; }
 	inline void SetCastShadow(bool shadow) { instance.castShadow = shadow; }
 	inline void GetEnableAlphaTest(void) { return instance.enableAlphaTest; }
 	inline void SetEnableAlphaTest(bool alpha) { instance.enableAlphaTest = alpha; }
+	inline void SetCollisionType(ObjectCollisionType type) { instance.collisionType = type; }
+	inline ObjectCollisionType GetCollisionType(void) { return instance.collisionType; }
 
 	// インスタンス化されたモデルかどうか
 	inline void SetIsInstanced(bool instanced) { instance.instanceAttribute.isInstanced = instanced; }
@@ -291,30 +281,18 @@ public:
 			for (UINT i = 0; i < totalCount; i++)
 			{
 				Collider* collider = &(*instance.instanceAttribute.colliderArray)[i];
-				collider->type = ColliderType::STATIC_OBJECT;
+				collider->tag = ColliderTag::STATIC_OBJECT;
 				collider->owner = this;
 				collider->enable = true;
 				CollisionManager::get_instance().RegisterDynamicCollider(collider);
 			}
 		}
 
+		instance.instanceAttribute.initialized = true;
 	}
 
-	bool Deferred_CanRun_ModelReady(void* ptr)
-	{
-		GameObject* obj = (GameObject*)ptr;
-		Model* model = obj->GetModel();
-		return model && model->HasModelData();
-	}
-
-	void Deferred_BuildTrianglesAndOctree(void* ptr)
-	{
-		GameObject* obj = (GameObject*)ptr;
-		Model* model = obj->GetModel();
-		model->BuildTrianglesByBoundingBox(obj->GetCollider().aabb);
-		model->BuildOctree();
-	}
-
+	// モデルがロードされているかチェック
+	inline bool DeferredCanRunModelReady() { return instance.pModel; }
 
 	inline BOOL GetIsModelSelected() { return instance.isSelected; }
 	inline BOOL GetIsCursorIn() { return instance.isCursorIn; }
@@ -325,7 +303,7 @@ public:
 	inline void UpdateAttributes(Attributes attributes) { instance.attributes = attributes; }
 
 	// 物理演算用の当たり判定
-	inline void SetColliderType(ColliderType type) { instance.collider.type = type; }
+	inline void SetColliderTag(ColliderTag tag) { instance.collider.tag = tag; }
 	inline void SetColliderOwner(void* owner) { instance.collider.owner = owner; }
 	inline void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
 	inline void SetColliderBoundingBox(BOUNDING_BOX boundingBox) { instance.collider.aabb = boundingBox; }
@@ -359,7 +337,13 @@ public:
 
 protected:
 	TModel instance;
+	GameObjectConfig m_config;
 	DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
+};
+
+struct InstantiateTaskContext
+{
+	GameObject<ModelInstance>* owner;
 };
 
 class ISkinnedMeshModelChar
@@ -438,35 +422,93 @@ template <>
 GameObject<SkinnedMeshModelInstance>::~GameObject();
 
 template <typename T>
-void GameObject<T>::Instantiate(const char* modelPath)
+void GameObject<T>::Instantiate(const GameObjectConfig& config)
 {
 	if (instance.load) return; // 既にロード済みなら何もしない
 
-	if (strlen(instance.modelPath) == 0)
-		strcat_s(instance.modelPath, MODEL_PATH_LENGTH, modelPath);
+	// モデルパスが空なら設定
+	if (!instance.modelPath)
+		instance.modelPath = const_cast<char*>(config.modelPath);
 
-	instance.pModel = Model::StoreModel(modelPath);
+	instance.pModel = Model::StoreModel(config.modelPath);
 
+	// モデルのビルドタスクを登録
 	if (!instance.modelBuildTaskRegistered)
 	{
-		DeferredTaskSystem:: AddTask(
-			Deferred_BuildTrianglesAndOctree,
-			this,
-			Deferred_CanRun_ModelReady,
-			false
-		);
+		m_config = config; // コンフィグを保存
+		SetCollisionType(m_config.collisionType);
+		SetScale(m_config.scale);
+		SetPosition(m_config.position);
+		SetCastShadow(m_config.castShadow);
+		SetDrawWorldAABB(m_config.drawWorldAABB);
+		SetModelType(m_config.modelType);
+
+		DeferredTaskOptions options{};
+
+		// 非同期で実行するかどうかを決定
+		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
+		options.debugName = "GameObject_InstantiateModel"; // デバッグ用の名前
+		auto* context = new InstantiateTaskContext{ this }; // コンテキストを作成して渡す
+
+		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				context, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					const XMMATRIX& worldMatrix = context->owner->GetWorldMatrix();
+					Model* model = context->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildMeshTriangles(worldMatrix, true, context->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					// モデルがロードされているかチェック
+					return context->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
+		else if (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				context, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					const BOUNDING_BOX& boundingBox = context->owner->GetCollider().aabb;
+					Model* model = context->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildBoundingBoxTriangles(boundingBox, context->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					// モデルがロードされているかチェック
+					return context->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
+
 		instance.modelBuildTaskRegistered = true;
 	}
 
+	instance.use = true; // モデルを使用するフラグを立てる
+
 	if (instance.pModel)
 	{
-		instance.load = true;
-		instance.use = true;
+		instance.load = true; // モデルがロードされたらロードフラグを立てる
 	}
 	else
 	{
-		instance.load = false;
-		instance.use = false;
+		instance.load = false; // モデルがロードできなかった場合はロードフラグを下げる
 	}
 }
 
@@ -481,7 +523,10 @@ template <typename T>
 void GameObject<T>::Update()
 {
 	if (instance.pModel == nullptr)
-		Instantiate(instance.modelPath);
+	{
+		Instantiate(m_config);
+		if (!instance.load) return; // モデルがロードされていない場合は何もしない
+	}
 
 	XMMATRIX mtxScl, mtxRot, mtxTranslate, mtxWorld;
 

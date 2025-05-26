@@ -196,6 +196,10 @@ public:
         {
             array[i] = std::move(array[i + 1]);
         }
+
+        // 最後の要素を明示的にデストラクタ呼び出し（デバッグ安全）
+        array[size - 1] = T(); // または std::move(T()) / std::default_constructed<T>()
+
         size--;
     }
 

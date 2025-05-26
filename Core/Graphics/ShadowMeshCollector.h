@@ -18,12 +18,12 @@
 //*********************************************************
 struct MeshRenderData
 {
-    ID3D11Buffer* vertexBuffer;
-    ID3D11Buffer* indexBuffer;
-    UINT stride;
-    UINT indexCount;
-    DXGI_FORMAT indexFormat;
-    XMMATRIX worldMatrix;
+    ID3D11Buffer* vertexBuffer = nullptr;
+    ID3D11Buffer* indexBuffer = nullptr;
+    UINT stride = 0;
+    UINT indexCount = 0;
+    DXGI_FORMAT indexFormat{};
+    XMMATRIX worldMatrix{};
 
     ID3D11ShaderResourceView* opacityMapSRV = nullptr;
     bool enableAlphaTest = false;

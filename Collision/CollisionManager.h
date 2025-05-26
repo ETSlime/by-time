@@ -16,7 +16,7 @@
 //*****************************************************************************
 
 // 衝突器の種類を表す列挙型
-enum class ColliderType 
+enum class ColliderTag 
 {
     DEFAULT,
     PLAYER,
@@ -37,14 +37,14 @@ class Collider
 {
 public:
     BOUNDING_BOX aabb; // ワールド座標での衝突判定用
-    ColliderType type; // 衝突器の種類
+    ColliderTag tag; // 衝突器の種類
     void* owner;
     bool enable;
 
     Collider()
     {
         aabb = BOUNDING_BOX();
-        type = ColliderType::DEFAULT;
+        tag = ColliderTag::DEFAULT;
         enable = false;
         owner = nullptr;
     }
