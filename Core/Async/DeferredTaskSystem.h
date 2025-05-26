@@ -1,21 +1,24 @@
 #pragma once
 //=============================================================================
 //
-// [DeferredTaskSystem.h]
+// 先送りでも忘れない！完璧スケジュール係ちゃん [DeferredTaskSystem.h]
 // Author : 
-//
+// 遅延タスク・非同期実行・タイムアウト管理をこなす、頼もしすぎる万能タスク調整クラスですっ！
+// タスクを「今じゃないけどあとでね~」ってちゃんと覚えててくれる、几帳面お姉さんなの~
 //
 //=============================================================================
 #include "main.h"
 #include "Utility/SimpleArray.h"
 #include "Utility/SingletonBase.h"
 #include "Core/Timer.h"
+#include "Core/Async/ThreadPool.h"
 
 // ==========================
 // ジェネリック延期タスク系統（任意のクラスで使用可）
 // ==========================
-typedef void (*DeferredFunc)(void*);
-typedef bool (*DeferredCanRunFunc)(void*);
+typedef void (*DeferredFunc)(void*); // タスクを実行する関数の型
+typedef bool (*DeferredCanRunFunc)(void*); // タスクが実行可能かどうかを判定する関数（nullptr の場合は常に実行可能）
+typedef void (*CallbackFunc)(void*); // コールバック関数の型
 
 struct DeferredTask
 {
@@ -28,9 +31,15 @@ struct DeferredTask
 	float timeoutElapsed;			  // タイムアウト経過時間（秒）
 	float runningTime;				  // 実行開始時間（秒）
 	bool isRunning;					  // タスクが実行中かどうか
-	bool isFinished;				  // タスクが完了したかどうか
 	bool runAsync;                    // 非同期実行
+	HANDLE finishEvent;				  // タスク完了イベント（非同期実行時に使用）
 	char* debugName;			      // デバッグ用の名前
+
+	// コールバック関連
+	CallbackFunc onComplete = nullptr;
+	void* callbackParam = nullptr;
+	bool callbackAsync = false;
+
 }; // タスクの情報を保持する構造体
 
 
@@ -40,22 +49,11 @@ struct DeferredTaskOptions
 	float delay = 0.0f;
 	float timeout = -1.0f;
 	const char* debugName = nullptr;
+
+	CallbackFunc onComplete = nullptr;
+	void* callbackParam = nullptr;
+	bool callbackAsync = false;
 }; // タスクのオプション設定
-
-// ==========================
-// ThreadPool 再利用
-// ==========================
-class ThreadPool 
-{
-public:
-	static void Init() {}
-	static void Shutdown() {}
-
-	static void RunAsync(void (*func)(void*), void* param) 
-	{
-		CreateThread(nullptr, 0, (LPTHREAD_START_ROUTINE)func, param, 0, nullptr);
-	}
-};
 
 class DeferredTaskSystem : public SingletonBase<DeferredTaskSystem>, public IDebugUI
 {

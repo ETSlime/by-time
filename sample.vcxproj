@@ -145,6 +145,7 @@
     <ClInclude Include="Core\Async\AsyncResourceLoader.h" />
     <ClInclude Include="Core\Async\DeferredTaskAPI.h" />
     <ClInclude Include="Core\Async\DeferredTaskSystem.h" />
+    <ClInclude Include="Core\Async\ThreadPool.h" />
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\CursorManager.h" />
     <ClInclude Include="Core\GameSystem.h" />

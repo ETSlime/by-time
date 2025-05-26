@@ -251,6 +251,9 @@
     <ClInclude Include="Core\Async\DeferredTaskAPI.h">
       <Filter>Core\Async</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Async\ThreadPool.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">

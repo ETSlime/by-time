@@ -90,6 +90,19 @@ public:
         size++;
     }
 
+    void pop_back()
+    {
+        if (size == 0) return;
+
+        size--;
+
+        // 要素のデストラクタを明示的に呼び出し（非トリビアル型に対応）
+        if (!std::is_trivially_destructible<T>::value)
+        {
+            array[size].~T();
+        }
+    }
+
     void push_back(T&& item) {
         if (size >= capacity) {
             int newCapacity = (capacity == 0) ? 4 : capacity * 2;

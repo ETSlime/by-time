@@ -29,6 +29,8 @@ void DeferredTaskSystem::AddTask(DeferredFunc execFunc, void* param, DeferredCan
 {
     if (m_shutdown) return;
 
+	HANDLE eventHandle = ThreadPool::get_instance().AcquireFinishEvent(); // タスク完了イベントを作成
+
 	// タスクの初期化
 	DeferredTask task;
 	task.executeFunc = execFunc; // タスクを実行する関数
@@ -41,8 +43,14 @@ void DeferredTaskSystem::AddTask(DeferredFunc execFunc, void* param, DeferredCan
 	task.timeoutElapsed = 0.0f; // タイムアウト経過時間を初期化
 	task.runningTime = 0.0f; // 実行開始時間を初期化
 	task.isRunning = false; // タスクはまだ実行されていない
-	task.isFinished = false; // タスクはまだ完了していない
+	task.finishEvent = eventHandle; // タスクはまだ完了していない
 	task.debugName = options.debugName ? const_cast<char*>(options.debugName) : nullptr; // デバッグ用の名前を設定
+
+	// コールバック関連の設定
+    task.onComplete = options.onComplete;
+    task.callbackParam = options.callbackParam;
+    task.callbackAsync = options.callbackAsync;
+
 	m_tasks.push_back(task);
 }
 
@@ -53,9 +61,21 @@ void DeferredTaskSystem::Update(void)
     {
         DeferredTask& task = m_tasks[i];
 
-        if (task.isRunning && task.isFinished)
+        // 子?程で完了済みの場合は削除
+        if (task.isRunning && task.finishEvent &&
+            WaitForSingleObject(task.finishEvent, 0) == WAIT_OBJECT_0) 
         {
-			m_tasks.erase(i); // タスクが完了している場合はリストから削除
+            // コールバック処理（存在する場合のみ）
+            if (task.onComplete) 
+            {
+				// コールバックが非同期実行の場合はスレッドプールを使用
+                if (task.callbackAsync) 
+                    ThreadPool::get_instance().RunAsync(task.onComplete, task.callbackParam);
+				else  // コールバックを直接実行
+                    task.onComplete(task.callbackParam);
+            }
+			ThreadPool::get_instance().ReleaseFinishEvent(task.finishEvent); // タスク完了イベントを解放
+            m_tasks.erase(i); // タスクが完了している場合はリストから削除
             if (i > 0) --i;
             continue;
         }
@@ -74,6 +94,7 @@ void DeferredTaskSystem::Update(void)
         if (task.timeoutSec > 0.0f && task.timeoutElapsed > task.timeoutSec) 
         {
             OutputDebugStringA("[DeferredTaskSystem] タスクがタイムアウトしました\n");
+            ThreadPool::get_instance().ReleaseFinishEvent(task.finishEvent);
             m_tasks.erase(i); // タイムアウトしたタスクは削除する
             if (i > 0) --i;
             continue;
@@ -97,23 +118,24 @@ void DeferredTaskSystem::Update(void)
                 {
                     DeferredFunc func;
                     void* param;
-                    bool* finished;
+                    HANDLE event;
                 };
-                TaskContext* ctx = new TaskContext{ task.executeFunc, task.param, &task.isFinished };
-
+                TaskContext* ctx = new TaskContext{ task.executeFunc, task.param, task.finishEvent };
 				// 非同期実行の場合はスレッドプールを使用してタスクを実行
-                ThreadPool::RunAsync([](void* param) 
+                ThreadPool::get_instance().RunAsync([](void* param)
                     {
                     TaskContext* ctx = static_cast<TaskContext*>(param);
 					ctx->func(ctx->param); // タスクを実行
-					*ctx->finished = true; // タスクの完了フラグを設定
+					SetEvent(ctx->event); // タスクの完了イベントをセット
                     SAFE_DELETE(ctx);
                     }, ctx);
             }
             else 
             {
-                task.executeFunc(task.param);
-                task.isFinished = true;
+                // 同期実行の場合は直接タスクを実行
+				task.executeFunc(task.param);
+                if (task.finishEvent) 
+                    SetEvent(task.finishEvent);
             }
         }
     }
@@ -130,8 +152,7 @@ void DeferredTaskSystem::RenderImGui(void)
         ImGui::Text("  Delay: %.2f / %.2f", task.elapsedTime, task.delayTime);
         ImGui::Text("  Timeout: %.2f / %.2f", task.timeoutElapsed, task.timeoutSec);
         ImGui::Text("  Running Time: %.2f", task.runningTime);
-        ImGui::Text("  Status: %s",
-            task.isRunning ? (task.isFinished ? "Finished" : "Running") : "Pending");
+        ImGui::Text("  Status: %s", task.isRunning ? "Running" : "Pending");
         ImGui::Separator();
     }
 }
@@ -142,15 +163,31 @@ void DeferredTaskSystem::WaitAll(void)
     while (stillWaiting) 
     {
         stillWaiting = false;
-        for (const auto& task : m_tasks) 
+        for (UINT i = 0; i < m_tasks.getSize(); ++i)
         {
-            if (task.runAsync && task.isRunning && !task.isFinished) 
+            DeferredTask& task = m_tasks[i];
+            if (task.runAsync && task.finishEvent &&
+                WaitForSingleObject(task.finishEvent, 0) == WAIT_OBJECT_0) 
+            {
+                // コールバック処理（存在する場合のみ）
+                if (task.onComplete)
+                {
+					// コールバックが非同期実行の場合はスレッドプールを使用
+                    if (task.callbackAsync)
+                        ThreadPool::get_instance().RunAsync(task.onComplete, task.callbackParam);
+                    else // コールバックを直接実行
+						task.onComplete(task.callbackParam);
+                }
+				ThreadPool::get_instance().ReleaseFinishEvent(task.finishEvent); // タスク完了イベントを解放
+                m_tasks.erase(i);
+                if (i > 0) --i;
+            }
+            else if (task.runAsync && task.isRunning) 
             {
                 stillWaiting = true;
-                break;
             }
         }
-        if (stillWaiting) Sleep(1); // 少し待つ
+        if (stillWaiting) Sleep(1);
     }
 }
 
@@ -158,9 +195,9 @@ void DeferredTaskSystem::CancelAll()
 {
     for (auto& task : m_tasks) 
     {
-        if (task.isRunning && task.runAsync && !task.isFinished)
+        if (task.finishEvent)
         {
-            // 実際には ThreadPool 側でキャンセルをサポートする必要がある
+            ThreadPool::get_instance().ReleaseFinishEvent(task.finishEvent);
             OutputDebugStringA("[DeferredTaskSystem] 非同期タスクがキャンセルされました（強制終了の可能性あり）\n");
         }
     }
