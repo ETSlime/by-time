@@ -5,9 +5,10 @@
 //
 //
 //=============================================================================
+#include "Core/Timer.h"
 #include "Core/Async/AsyncModelLoader.h"
 #include "Core/Async/DeferredTaskSystem.h"
-#include "Core/Timer.h"
+#include "Core/Async/DeferredTaskAPI.h"
 #include "Model/FBXLoader.h"
 #include "Model/ModelCacheLoader.h"
 #include "Model/ObJLoader.h"
@@ -32,16 +33,17 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
     if (m_taskMap.count(modelPath)) return;
 
     ModelLoadTask* task = new ModelLoadTask();
-    strcpy_s(task->modelPath, MAX_MODEL_PATH, modelPath);
+    task->modelPath = const_cast<char*>(modelPath);
 
 	DeferredTaskOptions options{};
 	options.async = true; // 非同期実行
 	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
-    DeferredTaskSystem::get_instance().AddTask(
-        AsyncModelLoader_LoadModel,
+    DeferredTaskBinder<AsyncModelLoader>::Add(
+        this,
         task,
-        AsyncModelLoader_CanStart,
+        &AsyncModelLoader::AsyncModelLoader_LoadModel,
+        &AsyncModelLoader::AsyncModelLoader_CanStart,
         options
     );
 
@@ -128,7 +130,7 @@ Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
     if (it == m_taskMap.end()) return nullptr;
 
     ModelLoadTask* task = it->value;
-    if (!task->isDone || !task->parsedData) return nullptr;
+    if (!task->isDone || !task->parsedData || !task->texturesReady) return nullptr;
 
     // Model クラスに所有権を移譲
     Model* model = new Model(modelPath, task->parsedData);
@@ -139,19 +141,6 @@ Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
 
     return model;
 }
-
-//DWORD WINAPI AsyncModelLoader::LoadThreadProc(LPVOID param)
-//{
-//    Task* task = (Task*)param;
-//    task->parsedData = new StaticModelData();
-//    if (!LoadModelTask(task)) 
-//    {
-//        task->hasFailed = true;
-//        delete task->parsedData;
-//        task->parsedData = nullptr;
-//    }
-//    return 0;
-//}
 
 void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
 {
@@ -176,5 +165,52 @@ void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
 		}
     }
 
+    // テクスチャ非同期登録（OBJのみ対象）
+    task->texturesReady = false;
+    task->pendingTextureCount = 0;
+    task->completedTextureCount = 0;
+
+    if (task->parsedData && task->parsedData->SubsetArray)
+    {
+        const unsigned int subsetNum = task->parsedData->SubsetNum;
+        for (unsigned int i = 0; i < subsetNum; ++i)
+        {
+            SUBSET& modelSubset = task->parsedData->SubsetArray[i];
+            MODEL_MATERIAL& mat = modelSubset.Material;
+
+            RequestModelTexture(mat.DiffuseTextureName, &modelSubset.diffuseTexture, task);
+            RequestModelTexture(mat.NormalTextureName, &modelSubset.normalTexture, task);
+            RequestModelTexture(mat.BumpTextureName, &modelSubset.bumpTexture, task);
+            RequestModelTexture(mat.OpacityTextureName, &modelSubset.opacityTexture, task);
+            RequestModelTexture(mat.ReflectTextureName, &modelSubset.reflectTexture, task);
+            RequestModelTexture(mat.TranslucencyTextureName, &modelSubset.translucencyTexture, task);
+        }
+    }
+
+
     task->isDone = true;
+}
+
+void AsyncModelLoader::RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, ModelLoadTask* task)
+{
+    if (!path || path[0] == '\0') return;
+
+    ++task->pendingTextureCount;
+
+    TextureMgr::get_instance().RequestTextureAsync
+    (
+        path, out,
+        [](bool success, void* userData) 
+        {
+            ModelLoadTask* task = static_cast<ModelLoadTask*>(userData);
+            if (success)
+            {
+                task->completedTextureCount++;
+                if (task->completedTextureCount == task->pendingTextureCount)
+                    task->texturesReady = true;
+            }
+
+        },
+        task
+    );
 }

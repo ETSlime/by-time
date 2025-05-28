@@ -72,6 +72,7 @@ Scene& scene = Scene::get_instance();
 UIManager& uiManager = UIManager::get_instance();
 CursorManager& cursorManager = CursorManager::get_instance();
 ShaderResourceBinder& shaderResourceBinder = ShaderResourceBinder::get_instance();
+TextureMgr& textureMgr = TextureMgr::get_instance();
 
 #ifdef _DEBUG
 int		g_CountFPS;							// FPSカウンタ
@@ -333,6 +334,8 @@ void Uninit(void)
 	inputManager.Shutdown();
 
 	gameSystem.Shutdown();
+
+	textureMgr.Shutdown();
 
 	// レンダラーの終了処理
 	renderer.Shutdown();

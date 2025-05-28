@@ -170,66 +170,20 @@ void Model::CreateGPUResources(StaticModelData* modelData)
 	// サブセット設定
 	for (unsigned int i = 0; i < m_modelData->SubsetNum; i++)
 	{
-		m_modelData->SubsetArray[i].StartIndex = m_modelData->SubsetArray[i].StartIndex;
-		m_modelData->SubsetArray[i].IndexNum = m_modelData->SubsetArray[i].IndexNum;
-
-
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.DiffuseTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].diffuseTexture,
-			NULL);
-
 		if (m_modelData->SubsetArray[i].diffuseTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.noTexSampling = 1;
-
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.NormalTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].normalTexture,
-			NULL);
 
 		if (m_modelData->SubsetArray[i].normalTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.normalMapSampling = 0;
 
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.BumpTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].bumpTexture,
-			NULL);
-
 		if (m_modelData->SubsetArray[i].bumpTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.bumpMapSampling = 0;
-
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.OpacityTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].opacityTexture,
-			NULL);
 
 		if (m_modelData->SubsetArray[i].opacityTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.opacityMapSampling = 0;
 
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.ReflectTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].reflectTexture,
-			NULL);
-
 		if (m_modelData->SubsetArray[i].reflectTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.reflectMapSampling = 0;
-
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			m_modelData->SubsetArray[i].Material.TranslucencyTextureName,
-			NULL,
-			NULL,
-			&m_modelData->SubsetArray[i].translucencyTexture,
-			NULL);
 
 		if (m_modelData->SubsetArray[i].translucencyTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.translucencyMapSampling = 0;

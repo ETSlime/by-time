@@ -50,10 +50,12 @@ public:
 
     SimpleArray& operator=(const SimpleArray& other)
     {
-        if (this != &other) {
+        if (this != &other) 
+        {
             delete[] array;
             array = new T[other.capacity];
-            for (UINT i = 0; i < other.size; i++) {
+            for (UINT i = 0; i < other.size; i++) 
+            {
                 array[i] = other.array[i];
             }
             capacity = other.capacity;
@@ -72,16 +74,19 @@ public:
             
     }
 
-    void push_back(const T& item) {
-        if (size >= capacity) {
+    void push_back(const T& item) 
+    {
+        if (size >= capacity) 
+        {
             int newCapacity = (capacity == 0) ? 4 : capacity * 2;
             T* newArray = new T[newCapacity];
-            for (UINT i = 0; i < size; i++) {
-                newArray[i] = array[i];
-            }
-            //for (int i = 0; i < size; i++) {
-            //    newArray[i] = std::move(array[i]);
+            //for (UINT i = 0; i < size; i++) 
+            //{
+            //    newArray[i] = array[i];
             //}
+            for (UINT i = 0; i < size; i++) {
+                newArray[i] = std::move(array[i]);
+            }
             delete[] array;
             array = newArray;
             capacity = newCapacity;

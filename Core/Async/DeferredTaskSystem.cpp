@@ -9,7 +9,7 @@
 
 void DeferredTaskSystem::Init(void)
 {
-    m_tasks.clear(); // タスクリストを初期化
+    m_tasks.reserve(MAX_DEFERRED_TASK_NUM); // タスクリストを初期化
 #ifdef _DEBUG
     DebugProc::get_instance().Register(this); // デバッグUIに登録
 #endif // DEBUG
@@ -61,7 +61,7 @@ void DeferredTaskSystem::Update(void)
     {
         DeferredTask& task = m_tasks[i];
 
-        // 子?程で完了済みの場合は削除
+        // スレッドで完了済みの場合は削除
         if (task.isRunning && task.finishEvent &&
             WaitForSingleObject(task.finishEvent, 0) == WAIT_OBJECT_0) 
         {

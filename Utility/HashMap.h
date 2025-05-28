@@ -147,6 +147,17 @@ public:
     void insert(const Key& key, const Value& value)
     {
         unsigned int index = hashFunc(key) % size;
+        Node* current = buckets[index];
+        while (current != nullptr)
+        {
+            if (equalsFunc(current->data.key, key))
+            {
+                current->data.value = value;
+                return;
+            }
+            current = current->next;
+        }
+
         Node* newNode = new Node(key, value);
         newNode->next = buckets[index];
         buckets[index] = newNode;
@@ -288,8 +299,11 @@ public:
         throw std::out_of_range("Key not found in HashMap");
     }
 
+
     class Iterator
     {
+        friend class HashMap;
+
     private:
         Node** buckets;
         Node* current;
@@ -344,6 +358,14 @@ public:
             return *this;
         }
 
+        Iterator operator++(int)
+        {
+            Iterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+
         Data& operator*() const
         {
             return current->data;
@@ -377,6 +399,37 @@ public:
             }
             current = current->next;
         }
+        return end();
+    }
+
+    Iterator erase(const Iterator& it)
+    {
+        if (it.current == nullptr) return end();
+
+        Key key = it->key;
+
+        unsigned int index = hashFunc(key) % size;
+
+        remove(key);
+
+        Node* nextNode = buckets[index];
+        while (nextNode != nullptr)
+        {
+            if (!equalsFunc(nextNode->data.key, key))
+            {
+                return Iterator(buckets, size, index, nextNode);
+            }
+            nextNode = nextNode->next;
+        }
+
+        for (int i = index + 1; i < size; ++i)
+        {
+            if (buckets[i] != nullptr)
+            {
+                return Iterator(buckets, size, i, buckets[i]);
+            }
+        }
+
         return end();
     }
 };

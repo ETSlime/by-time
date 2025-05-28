@@ -166,7 +166,7 @@ ParticleEffectRendererBase* EffectSystem::SpawnParticleEffect(ParticleEffectPara
 	}
 	else
 	{
-		delete effect;
+		SAFE_DELETE(effect);
 		return nullptr;
 	}
 }
@@ -177,7 +177,7 @@ void EffectSystem::RemoveEffect(IEffectRenderer* effect)
 	if (index >= 0)
 	{
 		m_allEffects[index]->Shutdown();
-		delete m_allEffects[index];
+		SAFE_DELETE(m_allEffects[index]);
 		m_allEffects.erase(index);
 	}
 }

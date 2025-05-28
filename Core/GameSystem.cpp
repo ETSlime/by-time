@@ -26,6 +26,8 @@ void GameSystem::Init(void)
     m_enemyManager.Init(m_player); // エネミーの初期化
 
     m_cursorManager.Init(); // カーソルマネージャの初期化
+
+    m_textureUploadQueue.Init();
 }
 
 void GameSystem::Shutdown(void)
@@ -40,6 +42,8 @@ void GameSystem::Shutdown(void)
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
+    m_textureUploadQueue.ShutDown();
+
 	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
 
@@ -47,6 +51,7 @@ void GameSystem::Update(void)
 {
     m_asyncModelLoader.Update(); // 非同期読み込み状態を更新
     m_deferredTaskSystem.Update(); // 遅延タスクの更新
+    m_textureUploadQueue.Update();
 
     HandleInput();// 入力処理
 

@@ -108,13 +108,13 @@ Ground::Ground()
 	bonfireGO->Instantiate(bonfireConfig);
 	m_groundGO.push_back(bonfireGO);
 
-	GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	GameObjectConfig banyanConfig{};
-	banyanConfig.modelPath = MODEL_BANYAN_PATH;
-	banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
-	banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
-	banyanGO->Instantiate(banyanConfig);
-	m_groundGO.push_back(banyanGO);
+	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
+	//GameObjectConfig banyanConfig{};
+	//banyanConfig.modelPath = MODEL_BANYAN_PATH;
+	//banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
+	//banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
+	//banyanGO->Instantiate(banyanConfig);
+	//m_groundGO.push_back(banyanGO);
 
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;

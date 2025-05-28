@@ -16,18 +16,22 @@
 // マクロ定義
 //*****************************************************************************
 #define MAX_MODEL_NUM (512) // 最大モデル数
-#define MAX_MODEL_PATH (256) // パスの最大長
 
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
 struct ModelLoadTask 
 {
-    char modelPath[MAX_MODEL_PATH]{};         // .fbx / .obj 等
-    bool isDone = false;
-    bool hasFailed = false;
-    StaticModelData* parsedData = nullptr;
-};
+    char* modelPath = nullptr;                      // モデルパス（読み取り専用）
+    bool isDone = false;                            // パース完了フラグ
+    bool hasFailed = false;                         // 失敗フラグ
+    StaticModelData* parsedData = nullptr;          // パース済みデータ（CreateGPUResources に渡す）
+
+    unsigned int pendingTextureCount = 0;       // 要求テクスチャ数
+    unsigned int completedTextureCount = 0;     // 完了テクスチャ数
+    bool texturesReady = false;                 // テクスチャ読み込み完了
+
+}; // モデル非同期読み込みタスク構造体
 
 struct DeferredRequestInfo
 {
@@ -58,8 +62,9 @@ public:
     Model* CreateModelIfReady(const char* modelPath);     // GPUリソース作成（主スレッド）
 
 private:
-    static void AsyncModelLoader_LoadModel(void* param);
-    static bool AsyncModelLoader_CanStart(void* ptr) { return true; }
+    void AsyncModelLoader_LoadModel(void* param);
+    bool AsyncModelLoader_CanStart(void* ptr) { return true; }
+    void RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, ModelLoadTask* task);
 
     SimpleArray<DeferredEntry> m_cachedSortArray;
     HashMap<const char*, ModelLoadTask*, CharPtrHash, CharPtrEquals> m_taskMap =

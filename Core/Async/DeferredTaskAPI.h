@@ -16,16 +16,16 @@ template<typename T>
 class DeferredTaskBinder 
 {
 public:
-    typedef void (T::* DeferredMethodExec)();
-    typedef bool (T::* DeferredMethodCond)() const;
+    typedef void (T::* DeferredMethodExec)(void*);
+    typedef bool (T::* DeferredMethodCond)(void*);
 
     static void DispatchExec(void* ptr) 
     {
 		// タスクの実行関数を呼び出す
         TaskContext* ctx = static_cast<TaskContext*>(ptr);
         T* obj = static_cast<T*>(ctx->object);
-        (obj->*ctx->execFunc)();
-        delete ctx;
+        (obj->*ctx->execFunc)(ctx->param);
+        SAFE_DELETE(ctx);
     }
 
     static bool DispatchCond(void* ptr) 
@@ -33,10 +33,11 @@ public:
 		// タスクの条件関数を呼び出す
         TaskContext* ctx = static_cast<TaskContext*>(ptr);
         T* obj = static_cast<T*>(ctx->object);
-        return ctx->condFunc ? (obj->*ctx->condFunc)() : true;
+        return ctx->condFunc ? (obj->*ctx->condFunc)(ctx->param) : true;
     }
 
-    static void Bind(T* object, DeferredMethodExec exec, DeferredMethodCond cond = nullptr, DeferredTaskOptions& options = DeferredTaskOptions{})
+    static void Add(T* object, void* param, DeferredMethodExec exec, DeferredMethodCond cond = nullptr,
+        DeferredTaskOptions& options = DeferredTaskOptions{})
     {
 		options.debugName = options.debugName ? options.debugName : "DeferredTaskBinder";
 
@@ -45,11 +46,10 @@ public:
         ctx->object = object;
         ctx->execFunc = exec;
         ctx->condFunc = cond;
-        ctx->timeoutSec = timeout;
-        ctx->elapsedSec = 0.0f;
+        ctx->param = param;
 
 		// 遅延実行タスクシステムに登録
-        DeferredTaskSystem::AddTask(
+        DeferredTaskSystem::get_instance().AddTask(
             DispatchExec,
             ctx,
             cond ? DispatchCond : nullptr,
@@ -64,8 +64,7 @@ private:
         T* object;
         DeferredMethodExec execFunc;
         DeferredMethodCond condFunc;
-        float timeoutSec = -1.0f;   // タイムアウト秒数（-1 は無制限）
-        float elapsedSec = 0.0f;    // 経過時間
+        void* param;
     };
 };
 
