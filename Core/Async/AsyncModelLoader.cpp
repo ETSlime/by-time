@@ -17,26 +17,39 @@ AsyncModelLoader::~AsyncModelLoader()
 {
     for (auto& tasks : m_taskMap) 
     {
-        if (tasks.value)
-        {
-            SAFE_DELETE(tasks.value->parsedData);
-        }
+        if (!tasks.value) continue;
 
-        SAFE_DELETE(tasks.value);
+        switch (tasks.value->modelType)
+        {
+        case ModelType::Static:
+            if (auto staticTask = dynamic_cast<StaticModelLoadTask*>(tasks.value))
+                SAFE_DELETE(staticTask->parsedData);
+            break;
+
+        case ModelType::SkinnedMesh:
+            if (auto skinnedTask = dynamic_cast<SkinnedMeshModelLoadTask*>(tasks.value))
+                SAFE_DELETE(skinnedTask->parsedData);
+            break;
+
+        default:
+            break;
+        }
     }
     m_taskMap.clear();
 }
 
 void AsyncModelLoader::EnqueueLoad(const char* modelPath)
 {
+    if (!modelPath) return;
+
 	// すでにロード中またはロード済みなら無視
     if (m_taskMap.count(modelPath)) return;
 
-    ModelLoadTask* task = new ModelLoadTask();
+    StaticModelLoadTask* task = new StaticModelLoadTask();
     task->modelPath = const_cast<char*>(modelPath);
 
 	DeferredTaskOptions options{};
-	options.async = true; // 非同期実行
+	options.async = false; // 非同期実行
 	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
     DeferredTaskBinder<AsyncModelLoader>::Add(
@@ -51,6 +64,33 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
     m_taskMap[modelPath] = task;
 }
 
+void AsyncModelLoader::EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath)
+{
+    if (!modelPath || !modelName || !modelFullPath) return;
+
+    // すでにロード中またはロード済みなら無視
+    if (m_taskMap.count(modelFullPath)) return;
+
+    SkinnedMeshModelLoadTask* task = new SkinnedMeshModelLoadTask();
+    task->modelPath = const_cast<char*>(modelPath);
+    task->modelName = const_cast<char*>(modelName);
+
+    DeferredTaskOptions options{};
+    options.async = false; // 非同期実行
+    options.debugName = "AsyncFbxModelLoader_LoadModel"; // デバッグ用の名前
+    // タスクを DeferredTaskSystem に登録
+    DeferredTaskBinder<AsyncModelLoader>::Add(
+        this,
+        task,
+        &AsyncModelLoader::AsyncFbxModelLoader_LoadModel,
+        &AsyncModelLoader::AsyncModelLoader_CanStart,
+        options
+    );
+
+    // タスクをマップに登録
+    m_taskMap[modelFullPath] = task;
+}
+
 void AsyncModelLoader::Update()
 {
     // m_cachedSortArray を再利用（clear して再利用）
@@ -62,8 +102,16 @@ void AsyncModelLoader::Update()
         for (auto& it : m_deferredRequests)
         {
             DeferredEntry entry;
-            entry.modelPath = it.key;
             entry.info = it.value;
+            if (entry.info.modelName && entry.info.modelPath)
+            {
+                entry.modelPath = entry.info.modelPath;
+                entry.modelName = entry.info.modelName;
+                entry.modelFullPath = it.key;
+            }
+            else
+                entry.modelPath = it.key;
+
             m_cachedSortArray.push_back(entry);
         }
 
@@ -86,20 +134,15 @@ void AsyncModelLoader::Update()
         // 優先度順に Enqueue
         for (UINT i = 0; i < m_cachedSortArray.getSize(); ++i) 
         {
-            EnqueueLoad(m_cachedSortArray[i].modelPath);
+            if (m_cachedSortArray[i].modelFullPath)
+                EnqueueLoad(m_cachedSortArray[i].modelPath, m_cachedSortArray[i].modelName, m_cachedSortArray[i].modelFullPath);
+            else
+                EnqueueLoad(m_cachedSortArray[i].modelPath);
         }
 
         // 保留リストをクリア（次のフレーム用）
         m_deferredRequests.clear();
     }
-}
-
-bool AsyncModelLoader::IsLoaded(const char* modelPath) const
-{
-    if (!m_taskMap.contains(modelPath)) return false;
-
-    ModelLoadTask* task = m_taskMap.at(modelPath);
-    return task->isDone && task->parsedData;
 }
 
 bool AsyncModelLoader::HasFailed(const char* modelPath) const
@@ -124,17 +167,35 @@ void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, int priorit
     m_deferredRequests[modelPath] = info;
 }
 
+void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, int priority, const char* source)
+{
+    // すでにロード中またはロード済みなら無視
+    if (m_taskMap.count(modelFullPath)) return;
+    if (m_deferredRequests.count(modelFullPath)) return;
+
+    // 登録する
+    DeferredRequestInfo info;
+    info.priority = priority;
+    info.requestedBy = source ? source : "unknown";
+    info.requestTime = Timer::get_instance().GetElapsedTime();
+    info.modelPath = const_cast<char*>(modelPath);
+    info.modelName = const_cast<char*>(modelName);
+
+    m_deferredRequests[modelFullPath] = info;
+}
+
 Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
 {
     auto it = m_taskMap.find(modelPath);
     if (it == m_taskMap.end()) return nullptr;
 
-    ModelLoadTask* task = it->value;
-    if (!task->isDone || !task->parsedData || !task->texturesReady) return nullptr;
+    auto* task = static_cast<StaticModelLoadTask*>(it->value);
+    StaticModelData* parsedData = task->GetParsedData();
+    if (!task->isDone || !parsedData || !task->texturesReady) return nullptr;
 
     // Model クラスに所有権を移譲
-    Model* model = new Model(modelPath, task->parsedData);
-    model->CreateGPUResources(task->parsedData); // 所有権を移動
+    Model* model = new Model(parsedData);
+    model->CreateGPUResources();
     task->parsedData = nullptr; // ここで null にする（もう使わない）
 	SAFE_DELETE(task);
 	m_taskMap.remove(modelPath); // タスクを削除
@@ -142,9 +203,47 @@ Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
     return model;
 }
 
+SkinnedMeshModel* AsyncModelLoader::CreateSkinnedMeshModelIfReady(const char* modelPath)
+{
+    auto it = m_taskMap.find(modelPath);
+    if (it == m_taskMap.end()) return nullptr;
+
+    SkinnedMeshModelLoadTask* task = static_cast<SkinnedMeshModelLoadTask*>(it->value);
+    SkinnedMeshModelData* parsedData = task->GetParsedData();
+    if (!task->isDone || !task->parsedData) return nullptr;
+
+    // Model クラスに所有権を移譲
+    SkinnedMeshModel* model = new SkinnedMeshModel(std::move(*task->parsedData));
+    model->CreateGPUResources(); // 所有権を移動
+    task->parsedData = nullptr; // ここで null にする（もう使わない）
+    SAFE_DELETE(task);
+    m_taskMap.remove(modelPath); // タスクを削除
+
+    return model;
+}
+
+void AsyncModelLoader::AsyncFbxModelLoader_LoadModel(void* param)
+{
+    SkinnedMeshModelLoadTask* task = static_cast<SkinnedMeshModelLoadTask*>(param);
+    task->parsedData = new SkinnedMeshModelData();
+
+    bool success = false;
+    success = FBXLoader::get_instance().LoadModel(task->parsedData, task->modelPath, task->modelName,
+        nullptr, task->animClipName, task->modelType);
+
+    if (!success)
+    {
+        // パース失敗 → 解放して終了
+        SAFE_DELETE(task->parsedData);
+        task->hasFailed = true;
+    }
+
+    task->isDone = true;
+}
+
 void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
 {
-    ModelLoadTask* task = (ModelLoadTask*)param;
+    StaticModelLoadTask* task = static_cast<StaticModelLoadTask*>(param);
     task->parsedData = new StaticModelData();
 
     // キャッシュ読み込みを試みる
@@ -191,7 +290,7 @@ void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
     task->isDone = true;
 }
 
-void AsyncModelLoader::RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, ModelLoadTask* task)
+void AsyncModelLoader::RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, StaticModelLoadTask* task)
 {
     if (!path || path[0] == '\0') return;
 
@@ -202,7 +301,7 @@ void AsyncModelLoader::RequestModelTexture(const char* path, ID3D11ShaderResourc
         path, out,
         [](bool success, void* userData) 
         {
-            ModelLoadTask* task = static_cast<ModelLoadTask*>(userData);
+            StaticModelLoadTask* task = static_cast<StaticModelLoadTask*>(userData);
             if (success)
             {
                 task->completedTextureCount++;

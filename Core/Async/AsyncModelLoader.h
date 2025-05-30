@@ -11,38 +11,75 @@
 #include "Utility/SingletonBase.h"
 #include "Utility/HashMap.h"
 #include "Model/Model.h"
+#include "Model/SkinnedMeshModel.h"
+#include "Scene/GameObject.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_MODEL_NUM (512) // 最大モデル数
+#define MAX_MODEL_LOAD_TASK (128) // 最大モデル数
 
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
-struct ModelLoadTask 
+struct IModelLoadTask
 {
     char* modelPath = nullptr;                      // モデルパス（読み取り専用）
     bool isDone = false;                            // パース完了フラグ
     bool hasFailed = false;                         // 失敗フラグ
-    StaticModelData* parsedData = nullptr;          // パース済みデータ（CreateGPUResources に渡す）
+    ModelType modelType = ModelType::Default;
 
+    virtual ~IModelLoadTask() = default;             // RTTI、dynamic_cast のため
+}; // モデル非同期読み込みタスク（基底クラス）
+
+template<typename ParsedDataType>
+struct ModelLoadTask : public IModelLoadTask
+{
+    ParsedDataType* parsedData = nullptr;           // パース済みデータ（CreateGPUResources に渡す）
+
+    // 型安全な取得関数（parsedData を返す）
+    ParsedDataType* GetParsedData() const 
+    {
+        return parsedData;
+    }
+
+    virtual ~ModelLoadTask() 
+    {
+        SAFE_DELETE(parsedData);
+    }
+}; // テンプレートを用いた型安全なモデル読み込みタスク
+
+struct StaticModelLoadTask : public ModelLoadTask<StaticModelData>
+{
     unsigned int pendingTextureCount = 0;       // 要求テクスチャ数
     unsigned int completedTextureCount = 0;     // 完了テクスチャ数
     bool texturesReady = false;                 // テクスチャ読み込み完了
+}; // 静的モデル用の読み込みタスク
 
-}; // モデル非同期読み込みタスク構造体
+
+struct SkinnedMeshModelLoadTask : public ModelLoadTask<SkinnedMeshModelData>
+{
+    char* modelName = nullptr;                           // モデル名
+    AnimClipName animClipName = AnimClipName::ANIM_NONE; // 初期再生アニメーション名
+    SkinnedModelType modelType = SkinnedModelType::Default; // スキンモデルの種別
+    SkinnedMeshModelData* parsedData = nullptr;          // パース済みデータ（CreateGPUResources に渡す）
+};
 
 struct DeferredRequestInfo
 {
     int priority = 0;               // 優先度（数値が大きいほど優先）
     char* requestedBy = nullptr;    // 要求元
     float requestTime = 0.0f;       // 登録された時間（表示やデバッグ用）
+
+    char* modelPath = nullptr;
+    char* modelName = nullptr;
 };
 
 struct DeferredEntry 
 {
     const char* modelPath = nullptr;
+    const char* modelName = nullptr;
+    const char* modelFullPath = nullptr;
     DeferredRequestInfo info;
 };
 
@@ -54,22 +91,47 @@ public:
 
     // リクエストが未登録なら登録
     void RequestLoadIfNotQueued(const char* modelPath, int priority = 0, const char* source = nullptr);
+    void RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, 
+        int priority = 0, const char* source = nullptr);
 
-    void EnqueueLoad(const char* modelPath);              // 非同期ロード要求を追加
-    void Update(void);                                    // 毎フレーム完了チェック
-    bool IsLoaded(const char* modelPath) const;           // ロード完了か判定
-    bool HasFailed(const char* modelPath) const;          // ロード失敗か判定
-    Model* CreateModelIfReady(const char* modelPath);     // GPUリソース作成（主スレッド）
+    // 非同期ロード要求を追加
+    void EnqueueLoad(const char* modelPath);
+    void EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath);
+
+    // 毎フレーム完了チェック
+    void Update(void); 
+
+    // ロード完了か判定
+    template<typename TaskType>
+    bool IsLoaded(const char* modelPath) const;
+    // ロード失敗か判定
+    bool HasFailed(const char* modelPath) const;
+
+    // GPUリソース作成（主スレッド）
+    Model* CreateModelIfReady(const char* modelPath);     
+    SkinnedMeshModel* CreateSkinnedMeshModelIfReady(const char* modelPath);
 
 private:
     void AsyncModelLoader_LoadModel(void* param);
     bool AsyncModelLoader_CanStart(void* ptr) { return true; }
-    void RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, ModelLoadTask* task);
+    void AsyncFbxModelLoader_LoadModel(void* param);
+    void RequestModelTexture(const char* path, ID3D11ShaderResourceView** out, StaticModelLoadTask* task);
 
     SimpleArray<DeferredEntry> m_cachedSortArray;
-    HashMap<const char*, ModelLoadTask*, CharPtrHash, CharPtrEquals> m_taskMap =
-		HashMap<const char*, ModelLoadTask*, CharPtrHash, CharPtrEquals>(MAX_MODEL_NUM, CharPtrHash(), CharPtrEquals());
+    HashMap<const char*, IModelLoadTask*, CharPtrHash, CharPtrEquals> m_taskMap =
+		HashMap<const char*, IModelLoadTask*, CharPtrHash, CharPtrEquals>(MAX_MODEL_LOAD_TASK, CharPtrHash(), CharPtrEquals());
     HashMap<const char*, DeferredRequestInfo, CharPtrHash, CharPtrEquals> m_deferredRequests =
-        HashMap<const char*, DeferredRequestInfo, CharPtrHash, CharPtrEquals>(MAX_MODEL_NUM, CharPtrHash(), CharPtrEquals());
+        HashMap<const char*, DeferredRequestInfo, CharPtrHash, CharPtrEquals>(MAX_MODEL_LOAD_TASK, CharPtrHash(), CharPtrEquals());
 
 };
+
+template<typename TaskType>
+bool AsyncModelLoader::IsLoaded(const char* modelPath) const
+{
+    if (!m_taskMap.contains(modelPath)) return false;
+
+    IModelLoadTask* base = m_taskMap.at(modelPath);
+    const ModelLoadTask<TaskType>* task = static_cast<ModelLoadTask<TaskType>*>(base);
+
+    return task->isDone && task->GetParsedData();
+}

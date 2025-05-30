@@ -125,8 +125,8 @@ private:
 	//--------------------------------- mouse
 	LPDIRECTINPUTDEVICE8 m_pMouse = NULL; // mouse
 
-	DIMOUSESTATE2   m_mouseState;		// マウスのダイレクトな状態
-	DIMOUSESTATE2   m_mouseTrigger;	// 押された瞬間だけON
+	DIMOUSESTATE2   m_mouseState{};		// マウスのダイレクトな状態
+	DIMOUSESTATE2   m_mouseTrigger{};	// 押された瞬間だけON
 	BOOL			m_isMouseRecentered = FALSE;
 	//--------------------------------- game pad
 

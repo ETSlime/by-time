@@ -30,6 +30,7 @@ enum class ActionEnum
 
 enum class ModelType
 {
+	Default,
 	Static,
 	SkinnedMesh,
 	Instanced,
@@ -112,9 +113,9 @@ struct InstanceModelAttribute
 
 struct SkinnedMeshModelInstance
 {
-	char				modelPath[MODEL_PATH_LENGTH]{};
-	char				modelName[MODEL_NAME_LENGTH]{};
-	char				modelFullPath[MODEL_PATH_LENGTH+MODEL_NAME_LENGTH]{};
+	char*				modelPath = nullptr;
+	char*				modelName = nullptr;
+	char*				modelFullPath = nullptr;
 	bool				use = false;
 	bool				load = false;
 	bool				castShadow = true;
@@ -169,10 +170,25 @@ struct GameObjectConfig
 	const char* modelPath = nullptr;
 	XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+	XMFLOAT3 rotation = { 0.0f, 0.0f, 0.0f };
 	bool castShadow = true;
 	bool drawWorldAABB = false;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
 	ModelType modelType = ModelType::Static;
+};
+
+struct SkinnedGameObjectConfig
+{
+	const char* modelPath = nullptr;
+	const char* modelName = nullptr;
+	XMFLOAT3 position = { 0.0f, 0.0f, 0.0f };
+	XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+	XMFLOAT3 rotation = { 0.0f, 0.0f, 0.0f };
+	bool castShadow = true;
+	bool drawWorldAABB = false;
+	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	SkinnedModelType modelType = SkinnedModelType::Default;
+	AnimClipName animClipName = AnimClipName::ANIM_NONE;
 };
 
 
@@ -187,6 +203,8 @@ public:
 	virtual bool GetCastShadow() const = 0;
 	virtual BOUNDING_BOX GetBoundingBoxWorld() const = 0;
 	virtual const XMMATRIX& GetWorldMatrix() const = 0;
+	//virtual void OnCollisionEnter(const Collider& collider) = 0;
+	//virtual void OnCollisionEnter(const Collider& collider) = 0;
 
 	virtual void CollectShadowMesh(ShadowMeshCollector& collector) const = 0;
 	virtual ModelType GetModelType() const = 0;
@@ -199,8 +217,7 @@ public:
 	GameObject();
 	~GameObject();
 	void Instantiate(const GameObjectConfig& config);
-	void Instantiate(const char* modelPath, const char* modelName, SkinnedModelType modelType = SkinnedModelType::Default, 
-		AnimClipName clipName = AnimClipName::ANIM_NONE);
+	void Instantiate(const SkinnedGameObjectConfig& config);
 	virtual void Update();
 	virtual void Draw();
 	virtual void DrawEffect() {};
@@ -338,17 +355,21 @@ public:
 protected:
 	TModel instance;
 	GameObjectConfig m_config;
+	SkinnedGameObjectConfig m_skinnedConfig;
 	DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
 };
 
+template<typename T>
 struct InstantiateTaskContext
 {
-	GameObject<ModelInstance>* owner;
+	GameObject<T>* owner;
 };
 
 class ISkinnedMeshModelChar
 {
 public:
+	virtual void InitializeAnimation() = 0;
+
 	virtual void PlayWalkAnim() {};
 	virtual void PlayRunAnim() {};
 	virtual void PlayIdleAnim() {};
@@ -418,9 +439,6 @@ GameObject<T>::~GameObject()
 	Scene::get_instance().UnregisterGameObject(this);
 }
 
-template <>
-GameObject<SkinnedMeshModelInstance>::~GameObject();
-
 template <typename T>
 void GameObject<T>::Instantiate(const GameObjectConfig& config)
 {
@@ -439,6 +457,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		SetCollisionType(m_config.collisionType);
 		SetScale(m_config.scale);
 		SetPosition(m_config.position);
+		SetRotation(m_config.rotation);
 		SetCastShadow(m_config.castShadow);
 		SetDrawWorldAABB(m_config.drawWorldAABB);
 		SetModelType(m_config.modelType);
@@ -448,27 +467,27 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		// 非同期で実行するかどうかを決定
 		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
 		options.debugName = "GameObject_InstantiateModel"; // デバッグ用の名前
-		auto* context = new InstantiateTaskContext{ this }; // コンテキストを作成して渡す
+		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
 
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
-				context, // コンテキストを渡す
+				ctx, // コンテキストを渡す
 				[](void* ptr) // タスクの実行関数
 				{
 					// コンテキストを取得
-					auto* context = static_cast<InstantiateTaskContext*>(ptr);
-					const XMMATRIX& worldMatrix = context->owner->GetWorldMatrix();
-					Model* model = context->owner->instance.pModel;
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+					const XMMATRIX& worldMatrix = ctx->owner->GetWorldMatrix();
+					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildMeshTriangles(worldMatrix, true, context->owner->instance.drawWorldAABB);
+					model->Deffered_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
 				},
 				[](void* ptr) // タスクの条件関数
 				{
 					// コンテキストを取得
-					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
 					// モデルがロードされているかチェック
-					return context->owner->DeferredCanRunModelReady();
+					return ctx->owner->DeferredCanRunModelReady();
 				},
 				options
 			);
@@ -476,22 +495,22 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		else if (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
-				context, // コンテキストを渡す
+				ctx, // コンテキストを渡す
 				[](void* ptr) // タスクの実行関数
 				{
 					// コンテキストを取得
-					auto* context = static_cast<InstantiateTaskContext*>(ptr);
-					const BOUNDING_BOX& boundingBox = context->owner->GetCollider().aabb;
-					Model* model = context->owner->instance.pModel;
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
+					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildBoundingBoxTriangles(boundingBox, context->owner->instance.drawWorldAABB);
+					model->Deffered_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
 				},
 				[](void* ptr) // タスクの条件関数
 				{
 					// コンテキストを取得
-					auto* context = static_cast<InstantiateTaskContext*>(ptr);
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
 					// モデルがロードされているかチェック
-					return context->owner->DeferredCanRunModelReady();
+					return ctx->owner->DeferredCanRunModelReady();
 				},
 				options
 			);
@@ -512,14 +531,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 	}
 }
 
-template <>
-void GameObject<SkinnedMeshModelInstance>::Instantiate(const char* modelPath, const char* modelName, 
-	SkinnedModelType modelType, AnimClipName clipName);
-
-template<>
-void GameObject< SkinnedMeshModelInstance>::Update();
-
-template <typename T>
+template<typename T>
 void GameObject<T>::Update()
 {
 	if (instance.pModel == nullptr)
@@ -547,7 +559,7 @@ void GameObject<T>::Update()
 
 	instance.transform.mtxWorld = mtxWorld;
 
-		// ローカル空間AABBの取得
+	// ローカル空間AABBの取得
 	XMFLOAT3 localMin = instance.pModel->GetBoundingBox().minPoint;
 	XMFLOAT3 localMax = instance.pModel->GetBoundingBox().maxPoint;
 
@@ -580,7 +592,6 @@ void GameObject<T>::Update()
 	XMStoreFloat3(&instance.collider.aabb.maxPoint, worldMax);
 }
 
-
 template <typename T>
 void GameObject<T>::Draw()
 {
@@ -596,8 +607,8 @@ void GameObject<T>::Draw()
 }
 
 
-template<typename TModel>
-inline void GameObject<TModel>::RenderDebugInfo(void)
+template<typename T>
+inline void GameObject<T>::RenderDebugInfo(void)
 {
 #if DRAW_BOUNDING_BOX
 	if (instance.drawWorldAABB)
@@ -640,4 +651,13 @@ inline void GameObject<T>::UpdateModelEditor()
 			MapEditor::get_instance().ResetCurSelectedModelIdx();
 	}
 }
+
+template <>
+GameObject<SkinnedMeshModelInstance>::~GameObject();
+
+template <>
+void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectConfig& config);
+
+template<>
+void GameObject< SkinnedMeshModelInstance>::Update();
 

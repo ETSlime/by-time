@@ -26,64 +26,58 @@
 
 Town::Town()
 {
-	XMMATRIX worldMatrix;
+	SkinnedGameObjectConfig config;
 
-
+	ZeroMemory(&config, sizeof(SkinnedGameObjectConfig));
 	GameObject<SkinnedMeshModelInstance>* skyBox = new GameObject<SkinnedMeshModelInstance>();
-	skyBox->Instantiate(MODEL_TOWN_PATH, MODEL_SKYBOX_NAME, SkinnedModelType::Skybox);
-	skyBox->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	skyBox->SetScale(XMFLOAT3(SKYBOX_SIZE, SKYBOX_SIZE, SKYBOX_SIZE));
-	skyBox->Update();
-	worldMatrix = skyBox->GetWorldMatrix();
+	config.modelPath = MODEL_TOWN_PATH;
+	config.modelName = MODEL_SKYBOX_NAME;
+	config.modelType = SkinnedModelType::Skybox;
+	config.scale = XMFLOAT3(SKYBOX_SIZE, SKYBOX_SIZE, SKYBOX_SIZE);
+	config.castShadow = false;
+	skyBox->Instantiate(config);
 	//skyBox->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix);
 	//skyBox->GetSkinnedMeshModel()->BuildOctree();
-	skyBox->SetCastShadow(false);
 
 	models.push_back(skyBox);
 
+	ZeroMemory(&config, sizeof(SkinnedGameObjectConfig));
 	GameObject<SkinnedMeshModelInstance>* LoD0 = new GameObject<SkinnedMeshModelInstance>();
-	LoD0->Instantiate(MODEL_TOWN_PATH, MODEL_LOD0_NAME, SkinnedModelType::Town_LOD0);
-	LoD0->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	LoD0->SetScale(XMFLOAT3(PLOT_LOD0_SIZE, PLOT_LOD0_SIZE, PLOT_LOD0_SIZE));
-	LoD0->SetRotation(XMFLOAT3(0, -XM_PI * 0.2f, 0.0f));
-	LoD0->SetPosition(XMFLOAT3(PLOT_LOD0_SIZE * 0.63f, PLOT_LOD0_SIZE * 0.2f, -PLOT_LOD0_SIZE * 2.14f));
+	config.modelPath = MODEL_TOWN_PATH;
+	config.modelName = MODEL_LOD0_NAME;
+	config.modelType = SkinnedModelType::Town_LOD0;
+	config.scale = XMFLOAT3(PLOT_LOD0_SIZE, PLOT_LOD0_SIZE, PLOT_LOD0_SIZE);
+	config.position = XMFLOAT3(PLOT_LOD0_SIZE * 0.63f, PLOT_LOD0_SIZE * 0.2f, -PLOT_LOD0_SIZE * 2.14f);
+	config.rotation = XMFLOAT3(0, -XM_PI * 0.2f, 0.0f);
+	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	LoD0->Instantiate(config);
 	LoD0->GetSkinnedMeshModel()->LoadTownTexture();
-	LoD0->Update();
-	worldMatrix = LoD0->GetWorldMatrix();
-	LoD0->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	LoD0->GetSkinnedMeshModel()->BuildOctree();
-	LoD0->SetCastShadow(true);
-
 	models.push_back(LoD0);
 
+	ZeroMemory(&config, sizeof(SkinnedGameObjectConfig));
 	GameObject<SkinnedMeshModelInstance>* LoD1 = new GameObject<SkinnedMeshModelInstance>();
-	LoD1->Instantiate(MODEL_TOWN_PATH, MODEL_LOD1_NAME, SkinnedModelType::Town_LOD1);
-	LoD1->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	LoD1->SetScale(XMFLOAT3(PLOT_LOD1_SIZE, PLOT_LOD1_SIZE, PLOT_LOD1_SIZE));
-	LoD1->SetRotation(XMFLOAT3(0, -XM_PI * 0.5f, 0.0f));
-	LoD1->SetPosition(XMFLOAT3(PLOT_LOD1_SIZE * 0.76f, -PLOT_LOD1_SIZE * 0.26f, -PLOT_LOD1_SIZE * 1.34f));
+	config.modelPath = MODEL_TOWN_PATH;
+	config.modelName = MODEL_LOD1_NAME;
+	config.modelType = SkinnedModelType::Town_LOD1;
+	config.scale = XMFLOAT3(PLOT_LOD1_SIZE, PLOT_LOD1_SIZE, PLOT_LOD1_SIZE);
+	config.position = XMFLOAT3(PLOT_LOD1_SIZE * 0.76f, -PLOT_LOD1_SIZE * 0.26f, -PLOT_LOD1_SIZE * 1.34f);
+	config.rotation = XMFLOAT3(0, -XM_PI * 0.5f, 0.0f);
+	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	LoD1->Instantiate(config);
 	LoD1->GetSkinnedMeshModel()->LoadTownTexture();
-	LoD1->Update();
-	worldMatrix = LoD1->GetWorldMatrix();
-	LoD1->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	LoD1->GetSkinnedMeshModel()->BuildOctree();
-	LoD1->SetCastShadow(true);
-
 	models.push_back(LoD1);
 
+	ZeroMemory(&config, sizeof(SkinnedGameObjectConfig));
 	GameObject<SkinnedMeshModelInstance>* LoD2 = new GameObject<SkinnedMeshModelInstance>();
-	LoD2->Instantiate(MODEL_TOWN_PATH, MODEL_LOD2_NAME, SkinnedModelType::Town_LOD2);
-	LoD2->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	LoD2->SetScale(XMFLOAT3(PLOT_LOD2_SIZE, PLOT_LOD2_SIZE, PLOT_LOD2_SIZE));
-	LoD2->SetRotation(XMFLOAT3(0, -XM_PI * 0.5f, 0.0f));
-	LoD2->SetPosition(XMFLOAT3(PLOT_LOD2_SIZE * 0.2f, -PLOT_LOD2_SIZE * 0.15f, -PLOT_LOD2_SIZE * 0.5f));
+	config.modelPath = MODEL_TOWN_PATH;
+	config.modelName = MODEL_LOD2_NAME;
+	config.modelType = SkinnedModelType::Town_LOD2;
+	config.scale = XMFLOAT3(PLOT_LOD2_SIZE, PLOT_LOD2_SIZE, PLOT_LOD2_SIZE);
+	config.position = XMFLOAT3(PLOT_LOD2_SIZE * 0.2f, -PLOT_LOD2_SIZE * 0.15f, -PLOT_LOD2_SIZE * 0.5f);
+	config.rotation = XMFLOAT3(0, -XM_PI * 0.5f, 0.0f);
+	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	LoD2->Instantiate(config);
 	LoD2->GetSkinnedMeshModel()->LoadTownTexture();
-	LoD2->Update();
-	worldMatrix = LoD2->GetWorldMatrix();
-	LoD2->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	LoD2->GetSkinnedMeshModel()->BuildOctree();
-	LoD2->SetCastShadow(true);
-
 	models.push_back(LoD2);
 
 	//GameObject<SkinnedMeshModelInstance>* church = new GameObject<SkinnedMeshModelInstance>();

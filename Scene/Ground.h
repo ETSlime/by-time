@@ -24,9 +24,6 @@
 
 #define WORLD_MAX			(XMFLOAT3(50000.0f, 50000.0f, 50000.0f))
 #define WORLD_MIN			(XMFLOAT3(-50000.0f, -50000.0f, -50000.0f))
-//*****************************************************************************
-// ç\ë¢ëÃíËã`
-//*****************************************************************************
 
 class Ground :public IDebugUI
 {
@@ -37,6 +34,8 @@ public:
 	void Draw(void);
 
 private:
+
+	void GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldGO);
 
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };

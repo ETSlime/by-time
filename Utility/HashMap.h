@@ -100,6 +100,39 @@ public:
         }
     }
 
+    // 移動コンストラクタ
+    HashMap(HashMap&& other) noexcept
+        : buckets(other.buckets),
+        size(other.size),
+        hashFunc(std::move(other.hashFunc)),
+        equalsFunc(std::move(other.equalsFunc))
+    {
+        other.buckets = nullptr;
+        other.size = 0;
+    }
+
+    // 移動代入演算子
+    HashMap& operator=(HashMap&& other) noexcept
+    {
+        if (this != &other)
+        {
+            // 既存データの破棄
+            this->clear();
+            delete[] this->buckets;
+
+            // リソースの移動
+            this->buckets = other.buckets;
+            this->size = other.size;
+            this->hashFunc = std::move(other.hashFunc);
+            this->equalsFunc = std::move(other.equalsFunc);
+
+            // other を初期状態に戻す
+            other.buckets = nullptr;
+            other.size = 0;
+        }
+        return *this;
+    }
+
 
     ~HashMap()
     {

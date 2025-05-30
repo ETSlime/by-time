@@ -9,20 +9,29 @@
 #include "Effects/SwordTrail.h"
 #include "Utility/InputManager.h"
 
+//*****************************************************************************
+// ç\ë¢ëÃíËã`
+//*****************************************************************************
+
+class Lumine;
+
+struct InitLumineContext
+{
+	Lumine* lumine;
+};
+
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
 public:
 	Lumine();
 	~Lumine();
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
-	void LoadWeapon(char* modelPath, char* modelName);
+
+	virtual void InitializeAnimation(void) override;
+
 
 	void Update(void) override;
 	void Draw(void) override;
 	void DrawEffect(void) override;
-
-	void SetupAnimStateMachine(void);
-	void InitAnimInfo(void) override;
 
 	AnimStateMachine* GetStateMachine(void) override;
 
@@ -56,6 +65,11 @@ public:
 
 private:
 
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void LoadWeapon(char* modelPath, char* modelName);
+	void SetupAnimStateMachine(void);
+	void InitAnimInfo(void) override;
+
 	void FaceToNearestEnemy(void);
 	void UpdateWeapon(void);
 
@@ -69,6 +83,7 @@ private:
 	bool weaponOnBack;
 	bool storeWeaponOnBack;
 	bool storeWeapon;
+	bool m_finishLoading = false;
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 };

@@ -27,29 +27,113 @@ GameObject<SkinnedMeshModelInstance>::~GameObject()
 	Scene::get_instance().UnregisterGameObject(this);
 }
 
-template <>
-void GameObject<SkinnedMeshModelInstance>::Instantiate(const char* modelPath, const char* modelName, 
-	SkinnedModelType modelType, AnimClipName clipName)
-{
-	strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, modelPath);
-	size_t modelPathLength = strlen(modelPath);
-	if (modelPathLength > 0 && modelPath[modelPathLength - 1] != '/' && modelPath[modelPathLength - 1] != '\\')
-		strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, "/");
 
-	strcat_s(instance.modelFullPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, modelName);
-	strcat_s(instance.modelPath, MODEL_PATH_LENGTH, modelPath);
-	strcat_s(instance.modelName, MODEL_NAME_LENGTH, modelName);
-	instance.pModel = SkinnedMeshModel::StoreModel(modelPath, modelName, instance.modelFullPath, modelType, clipName);
+template <>
+void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectConfig& config)
+{
+	char* modelFulllPath = new char[MODEL_NAME_LENGTH + MODEL_PATH_LENGTH] {};
+	strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, config.modelPath);
+
+	size_t modelPathLength = strlen(config.modelPath);
+	if (modelPathLength > 0 && config.modelPath[modelPathLength - 1] != '/' && config.modelPath[modelPathLength - 1] != '\\')
+		strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, "/");
+
+	strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, config.modelName);
+	instance.modelFullPath = modelFulllPath;
+	instance.modelPath = const_cast<char*>(config.modelPath);
+	instance.modelName = const_cast<char*>(config.modelName);
+
+	instance.pModel = SkinnedMeshModel::StoreModel(config.modelPath, config.modelName, instance.modelFullPath, config.modelType, config.animClipName);
+
+	// モデルのビルドタスクを登録
+	if (!instance.modelBuildTaskRegistered)
+	{
+		m_skinnedConfig = config; // コンフィグを保存
+		SetCollisionType(m_config.collisionType);
+		SetScale(m_skinnedConfig.scale);
+		SetPosition(m_skinnedConfig.position);
+		SetRotation(m_skinnedConfig.rotation);
+		SetCastShadow(m_skinnedConfig.castShadow);
+		SetDrawWorldAABB(m_skinnedConfig.drawWorldAABB);
+
+		instance.modelBuildTaskRegistered = true;
+
+		DeferredTaskOptions options{};
+
+		// 非同期で実行するかどうかを決定
+		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
+		options.debugName = "GameObject_InstantiateModel"; // デバッグ用の名前
+		auto* context = new InstantiateTaskContext<SkinnedMeshModelInstance>{ this }; // コンテキストを作成して渡す
+
+		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				context, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					const XMMATRIX& worldMatrix = context->owner->GetWorldMatrix();
+					SkinnedMeshModel* model = context->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildMeshTriangles(worldMatrix, true, context->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					// モデルがロードされているかチェック
+					return context->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
+		else if (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				context, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					const BOUNDING_BOX& boundingBox = context->owner->GetCollider().aabb;
+					SkinnedMeshModel* model = context->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildBoundingBoxTriangles(boundingBox, context->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					// モデルがロードされているかチェック
+					return context->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
+	}
+
+	instance.use = true; // モデルを使用するフラグを立てる
+
 	if (instance.pModel)
 	{
-		instance.load = true;
-		instance.use = true;
+		instance.load = true; // モデルがロードされたらロードフラグを立てる
+	}
+	else
+	{
+		instance.load = false; // モデルがロードできなかった場合はロードフラグを下げる
 	}
 }
 
 template<>
 void GameObject<SkinnedMeshModelInstance>::Update()
 {
+	if (instance.pModel == nullptr)
+	{
+		Instantiate(m_skinnedConfig);
+		if (!instance.load) return; // モデルがロードされていない場合は何もしない
+	}
+
 	// ワールド行列の構築
 	XMMATRIX mtxWorld = XMMatrixIdentity();
 	mtxWorld = XMMatrixMultiply(mtxWorld, XMMatrixScaling(instance.transform.scl.x, instance.transform.scl.y, instance.transform.scl.z)); // スケーリング

@@ -146,7 +146,7 @@ class Model
 	friend class AsyncModelLoader;
 
 public:
-	Model(const char* FileName, StaticModelData* modelData);
+	Model(StaticModelData* modelData);
 	Model() = delete;
 
 	~Model();
@@ -180,7 +180,7 @@ public:
 
 private:
 
-	void CreateGPUResources(StaticModelData* modelData);
+	void CreateGPUResources(void);
 	void CreateBoundingBoxVertex(void);
 	void BuildMeshParts(void);
 
@@ -194,7 +194,7 @@ private:
 	bool			m_drawBoundingBox = false;
 	bool			m_GPUResource = false; // GPUÉäÉ\Å[ÉXÇê∂ê¨ÇµÇΩÇ©Ç«Ç§Ç©
 
-	ID3D11Buffer* m_BBVertexBuffer;
+	ID3D11Buffer* m_BBVertexBuffer = nullptr;
 
 	Renderer& m_renderer = Renderer::get_instance();
 	ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();

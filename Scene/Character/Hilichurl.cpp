@@ -24,7 +24,12 @@
 
 Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType::Hilichurl, transform)
 {
-	Instantiate("data/MODEL/enemy/Hilichurl", "Character_output.fbx", SkinnedModelType::Hilichurl);
+	SkinnedGameObjectConfig config;
+	config.modelPath = "data/MODEL/enemy/Hilichurl";
+	config.modelName = "Character_output.fbx";
+	config.modelType = SkinnedModelType::Hilichurl;
+	config.drawWorldAABB = false;
+	Instantiate(config);
 	instance.collider.tag = ColliderTag::ENEMY;
 	instance.collider.owner = this;
 	instance.collider.enable = true;
@@ -35,9 +40,25 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 	weapon.SetColliderOwner(&weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&weapon.GetCollider());
 
-	instance.pModel->SetDrawBoundingBox(false);
-	weapon.GetSkinnedMeshModel()->SetDrawBoundingBox(false);
+	m_initState = initState;
+	m_playAnimSpeed = PLAY_ANIM_SPD;
 
+	InitHPGauge();
+}
+
+void Hilichurl::Initialize(void)
+{
+	Enemy::Initialize();
+	m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
+}
+
+Hilichurl::~Hilichurl()
+{
+	SAFE_DELETE(m_stateMachine);
+}
+
+void Hilichurl::InitializeAnimation(void)
+{
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Happy Idle.fbx", AnimClipName::ANIM_IDLE);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Walking.fbx", AnimClipName::ANIM_WALK);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Running.fbx", AnimClipName::ANIM_RUN);
@@ -52,38 +73,26 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Swing Dancing.fbx", AnimClipName::ANIM_DANCE);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Falling Back Death.fbx", AnimClipName::ANIM_DIE);
 
-
-	m_playAnimSpeed = PLAY_ANIM_SPD;
-
-	SetupAnimStateMachine(initState);
-	InitHPGauge();
-
+	SetupAnimStateMachine(m_initState);
 	InitAnimInfo();
-}
-
-void Hilichurl::Initialize(void)
-{
-	Enemy::Initialize();
-	m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
-}
-
-Hilichurl::~Hilichurl()
-{
-	SAFE_DELETE(m_stateMachine);
 }
 
 void Hilichurl::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(renderer.GetDevice(), *instance.pModel, animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
 {
-	weapon.Instantiate(modelPath, modelName, SkinnedModelType::Weapon);
-	weapon.SetScale(XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE));
-	weapon.SetPosition(XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z));
-	weapon.SetRotation(XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z));
+	SkinnedGameObjectConfig config;
+	config.modelPath = modelPath;
+	config.modelName = modelName;
+	config.modelType = SkinnedModelType::Weapon;
+	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
+	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
+	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
+	weapon.Instantiate(config);
 }
 
 void Hilichurl::Update(void)

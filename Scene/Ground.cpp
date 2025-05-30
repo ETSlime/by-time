@@ -70,19 +70,16 @@ Ground::Ground()
 
 	m_town = new Town();
 
-	XMMATRIX worldMatrix;
-
+	SkinnedGameObjectConfig config;
+	config.modelPath = MODEL_ENVIRONMENT_PATH;
+	config.modelName = MODEL_FIELD_NAME;
+	config.modelType = SkinnedModelType::Field;
+	config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
+	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
-	fieldGO->Instantiate(MODEL_ENVIRONMENT_PATH, MODEL_FIELD_NAME, SkinnedModelType::Field);
-	fieldGO->SetScale(XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE));
-	fieldGO->SetRotation(XMFLOAT3(XM_PI / 2, XM_PI, 0.0f));
-	fieldGO->SetPosition(XMFLOAT3(0.0f, -650.0f, 0.0f));
-	fieldGO->Update();
-	worldMatrix = fieldGO->GetWorldMatrix();
-	fieldGO->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	fieldGO->GetSkinnedMeshModel()->BuildOctree();
-	fieldGO->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	fieldGO->SetCastShadow(false);
+	fieldGO->Instantiate(config);
 	m_skinnedMeshGroundGO.push_back(fieldGO);
 
 	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
@@ -151,72 +148,7 @@ Ground::Ground()
 	EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	
 
-	InstanceParams instanceParams;
-	instanceParams.type = EnvironmentObjectType::Bush_2;
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12882.0f,
-		-18385.0f,
-		0.5 * XM_PI,
-		0.3f
-	));
-
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12482.0f,
-		-17385.0f,
-		0.5,
-		0.3f
-	));
-
-	// 環境オブジェクト管理クラスのインスタンス生成
-	m_environment = new Environment();
-	const char* environmentModelPath = Environment::GetModelPathByType(instanceParams.type);
-
-	// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
-	if (Model::GetModel(environmentModelPath))
-	{
-		m_environment->GenerateInstanceByParams(
-			instanceParams, 
-			fieldGO->GetSkinnedMeshModel(), 
-			fieldGO->GetBoundingBoxWorld());
-	}
-	else // モデルがロードされていない場合は非同期でロードしてから実行
-	{
-		// 遅延用コンテキスト構築
-		auto* ctx = new GenerateInstanceContext{
-			m_environment,
-			instanceParams,
-			fieldGO,
-			environmentModelPath
-		};
-		DeferredTaskOptions options{};
-		options.async = false; // 非同期実行
-		options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
-
-		RawDeferredTask::Add(
-			ctx,
-			[](void* ptr)
-			{
-				auto* c = static_cast<GenerateInstanceContext*>(ptr);
-				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(c->fieldGO);
-				if (!fieldGO) return;
-				// 環境オブジェクトのインスタンスを生成
-				c->environment->GenerateInstanceByParams(
-					c->instanceParams,
-					fieldGO->GetSkinnedMeshModel(),
-					c->fieldGO->GetBoundingBoxWorld()
-				);
-			},
-			[](void* ptr)
-			{
-				// モデルのロード要求を発行（非同期ロードを開始）
-				auto* c = static_cast<GenerateInstanceContext*>(ptr);
-				Model::StoreModel(c->modelPath);
-				return Model::GetModel(c->modelPath) != nullptr;
-			},
-			options
-		);
-	}
-	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+	GenerateEnvironmentObj(fieldGO);
 }
 
 //=============================================================================
@@ -306,6 +238,76 @@ void Ground::Draw(void)
 	}
 
 	m_renderer.SetLightModeBuffer(0);
+}
+
+void Ground::GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldGO)
+{
+	InstanceParams instanceParams;
+	instanceParams.type = EnvironmentObjectType::Bush_2;
+	instanceParams.transformArray.push_back(InstanceTransformInfo(
+		12882.0f,
+		-18385.0f,
+		0.5 * XM_PI,
+		0.3f
+	));
+
+	instanceParams.transformArray.push_back(InstanceTransformInfo(
+		12482.0f,
+		-17385.0f,
+		0.5,
+		0.3f
+	));
+
+	// 環境オブジェクト管理クラスのインスタンス生成
+	m_environment = new Environment();
+	const char* environmentModelPath = Environment::GetModelPathByType(instanceParams.type);
+
+	// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
+	if (Model::GetModel(environmentModelPath))
+	{
+		m_environment->GenerateInstanceByParams(
+			instanceParams,
+			fieldGO->GetSkinnedMeshModel(),
+			fieldGO->GetBoundingBoxWorld());
+	}
+	else // モデルがロードされていない場合は非同期でロードしてから実行
+	{
+		// 遅延用コンテキスト構築
+		auto* ctx = new GenerateInstanceContext{
+			m_environment,
+			instanceParams,
+			fieldGO,
+			environmentModelPath
+		};
+		DeferredTaskOptions options{};
+		options.async = false; // 非同期実行
+		options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
+
+		RawDeferredTask::Add(
+			ctx,
+			[](void* ptr)
+			{
+				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				if (!fieldGO) return;
+				// 環境オブジェクトのインスタンスを生成
+				ctx->environment->GenerateInstanceByParams(
+					ctx->instanceParams,
+					fieldGO->GetSkinnedMeshModel(),
+					ctx->fieldGO->GetBoundingBoxWorld()
+				);
+			},
+			[](void* ptr)
+			{
+				// モデルのロード要求を発行（非同期ロードを開始）
+				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+				Model::StoreModel(ctx->modelPath);
+				return Model::GetModel(ctx->modelPath) != nullptr;
+			},
+			options
+		);
+	}
+	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
 }
 
 void Ground::RenderImGui(void)

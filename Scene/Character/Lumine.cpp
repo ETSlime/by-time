@@ -37,7 +37,11 @@
 
 Lumine::Lumine()
 {
-	Instantiate("data/MODEL/character/Lumine", "Character_output.fbx", SkinnedModelType::Lumine);
+	SkinnedGameObjectConfig config;
+	config.modelPath = "data/MODEL/character/Lumine";
+	config.modelName = "Character_output.fbx";
+	config.modelType = SkinnedModelType::Lumine;
+	Instantiate(config);
 	instance.collider.tag = ColliderTag::PLAYER;
 	instance.collider.owner = this;
 	instance.collider.enable = true;
@@ -48,22 +52,33 @@ Lumine::Lumine()
 	m_weapon.SetColliderOwner(&m_weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&m_weapon.GetCollider());
 	
-	//weapon.SetDrawWorldAABB(false);
 
-	AddAnimation("data/MODEL/character/Lumine/", "Idle.fbx", AnimClipName::ANIM_STANDING);
-	AddAnimation("data/MODEL/character/Lumine/", "Looking Around.fbx", AnimClipName::ANIM_IDLE);
-	AddAnimation("data/MODEL/character/Lumine/", "Sneak Walk.fbx", AnimClipName::ANIM_DASH);
-	AddAnimation("data/MODEL/character/Lumine/", "Running.fbx", AnimClipName::ANIM_RUN);
-	AddAnimation("data/MODEL/character/Lumine/", "Walking.fbx", AnimClipName::ANIM_WALK);
-	AddAnimation("data/MODEL/character/Lumine/", "Jump.fbx", AnimClipName::ANIM_JUMP);
-	AddAnimation("data/MODEL/character/Lumine/", "Standing React Small From Left.fbx", AnimClipName::ANIM_HIT_REACTION_1);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3);
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitLumineContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = false; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_LoadModel"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<Lumine*>(ptr);
+			ctx->InitializeAnimation();
+			ctx->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
+			ctx->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
+			ctx->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
+		},
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<Lumine*>(ptr);
+			return ctx->instance.pModel != nullptr;
+		},
+		options
+	);
 
-	instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
-	instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
-	instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
 
 	m_playAnimSpeed = PLAY_ANIM_SPD;
 	weaponOnBackTimer = 0;
@@ -86,22 +101,46 @@ Lumine::~Lumine()
 	SAFE_DELETE(swordTrail);
 }
 
+void Lumine::InitializeAnimation(void)
+{
+	AddAnimation("data/MODEL/character/Lumine/", "Idle.fbx", AnimClipName::ANIM_STANDING);
+	AddAnimation("data/MODEL/character/Lumine/", "Looking Around.fbx", AnimClipName::ANIM_IDLE);
+	AddAnimation("data/MODEL/character/Lumine/", "Sneak Walk.fbx", AnimClipName::ANIM_DASH);
+	AddAnimation("data/MODEL/character/Lumine/", "Running.fbx", AnimClipName::ANIM_RUN);
+	AddAnimation("data/MODEL/character/Lumine/", "Walking.fbx", AnimClipName::ANIM_WALK);
+	AddAnimation("data/MODEL/character/Lumine/", "Jump.fbx", AnimClipName::ANIM_JUMP);
+	AddAnimation("data/MODEL/character/Lumine/", "Standing React Small From Left.fbx", AnimClipName::ANIM_HIT_REACTION_1);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3);
+}
+
 void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(renderer.GetDevice(), *instance.pModel, animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Lumine::LoadWeapon(char* modelPath, char* modelName)
 {
-	m_weapon.Instantiate(modelPath, modelName, SkinnedModelType::Weapon);
-	m_weapon.SetScale(XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE));
-	m_weapon.SetPosition(XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z));
-	m_weapon.SetRotation(XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z));
+	SkinnedGameObjectConfig config;
+	config.modelPath = modelPath;
+	config.modelName = modelName;
+	config.modelType = SkinnedModelType::Weapon;
+	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
+	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
+	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
+	m_weapon.Instantiate(config);
 }
 
 void Lumine::Update(void)
 {
+	if (!m_finishLoading)
+	{
+		GameObject::Update();
+		return;
+	}
+
 	if (!m_inputManager.GetKeyboardPress(DIK_W)
 		&& !m_inputManager.GetKeyboardPress(DIK_S)
 		&& !m_inputManager.GetKeyboardPress(DIK_A)

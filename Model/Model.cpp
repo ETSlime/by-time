@@ -31,7 +31,11 @@ HashMap<const char*, MODEL_POOL, CharPtrHash, CharPtrEquals> Model::m_modelHashM
 //=============================================================================
 // 初期化処理
 //=============================================================================
-Model::Model(const char *FileName, StaticModelData* modelData) {}
+Model::Model(StaticModelData* modelData)
+{
+	// 所有権移譲：以降 Model が責任を持つ
+	m_modelData = modelData;
+}
 
 
 //=============================================================================
@@ -127,13 +131,11 @@ void Model::DrawBoundingBox()
 
 
 
-void Model::CreateGPUResources(StaticModelData* modelData)
+void Model::CreateGPUResources(void)
 {
 	// 二重初期化チェック
-	if (m_modelData != nullptr || m_GPUResource) 		return;
-
-	// 所有権移譲：以降 Model が責任を持つ
-	m_modelData = modelData;
+	if (m_GPUResource) 
+		return;
 
 	// 頂点バッファ生成
 	D3D11_BUFFER_DESC bd;
@@ -188,8 +190,8 @@ void Model::CreateGPUResources(StaticModelData* modelData)
 		if (m_modelData->SubsetArray[i].translucencyTexture == NULL)
 			m_modelData->SubsetArray[i].Material.MaterialData.translucencyMapSampling = 0;
 	}
-	if (!m_GPUResource)
 
+	if (!m_GPUResource)
 		m_GPUResource = true;
 	
 }
@@ -545,7 +547,7 @@ Model* Model::StoreModel(const char* modelPath)
 	AsyncModelLoader& loader = AsyncModelLoader::get_instance();
 
 	// モデルがロード済みかチェック
-	if (loader.IsLoaded(modelPath))
+	if (loader.IsLoaded<StaticModelLoadTask>(modelPath))
 	{
 		// CreateModelIfReady() で GPU リソースを作成
 		Model* model = loader.CreateModelIfReady(modelPath);
