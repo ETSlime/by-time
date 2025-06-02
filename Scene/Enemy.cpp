@@ -46,7 +46,6 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	//MapEditor::get_instance().AddToList(this);
 	m_enemyAttr.enemyType = enemyType;
 
-	instance.load = true;
 	m_behaviorTree = nullptr;
 	m_player = nullptr;
 
@@ -93,6 +92,12 @@ Enemy::~Enemy()
 //=============================================================================
 void Enemy::Update(void)
 {
+	if (!instance.load)
+	{
+		GameObject::Update();
+		return;
+	}
+
 	if (instance.use == true)		// このエネミーが使われている？
 	{
 

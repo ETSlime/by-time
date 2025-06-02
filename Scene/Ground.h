@@ -35,14 +35,15 @@ public:
 
 private:
 
-	void GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldGO);
+	void GenerateEnvironmentObj(void*);
+	bool DeferredIsFieldReady(void*) { return m_fieldGO->GetSkinnedMeshModel(); }
 
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };
 
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*> m_skinnedMeshGroundGO;
 	SimpleArray<GameObject<ModelInstance>*>	m_groundGO;
-
+	GameObject<SkinnedMeshModelInstance>* m_fieldGO = nullptr;
 	bool m_drawBoundingBox = true;
 
 	Town* m_town = nullptr;

@@ -218,6 +218,7 @@ public:
 	~GameObject();
 	void Instantiate(const GameObjectConfig& config);
 	void Instantiate(const SkinnedGameObjectConfig& config);
+	virtual void PostInit() {};
 	virtual void Update();
 	virtual void Draw();
 	virtual void DrawEffect() {};

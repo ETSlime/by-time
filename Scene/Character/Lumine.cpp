@@ -51,33 +51,6 @@ Lumine::Lumine()
 	m_weapon.SetColliderTag(ColliderTag::PLAYER_ATTACK);
 	m_weapon.SetColliderOwner(&m_weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&m_weapon.GetCollider());
-	
-
-	// 遅延用コンテキスト構築
-	auto* ctx = new InitLumineContext{
-		this,
-	};
-	DeferredTaskOptions options{};
-	options.async = false; // 非同期実行
-	options.debugName = "AsyncFbxModelLoader_LoadModel"; // デバッグ用の名前
-	// タスクを DeferredTaskSystem に登録
-	RawDeferredTask::Add(
-		ctx,
-		[](void* ptr)
-		{
-			auto* ctx = static_cast<Lumine*>(ptr);
-			ctx->InitializeAnimation();
-			ctx->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
-			ctx->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
-			ctx->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
-		},
-		[](void* ptr)
-		{
-			auto* ctx = static_cast<Lumine*>(ptr);
-			return ctx->instance.pModel != nullptr;
-		},
-		options
-	);
 
 
 	m_playAnimSpeed = PLAY_ANIM_SPD;
@@ -91,14 +64,42 @@ Lumine::Lumine()
 	swordTrail = new SwordTrail(&m_weapon);
 	swordTrail->SetTrailType(SwordTrailType::Normal);
 	swordTrail->SetTrailFrames(5);
-	SetupAnimStateMachine();
-	InitAnimInfo();
 }
 
 Lumine::~Lumine()
 {
 	SAFE_DELETE(m_stateMachine);
 	SAFE_DELETE(swordTrail);
+}
+
+void Lumine::PostInit(void)
+{
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_LoadModel_Lumine"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			ctx->owner->InitializeAnimation();
+
+			ctx->owner->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
+			ctx->owner->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
+			ctx->owner->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
+		},
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			return ctx->owner->instance.pModel != nullptr;
+		},
+		options
+	);
 }
 
 void Lumine::InitializeAnimation(void)
@@ -113,6 +114,9 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH);
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3);
+
+	SetupAnimStateMachine();
+	InitAnimInfo();
 }
 
 void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
@@ -135,7 +139,7 @@ void Lumine::LoadWeapon(char* modelPath, char* modelName)
 
 void Lumine::Update(void)
 {
-	if (!m_finishLoading)
+	if (!instance.load)
 	{
 		GameObject::Update();
 		return;
@@ -210,6 +214,8 @@ void Lumine::Update(void)
 
 void Lumine::Draw(void)
 {
+	if (!instance.load) return;
+
 	if (storeWeaponOnBack)
 	{
 		instance.renderProgress.isRandomFade = true;

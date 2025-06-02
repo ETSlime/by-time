@@ -294,6 +294,7 @@ public:
 
 	SkinnedMeshModel* SkinnedMeshModel::Clone() const;
 
+	void SetOverallDiffuseTexture(void);
 	void SetBodyDiffuseTexture(char* texturePath);
 	void SetBodyLightMapTexture(char* texturePath);
 	void SetBodyNormalMapTexture(char* texturePath);
@@ -303,6 +304,7 @@ public:
 	void SetFaceLightMapTexture(char* texturePath);
 
 	void LoadTownTexture(void);
+	bool AreAllTexturesLoaded(void) const;
 
 	void GetBoneTransformByAnim(FbxNode* currentClipArmatureNode, uint64_t currentClipTime, 
 		SimpleArray<XMFLOAT4X4>* boneFinalTransform, AnimationInfo& animInfo);
@@ -379,6 +381,8 @@ private:
 
 	SkinnedMeshModelData m_modelData;
 	bool m_GPUResource = false; // GPUÉäÉ\Å[ÉXÇê∂ê¨ÇµÇΩÇ©Ç«Ç§Ç©
+	int m_pendingTextureCount = 0;
+	int m_completedTextureCount = 0;
 
 	ID3D11ShaderResourceView* bodyDiffuseTexture = nullptr;
 	ID3D11ShaderResourceView* bodyLightMapTexture = nullptr;

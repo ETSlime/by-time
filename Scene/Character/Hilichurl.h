@@ -31,6 +31,7 @@ public:
 	Hilichurl(Transform transform, EnemyState initState = EnemyState::IDLE);
 	~Hilichurl();
 
+	virtual void PostInit(void) override;
 	virtual void InitializeAnimation(void) override;
 
 	void Update(void) override;
@@ -69,6 +70,10 @@ public:
 	virtual void OnDieAnimationEnd() override;
 
 private:
+	struct InitContext
+	{
+		Hilichurl* owner;
+	};
 	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
 	void LoadWeapon(char* modelPath, char* modelName);
 	void InitAnimInfo(void) override;

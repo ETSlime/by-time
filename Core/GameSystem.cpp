@@ -138,11 +138,11 @@ void GameSystem::RenderShadowPass(void)
 
 void GameSystem::PauseGame(void)
 {
-    m_isPaused = true;    
-    // カーソル位置を復元し、その後UI専用状態に切り替える
-    m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
-    // ポーズモーダルを表示
-    m_uiManager.SetModalIfNotExist<PauseModal>(); 
+    //m_isPaused = true;    
+    //// カーソル位置を復元し、その後UI専用状態に切り替える
+    //m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
+    //// ポーズモーダルを表示
+    //m_uiManager.SetModalIfNotExist<PauseModal>(); 
 
 }
 

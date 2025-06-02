@@ -64,6 +64,12 @@ Player::~Player()
 
 void Player::Update(void)
 {
+	if (!m_playerGO->GetInstance()->load)
+	{
+		m_playerGO->Update();
+		return;
+	}
+
 	UpdateActionQueue();
 
 	m_attributes = m_playerGO->GetAttributes();

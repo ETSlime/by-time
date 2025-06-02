@@ -43,11 +43,14 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 	instance.modelPath = const_cast<char*>(config.modelPath);
 	instance.modelName = const_cast<char*>(config.modelName);
 
-	instance.pModel = SkinnedMeshModel::StoreModel(config.modelPath, config.modelName, instance.modelFullPath, config.modelType, config.animClipName);
+	instance.pModel = SkinnedMeshModel::StoreModel(config.modelPath, config.modelName, 
+		instance.modelFullPath, config.modelType, config.animClipName);
 
 	// モデルのビルドタスクを登録
 	if (!instance.modelBuildTaskRegistered)
 	{
+		PostInit();
+
 		m_skinnedConfig = config; // コンフィグを保存
 		SetCollisionType(m_config.collisionType);
 		SetScale(m_skinnedConfig.scale);
@@ -77,6 +80,7 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 					SkinnedMeshModel* model = context->owner->instance.pModel;
 					// モデルの三角形をビルド
 					model->Deffered_BuildMeshTriangles(worldMatrix, true, context->owner->instance.drawWorldAABB);
+					model->SetOverallDiffuseTexture();
 				},
 				[](void* ptr) // タスクの条件関数
 				{
@@ -100,6 +104,28 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 					SkinnedMeshModel* model = context->owner->instance.pModel;
 					// モデルの三角形をビルド
 					model->Deffered_BuildBoundingBoxTriangles(boundingBox, context->owner->instance.drawWorldAABB);
+					model->SetOverallDiffuseTexture();
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					// モデルがロードされているかチェック
+					return context->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
+		else
+		{
+			RawDeferredTask::Add(
+				context, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* context = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					SkinnedMeshModel* model = context->owner->instance.pModel;
+					model->SetOverallDiffuseTexture();
 				},
 				[](void* ptr) // タスクの条件関数
 				{
@@ -115,7 +141,7 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 
 	instance.use = true; // モデルを使用するフラグを立てる
 
-	if (instance.pModel)
+	if (instance.pModel && instance.pModel->AreAllTexturesLoaded())
 	{
 		instance.load = true; // モデルがロードされたらロードフラグを立てる
 	}

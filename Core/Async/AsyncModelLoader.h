@@ -29,6 +29,7 @@ struct IModelLoadTask
     bool hasFailed = false;                         // 失敗フラグ
     ModelType modelType = ModelType::Default;
 
+    virtual void* GetParsedDataRaw() const = 0; // 型非依存でパースデータ取得
     virtual ~IModelLoadTask() = default;             // RTTI、dynamic_cast のため
 }; // モデル非同期読み込みタスク（基底クラス）
 
@@ -39,6 +40,10 @@ struct ModelLoadTask : public IModelLoadTask
 
     // 型安全な取得関数（parsedData を返す）
     ParsedDataType* GetParsedData() const 
+    {
+        return parsedData;
+    }
+    void* GetParsedDataRaw() const override 
     {
         return parsedData;
     }
@@ -130,8 +135,7 @@ bool AsyncModelLoader::IsLoaded(const char* modelPath) const
 {
     if (!m_taskMap.contains(modelPath)) return false;
 
-    IModelLoadTask* base = m_taskMap.at(modelPath);
-    const ModelLoadTask<TaskType>* task = static_cast<ModelLoadTask<TaskType>*>(base);
+    const IModelLoadTask* task = m_taskMap.at(modelPath);
 
-    return task->isDone && task->GetParsedData();
+    return task->isDone && task->GetParsedDataRaw();
 }

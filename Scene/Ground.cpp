@@ -68,7 +68,7 @@ Ground::Ground()
 	worldBB.minPoint = WORLD_MIN;
 	CollisionManager::get_instance().InitOctree(worldBB);
 
-	m_town = new Town();
+	//m_town = new Town();
 
 	SkinnedGameObjectConfig config;
 	config.modelPath = MODEL_ENVIRONMENT_PATH;
@@ -81,6 +81,7 @@ Ground::Ground()
 	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
 	fieldGO->Instantiate(config);
 	m_skinnedMeshGroundGO.push_back(fieldGO);
+	m_fieldGO = fieldGO;
 
 	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
 	//fieldGO->Instantiate(MODEL_FIELD_PATH);
@@ -147,8 +148,17 @@ Ground::Ground()
 	fireparams.startSpeedMax = 3.0f;
 	EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	
-
-	GenerateEnvironmentObj(fieldGO);
+	DeferredTaskOptions options{};
+	options.async = false; // 同期実行
+	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	DeferredTaskBinder<Ground>::Add(
+		this,
+		nullptr,
+		&Ground::GenerateEnvironmentObj,
+		&Ground::DeferredIsFieldReady,
+		options
+	);
 }
 
 //=============================================================================
@@ -240,7 +250,7 @@ void Ground::Draw(void)
 	m_renderer.SetLightModeBuffer(0);
 }
 
-void Ground::GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldGO)
+void Ground::GenerateEnvironmentObj(void*)
 {
 	InstanceParams instanceParams;
 	instanceParams.type = EnvironmentObjectType::Bush_2;
@@ -267,8 +277,8 @@ void Ground::GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldG
 	{
 		m_environment->GenerateInstanceByParams(
 			instanceParams,
-			fieldGO->GetSkinnedMeshModel(),
-			fieldGO->GetBoundingBoxWorld());
+			m_fieldGO->GetSkinnedMeshModel(),
+			m_fieldGO->GetBoundingBoxWorld());
 	}
 	else // モデルがロードされていない場合は非同期でロードしてから実行
 	{
@@ -276,7 +286,7 @@ void Ground::GenerateEnvironmentObj(GameObject<SkinnedMeshModelInstance>* fieldG
 		auto* ctx = new GenerateInstanceContext{
 			m_environment,
 			instanceParams,
-			fieldGO,
+			m_fieldGO,
 			environmentModelPath
 		};
 		DeferredTaskOptions options{};
@@ -321,7 +331,7 @@ void Ground::RenderImGui(void)
 			m_groundGO[i]->GetModel()->SetDrawBoundingBox(m_drawBoundingBox);
 		}
 	}
-
-	m_environment->SetDrawBoundingBox(m_drawBoundingBox);
+	if(m_environment)
+		m_environment->SetDrawBoundingBox(m_drawBoundingBox);
 }
 

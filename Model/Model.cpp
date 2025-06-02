@@ -554,7 +554,7 @@ Model* Model::StoreModel(const char* modelPath)
 
 		// 安全チェック：まれにロードフラグありでもモデル構築失敗するケース
 		if (!model) 
-			return nullptr; // ロード済みと見せかけて失敗していたケース（異常）
+			return nullptr; // ロード済みと見せかけて失敗していたケース
 
 		// モデルプールへ登録
 		modelPool = new MODEL_POOL;

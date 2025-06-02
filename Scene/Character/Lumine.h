@@ -13,21 +13,14 @@
 // ç\ë¢ëÃíËã`
 //*****************************************************************************
 
-class Lumine;
-
-struct InitLumineContext
-{
-	Lumine* lumine;
-};
-
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
 public:
 	Lumine();
 	~Lumine();
 
+	virtual void PostInit(void) override;
 	virtual void InitializeAnimation(void) override;
-
 
 	void Update(void) override;
 	void Draw(void) override;
@@ -64,7 +57,10 @@ public:
 	virtual void OnJumpAnimationEnd(void) override;
 
 private:
-
+	struct InitContext
+	{
+		Lumine* owner;
+	};
 	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
 	void LoadWeapon(char* modelPath, char* modelName);
 	void SetupAnimStateMachine(void);
@@ -83,7 +79,6 @@ private:
 	bool weaponOnBack;
 	bool storeWeaponOnBack;
 	bool storeWeapon;
-	bool m_finishLoading = false;
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 };

@@ -40,10 +40,9 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 	weapon.SetColliderOwner(&weapon);
 	CollisionManager::get_instance().RegisterDynamicCollider(&weapon.GetCollider());
 
+
 	m_initState = initState;
 	m_playAnimSpeed = PLAY_ANIM_SPD;
-
-	InitHPGauge();
 }
 
 void Hilichurl::Initialize(void)
@@ -55,6 +54,33 @@ void Hilichurl::Initialize(void)
 Hilichurl::~Hilichurl()
 {
 	SAFE_DELETE(m_stateMachine);
+}
+
+void Hilichurl::PostInit(void)
+{
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_LoadModel_Enemy"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			ctx->owner->InitializeAnimation();
+			ctx->owner->InitHPGauge();
+		},
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			return ctx->owner->instance.pModel != nullptr;
+		},
+		options
+	);
 }
 
 void Hilichurl::InitializeAnimation(void)
@@ -98,6 +124,8 @@ void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
 void Hilichurl::Update(void)
 {
 	Enemy::Update();
+
+	if (!instance.load) return;
 
 	m_stateMachine->Update(ANIM_BLEND_SPD, dynamic_cast<ISkinnedMeshModelChar*>(this));
 

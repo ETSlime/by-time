@@ -195,7 +195,6 @@ void SkinnedMeshModel::DrawModel()
         case SkinnedModelType::Church:
             DrawChurch(meshData);
             break;
-        case SkinnedModelType::Weapon:
         default:
             Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
             Renderer::get_instance().GetDeviceContext()->DrawIndexed(meshData->IndexNum, 0, 0);
@@ -212,39 +211,132 @@ void SkinnedMeshModel::DrawModel()
     }
 }
 
+void SkinnedMeshModel::SetOverallDiffuseTexture(void)
+{
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        MeshData* meshData = it.value;
+        if (meshData->diffuseTextureName)
+        {
+            m_pendingTextureCount++;
+            TextureMgr::get_instance().RequestTextureAsync(
+                meshData->diffuseTextureName,
+                &meshData->diffuseTexture,
+                [](bool success, void* param)
+                {
+                    SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+                    model->m_completedTextureCount++;
+                },
+                this
+            );
+
+        }
+    }
+}
+
 void SkinnedMeshModel::SetBodyDiffuseTexture(char* texturePath)
 {
-    bodyDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetBodyLightMapTexture(char* texturePath)
 {
-    bodyLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetBodyNormalMapTexture(char* texturePath)
 {
-    bodyNormalMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyNormalMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetHairDiffuseTexture(char* texturePath)
 {
-    hairDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &hairDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetHairLightMapTexture(char* texturePath)
 {
-    hairLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &hairLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetFaceDiffuseTexture(char* texturePath)
 {
-    faceDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &faceDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetFaceLightMapTexture(char* texturePath)
 {
-    faceLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &faceLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::LoadTownTexture(void)
@@ -289,6 +381,11 @@ void SkinnedMeshModel::LoadTownTexture(void)
     Indoor_MdProps_Church_Item01_Diffuse = TextureMgr::get_instance().CreateTexture("data/MODEL/Environment/Church/Indoor_MdProps_Church_Item01_Diffuse.png");
     Indoor_Mdprops_Church_Lights01_Diffuse = TextureMgr::get_instance().CreateTexture("data/MODEL/Environment/Church/Indoor_Mdprops_Church_Lights01_Diffuse.png");
     Indoor_MdBuild_WindowEffect04_NoStream = TextureMgr::get_instance().CreateTexture("data/MODEL/Environment/Church/Indoor_MdBuild_WindowEffect04_NoStream.png");
+}
+
+bool SkinnedMeshModel::AreAllTexturesLoaded(void) const
+{
+    return m_completedTextureCount >= m_pendingTextureCount;
 }
 
 void SkinnedMeshModel::GetBoneTransformByAnim(FbxNode* currentClipArmatureNode, uint64_t currentClipTime, 
