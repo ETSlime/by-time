@@ -23,7 +23,7 @@ void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
         staticOctree = new OctreeNode(boundingBox);
     else
     {
-        delete staticOctree;
+        SAFE_DELETE(staticOctree);
         staticOctree = new OctreeNode(boundingBox);
     }
 }

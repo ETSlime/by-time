@@ -39,6 +39,7 @@ enum class ModelType
 enum class ObjectCollisionType
 {
 	NONE,
+	COLLIDER_BOUNDING_BOX,
 	MESH_BOUNDING_BOX,
 	OBJECT_BOUNDING_BOX,
 };
@@ -118,12 +119,14 @@ struct SkinnedMeshModelInstance
 	char*				modelFullPath = nullptr;
 	bool				use = false;
 	bool				load = false;
+	bool				postInit = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 	SkinnedMeshModel*	pModel = nullptr;
 	bool				modelBuildTaskRegistered = false;
 	Transform			transform;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ColliderTag			colliderTag = ColliderTag::DEFAULT;
 	Attributes			attributes;
 	Collider			collider;
 
@@ -141,6 +144,7 @@ struct ModelInstance
 	char*				modelPath = nullptr;
 	bool				use = false;
 	bool				load = false;
+	bool				postInit = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 
@@ -149,6 +153,7 @@ struct ModelInstance
 	XMFLOAT4			diffuse[MODEL_MAX_MATERIAL]{};	// モデルの色
 	Transform			transform;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ColliderTag			colliderTag = ColliderTag::DEFAULT;
 	Attributes			attributes;
 	Collider			collider;
 
@@ -174,6 +179,7 @@ struct GameObjectConfig
 	bool castShadow = true;
 	bool drawWorldAABB = false;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ColliderTag			colliderTag = ColliderTag::DEFAULT;
 	ModelType modelType = ModelType::Static;
 };
 
@@ -187,6 +193,7 @@ struct SkinnedGameObjectConfig
 	bool castShadow = true;
 	bool drawWorldAABB = false;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ColliderTag			colliderTag = ColliderTag::DEFAULT;
 	SkinnedModelType modelType = SkinnedModelType::Default;
 	AnimClipName animClipName = AnimClipName::ANIM_NONE;
 };
@@ -218,10 +225,13 @@ public:
 	~GameObject();
 	void Instantiate(const GameObjectConfig& config);
 	void Instantiate(const SkinnedGameObjectConfig& config);
-	virtual void PostInit() {};
+
+	// モデルの読み込みが完了した後に呼び出される初期化処理関数
+	virtual void PostInit() { instance.postInit = true; }
+
 	virtual void Update();
 	virtual void Draw();
-	virtual void DrawEffect() {};
+	virtual void DrawEffect() {}
 	virtual void RenderDebugInfo(void) override;
 	void DrawModelEditor();
 	void UpdateModelEditor();
@@ -325,7 +335,7 @@ public:
 	inline void SetColliderOwner(void* owner) { instance.collider.owner = owner; }
 	inline void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
 	inline void SetColliderBoundingBox(BOUNDING_BOX boundingBox) { instance.collider.aabb = boundingBox; }
-	inline const Collider& GetCollider(void) { return instance.collider; }
+	inline const Collider& GetCollider(void) const { return instance.collider; }
 	inline BOUNDING_BOX GetBoundingBoxWorld(void) const override { return instance.collider.aabb; }
 
 
@@ -449,7 +459,8 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 	if (!instance.modelPath)
 		instance.modelPath = const_cast<char*>(config.modelPath);
 
-	instance.pModel = Model::StoreModel(config.modelPath);
+	if (!instance.pModel)
+		instance.pModel = Model::StoreModel(config.modelPath);
 
 	// モデルのビルドタスクを登録
 	if (!instance.modelBuildTaskRegistered)
@@ -464,12 +475,31 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		SetModelType(m_config.modelType);
 
 		DeferredTaskOptions options{};
+		options.async = false; // postInit は同期で実行
+		options.debugName = "GameObject_InstantiateGameObject_PostInit"; // デバッグ用の名前
+		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
+
+		RawDeferredTask::Add(
+			ctx, // コンテキストを渡す
+			[](void* ptr) // タスクの実行関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+				ctx->owner->PostInit();
+			},
+			[](void* ptr) // タスクの条件関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+				// モデルがロードされているかチェック
+				return ctx->owner->DeferredCanRunModelReady();
+			},
+			options
+		);
 
 		// 非同期で実行するかどうかを決定
 		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
-		options.debugName = "GameObject_InstantiateModel"; // デバッグ用の名前
-		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
-
+		options.debugName = "GameObject_InstantiateGameObject_Collision";
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
@@ -488,7 +518,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					// コンテキストを取得
 					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
 					// モデルがロードされているかチェック
-					return ctx->owner->DeferredCanRunModelReady();
+					return ctx->owner->GetCollider().isInitialized;
 				},
 				options
 			);
@@ -511,10 +541,19 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					// コンテキストを取得
 					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
 					// モデルがロードされているかチェック
-					return ctx->owner->DeferredCanRunModelReady();
+					return ctx->owner->GetCollider().isInitialized;
 				},
 				options
 			);
+		}
+		else if (instance.collisionType == ObjectCollisionType::COLLIDER_BOUNDING_BOX)
+		{
+			instance.collider.tag = m_config.colliderTag;
+			instance.collider.owner = this;
+			if (m_skinnedConfig.colliderTag != ColliderTag::PLAYER_ATTACK &&
+				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
+				instance.collider.enable = true;
+			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 		}
 
 		instance.modelBuildTaskRegistered = true;
@@ -522,7 +561,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 
 	instance.use = true; // モデルを使用するフラグを立てる
 
-	if (instance.pModel)
+	if (instance.pModel && instance.postInit)
 	{
 		instance.load = true; // モデルがロードされたらロードフラグを立てる
 	}
@@ -535,7 +574,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 template<typename T>
 void GameObject<T>::Update()
 {
-	if (instance.pModel == nullptr)
+	if (!instance.load)
 	{
 		Instantiate(m_config);
 		if (!instance.load) return; // モデルがロードされていない場合は何もしない
@@ -589,8 +628,7 @@ void GameObject<T>::Update()
 	}
 
 	// AABBをコライダーに格納（ワールド空間）
-	XMStoreFloat3(&instance.collider.aabb.minPoint, worldMin);
-	XMStoreFloat3(&instance.collider.aabb.maxPoint, worldMax);
+	instance.collider.UpdateBoundingBox(worldMin, worldMax);
 }
 
 template <typename T>

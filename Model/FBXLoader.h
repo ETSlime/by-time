@@ -412,7 +412,7 @@ public:
 	bool LoadModel(SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, const char* texturePath, 
 		AnimClipName name = AnimClipName::ANIM_NONE, SkinnedModelType modelType = SkinnedModelType::Default);
 
-	bool LoadAnimation(SkinnedMeshModelData* model, const char* modelPath, const char* modelName, AnimClipName name);
+	bool LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName name);
 
 private:
 	bool ParseObjectDefinitions(FILE* file, SkinnedMeshModelData* model);

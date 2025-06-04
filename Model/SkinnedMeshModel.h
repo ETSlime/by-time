@@ -196,6 +196,8 @@ struct SkinnedMeshModelData
 	BindPose bindPose;
 	FbxMaterial globalMaterial;
 
+	BOUNDING_BOX boundingBox;
+
 	HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64> fbxNodes =
 		HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64>(
 			MAX_NODE_NUM,
@@ -250,6 +252,7 @@ struct SkinnedMeshModelData
 		numBones(other.numBones),
 		currentAnimClip(other.currentAnimClip),
 		modelType(other.modelType),
+		boundingBox(other.boundingBox),
 		boneTransformData(std::move(other.boneTransformData)),
 		globalModelProperty(std::move(other.globalModelProperty)),
 		modelProperty(std::move(other.modelProperty)),
@@ -316,11 +319,11 @@ public:
 	void BuildBoundingBoxTriangles(BOUNDING_BOX bb);
 	bool BuildOctree(void);
 	UINT GetNumBones(void) { return m_modelData.numBones; }
-	BOUNDING_BOX GetBoundingBox(void) const { return boundingBox; }
+	BOUNDING_BOX GetBoundingBox(void) const { return m_modelData.boundingBox; }
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 
-	void Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
-	void Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	bool Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
+	bool Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
 
 	void SetCurrentAnim(AnimationClip* currAnimClp, float startTime = 0);
 	AnimClipName GetCurrentAnim(void) { return m_modelData.currentAnimClip->name; }
@@ -372,9 +375,6 @@ private:
 	bool drawBoundingBox = false;
 
 	FbxNode* armatureNode = nullptr;
-
-
-	BOUNDING_BOX boundingBox;
 
 	XMMATRIX m_transposedBoneMatrices[BONE_MAX];
 	mutable SimpleArray<SkinnedMeshPart> m_meshParts;

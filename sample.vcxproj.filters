@@ -260,6 +260,9 @@
     <ClInclude Include="Core\Async\SpinLock.h">
       <Filter>Core\Async</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Async\LightweightMutex.h">
+      <Filter>Core\Async</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -415,6 +418,9 @@
     </ClCompile>
     <ClCompile Include="Core\Async\DeferredTaskSystem.cpp">
       <Filter>Core\Async</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\TextureUploadQueue.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

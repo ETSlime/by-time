@@ -145,6 +145,7 @@
     <ClInclude Include="Core\Async\AsyncResourceLoader.h" />
     <ClInclude Include="Core\Async\DeferredTaskAPI.h" />
     <ClInclude Include="Core\Async\DeferredTaskSystem.h" />
+    <ClInclude Include="Core\Async\LightweightMutex.h" />
     <ClInclude Include="Core\Async\SpinLock.h" />
     <ClInclude Include="Core\Async\ThreadPool.h" />
     <ClInclude Include="Core\Camera.h" />
@@ -230,6 +231,7 @@
     <ClCompile Include="Core\Shader\ShaderReloader.cpp" />
     <ClCompile Include="Core\Shader\ShaderResourceBinder.cpp" />
     <ClCompile Include="Core\TextureMgr.cpp" />
+    <ClCompile Include="Core\TextureUploadQueue.cpp" />
     <ClCompile Include="Effects\EffectSystem.cpp" />
     <ClCompile Include="Effects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />

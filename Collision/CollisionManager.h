@@ -40,13 +40,22 @@ public:
     ColliderTag tag; // è’ìÀäÌÇÃéÌóﬁ
     void* owner;
     bool enable;
+    bool isInitialized;
 
     Collider()
     {
         aabb = BOUNDING_BOX();
         tag = ColliderTag::DEFAULT;
         enable = false;
+        isInitialized = false;
         owner = nullptr;
+    }
+
+    void UpdateBoundingBox(const XMVECTOR& min, const XMVECTOR& max)
+    {
+        XMStoreFloat3(&aabb.minPoint, min);
+        XMStoreFloat3(&aabb.maxPoint, max);
+        isInitialized = true;
     }
 };
 

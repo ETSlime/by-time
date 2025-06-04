@@ -311,8 +311,9 @@ void Ground::GenerateEnvironmentObj(void*)
 			{
 				// モデルのロード要求を発行（非同期ロードを開始）
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
 				Model::StoreModel(ctx->modelPath);
-				return Model::GetModel(ctx->modelPath) != nullptr;
+				return Model::GetModel(ctx->modelPath) != nullptr && fieldGO->GetCollider().isInitialized;
 			},
 			options
 		);

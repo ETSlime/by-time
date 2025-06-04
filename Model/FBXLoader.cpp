@@ -312,7 +312,7 @@ bool FBXLoader::LoadModel(SkinnedMeshModelData* modelData, const char* modelPath
     return true;
 }
 
-bool FBXLoader::LoadAnimation(SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName animName)
+bool FBXLoader::LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName animName)
 {
     char* modelFilename = new char[MODEL_NAME_LENGTH] {};
 
@@ -344,6 +344,7 @@ bool FBXLoader::LoadAnimation(SkinnedMeshModelData* modelData, const char* model
     modelData->fbxNodes.insert(modelData->currentRootNodeID, rootNode);
     modelData->currentRootNodeID++;
     modelData->currentAnimClip = new AnimationClip();
+    modelData->currentAnimClip->SetModel(model);
     modelData->currentAnimClip->name = animName;
 
     char buffer[1024];
@@ -713,7 +714,7 @@ bool FBXLoader::ParseObjectProperties(FILE* file, SkinnedMeshModelData* modelDat
                 modelData->fbxNodes.insert(node->nodeID, node);
 
                 char TextureName[128];
-                if (sscanf(buffer, " Texture: %*[^,], \"%[^\"]\", \"%[^\"]\"", TextureName) != 1)
+                if (sscanf(buffer, " Texture: %*[^,], \"%[^\"]\"", TextureName) != 1)
                 {
                     delete node;
                     return false;   // Texture‚Ì‰ğÍ‚ª¸”s‚µ‚½

@@ -49,7 +49,7 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
     task->modelPath = const_cast<char*>(modelPath);
 
 	DeferredTaskOptions options{};
-	options.async = false; // 非同期実行
+	options.async = true; // 非同期実行
 	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
     DeferredTaskBinder<AsyncModelLoader>::Add(
@@ -64,7 +64,7 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
     m_taskMap[modelPath] = task;
 }
 
-void AsyncModelLoader::EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath)
+void AsyncModelLoader::EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath, SkinnedModelType type)
 {
     if (!modelPath || !modelName || !modelFullPath) return;
 
@@ -74,9 +74,10 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath, const char* modelName,
     SkinnedMeshModelLoadTask* task = new SkinnedMeshModelLoadTask();
     task->modelPath = const_cast<char*>(modelPath);
     task->modelName = const_cast<char*>(modelName);
+    task->modelType = type;
 
     DeferredTaskOptions options{};
-    options.async = false; // 非同期実行
+    options.async = true; // 非同期実行
     options.debugName = "AsyncFbxModelLoader_LoadModel"; // デバッグ用の名前
     // タスクを DeferredTaskSystem に登録
     DeferredTaskBinder<AsyncModelLoader>::Add(
@@ -107,6 +108,7 @@ void AsyncModelLoader::Update()
             {
                 entry.modelPath = entry.info.modelPath;
                 entry.modelName = entry.info.modelName;
+                entry.modelType = entry.info.modelType;
                 entry.modelFullPath = it.key;
             }
             else
@@ -135,7 +137,7 @@ void AsyncModelLoader::Update()
         for (UINT i = 0; i < m_cachedSortArray.getSize(); ++i) 
         {
             if (m_cachedSortArray[i].modelFullPath)
-                EnqueueLoad(m_cachedSortArray[i].modelPath, m_cachedSortArray[i].modelName, m_cachedSortArray[i].modelFullPath);
+                EnqueueLoad(m_cachedSortArray[i].modelPath, m_cachedSortArray[i].modelName, m_cachedSortArray[i].modelFullPath, m_cachedSortArray[i].modelType);
             else
                 EnqueueLoad(m_cachedSortArray[i].modelPath);
         }
@@ -167,7 +169,8 @@ void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, int priorit
     m_deferredRequests[modelPath] = info;
 }
 
-void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, int priority, const char* source)
+void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, 
+    SkinnedModelType type, int priority, const char* source)
 {
     // すでにロード中またはロード済みなら無視
     if (m_taskMap.count(modelFullPath)) return;
@@ -180,6 +183,7 @@ void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, const char*
     info.requestTime = Timer::get_instance().GetElapsedTime();
     info.modelPath = const_cast<char*>(modelPath);
     info.modelName = const_cast<char*>(modelName);
+    info.modelType = type;
 
     m_deferredRequests[modelFullPath] = info;
 }

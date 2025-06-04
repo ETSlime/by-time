@@ -505,8 +505,8 @@ void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
 
             CreateBoundingBoxVertex(meshData->boundingBoxes[i]);
 
-            boundingBox.maxPoint = newMaxPoint;
-            boundingBox.minPoint = newMinPoint;
+            m_modelData.boundingBox.maxPoint = newMaxPoint;
+            m_modelData.boundingBox.minPoint = newMinPoint;
         }
     }
 }
@@ -621,7 +621,7 @@ bool SkinnedMeshModel::BuildOctree(void)
             return false;
 
         if (CollisionManager::get_instance().staticOctree == nullptr)
-            CollisionManager::get_instance().staticOctree = new OctreeNode(boundingBox);
+            CollisionManager::get_instance().staticOctree = new OctreeNode(m_modelData.boundingBox);
 
         int numTriangles = meshData->triangles.getSize();
         for (int i = 0; i < numTriangles; i++)
@@ -646,18 +646,26 @@ const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
     return nullptr;
 }
 
-void SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
 {
-    BuildMeshTriangles(worldMatrix, alwaysFaceUp);
-    BuildOctree();
     SetDrawBoundingBox(drawBoundingBox);
+
+    bool success = false;
+    BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+    success = BuildOctree();
+
+    return success;
 }
 
-void SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+bool SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
 {
-    BuildBoundingBoxTriangles(box);
-    BuildOctree();
     SetDrawBoundingBox(drawBoundingBox);
+
+    bool success = false;
+    BuildBoundingBoxTriangles(box);
+    success = BuildOctree();
+
+    return success;
 }
 
 void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip, float startTime)
@@ -790,8 +798,8 @@ void SkinnedMeshModel::CreateGPUResources()
             CreateBoundingBoxVertex(boundingBox);
         }
 
-        boundingBox.maxPoint = meshData->boundingBoxes[0]->maxPoint;
-        boundingBox.minPoint = meshData->boundingBoxes[0]->minPoint;
+        m_modelData.boundingBox.maxPoint = meshData->boundingBoxes[0]->maxPoint;
+        m_modelData.boundingBox.minPoint = meshData->boundingBoxes[0]->minPoint;
 
         // インデックスバッファ生成
         ZeroMemory(&bd, sizeof(bd));
@@ -827,7 +835,7 @@ SkinnedMeshModel* SkinnedMeshModel::StoreModel(const char* modelPath, const char
     AsyncModelLoader& loader = AsyncModelLoader::get_instance();
 
     // モデルがロード済みかチェック
-    if (loader.IsLoaded<SkinnedMeshModelLoadTask>(modelFullPath))
+    if (loader.IsLoaded<ModelLoadTask<SkinnedMeshModelData>>(modelFullPath))
     {
         // CreateModelIfReady() で GPU リソースを作成
         SkinnedMeshModel* model = loader.CreateSkinnedMeshModelIfReady(modelFullPath);
@@ -847,7 +855,7 @@ SkinnedMeshModel* SkinnedMeshModel::StoreModel(const char* modelPath, const char
     }
 
     // 未ロード → ロード要求を保留リストに登録（次のフレームで処理）
-    loader.RequestLoadIfNotQueued(modelPath, modelName, modelFullPath);
+    loader.RequestLoadIfNotQueued(modelPath, modelName, modelFullPath, modelType);
 
     // 今はリソースがないので null
     return nullptr;

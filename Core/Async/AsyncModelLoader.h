@@ -67,7 +67,6 @@ struct SkinnedMeshModelLoadTask : public ModelLoadTask<SkinnedMeshModelData>
     char* modelName = nullptr;                           // モデル名
     AnimClipName animClipName = AnimClipName::ANIM_NONE; // 初期再生アニメーション名
     SkinnedModelType modelType = SkinnedModelType::Default; // スキンモデルの種別
-    SkinnedMeshModelData* parsedData = nullptr;          // パース済みデータ（CreateGPUResources に渡す）
 };
 
 struct DeferredRequestInfo
@@ -78,6 +77,7 @@ struct DeferredRequestInfo
 
     char* modelPath = nullptr;
     char* modelName = nullptr;
+    SkinnedModelType modelType = SkinnedModelType::Default;
 };
 
 struct DeferredEntry 
@@ -85,6 +85,7 @@ struct DeferredEntry
     const char* modelPath = nullptr;
     const char* modelName = nullptr;
     const char* modelFullPath = nullptr;
+    SkinnedModelType modelType = SkinnedModelType::Default;
     DeferredRequestInfo info;
 };
 
@@ -97,11 +98,11 @@ public:
     // リクエストが未登録なら登録
     void RequestLoadIfNotQueued(const char* modelPath, int priority = 0, const char* source = nullptr);
     void RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, 
-        int priority = 0, const char* source = nullptr);
+        SkinnedModelType type, int priority = 0, const char* source = nullptr);
 
     // 非同期ロード要求を追加
     void EnqueueLoad(const char* modelPath);
-    void EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath);
+    void EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath, SkinnedModelType type);
 
     // 毎フレーム完了チェック
     void Update(void); 
@@ -135,7 +136,8 @@ bool AsyncModelLoader::IsLoaded(const char* modelPath) const
 {
     if (!m_taskMap.contains(modelPath)) return false;
 
-    const IModelLoadTask* task = m_taskMap.at(modelPath);
+    IModelLoadTask* base = m_taskMap.at(modelPath);
+    TaskType* task = static_cast<TaskType*>(base);
 
     return task->isDone && task->GetParsedDataRaw();
 }

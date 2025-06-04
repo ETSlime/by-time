@@ -29,16 +29,11 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 	config.modelName = "Character_output.fbx";
 	config.modelType = SkinnedModelType::Hilichurl;
 	config.drawWorldAABB = false;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::ENEMY;
 	Instantiate(config);
-	instance.collider.tag = ColliderTag::ENEMY;
-	instance.collider.owner = this;
-	instance.collider.enable = true;
-	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 
 	LoadWeapon("data/MODEL/enemy/Hilichurl", "Stick.fbx");
-	weapon.SetColliderTag(ColliderTag::ENEMY_ATTACK);
-	weapon.SetColliderOwner(&weapon);
-	CollisionManager::get_instance().RegisterDynamicCollider(&weapon.GetCollider());
 
 
 	m_initState = initState;
@@ -58,13 +53,19 @@ Hilichurl::~Hilichurl()
 
 void Hilichurl::PostInit(void)
 {
+	instance.transform.pos = m_enemyAttr.initTrans.pos;
+	instance.transform.rot = m_enemyAttr.initTrans.rot;
+	instance.transform.scl = m_enemyAttr.initTrans.scl;
+
+	InitHPGauge();
+
 	// 遅延用コンテキスト構築
 	auto* ctx = new InitContext{
 		this,
 	};
 	DeferredTaskOptions options{};
 	options.async = true; // 非同期実行
-	options.debugName = "AsyncFbxModelLoader_LoadModel_Enemy"; // デバッグ用の名前
+	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Hilichurl"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
 	RawDeferredTask::Add(
 		ctx,
@@ -72,13 +73,10 @@ void Hilichurl::PostInit(void)
 		{
 			auto* ctx = static_cast<InitContext*>(ptr);
 			ctx->owner->InitializeAnimation();
-			ctx->owner->InitHPGauge();
+
+			ctx->owner->GameObject::PostInit();
 		},
-		[](void* ptr)
-		{
-			auto* ctx = static_cast<InitContext*>(ptr);
-			return ctx->owner->instance.pModel != nullptr;
-		},
+		nullptr,
 		options
 	);
 }
@@ -106,7 +104,7 @@ void Hilichurl::InitializeAnimation(void)
 void Hilichurl::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(instance.pModel->GetModelData(), animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
@@ -115,6 +113,8 @@ void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
 	config.modelPath = modelPath;
 	config.modelName = modelName;
 	config.modelType = SkinnedModelType::Weapon;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::ENEMY_ATTACK;
 	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
 	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
 	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
@@ -125,7 +125,7 @@ void Hilichurl::Update(void)
 {
 	Enemy::Update();
 
-	if (!instance.load) return;
+	if (!instance.load || !m_stateMachine) return;
 
 	m_stateMachine->Update(ANIM_BLEND_SPD, dynamic_cast<ISkinnedMeshModelChar*>(this));
 

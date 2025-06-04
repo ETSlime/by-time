@@ -41,16 +41,11 @@ Lumine::Lumine()
 	config.modelPath = "data/MODEL/character/Lumine";
 	config.modelName = "Character_output.fbx";
 	config.modelType = SkinnedModelType::Lumine;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::PLAYER;
 	Instantiate(config);
-	instance.collider.tag = ColliderTag::PLAYER;
-	instance.collider.owner = this;
-	instance.collider.enable = true;
-	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
-	m_weapon.SetColliderTag(ColliderTag::PLAYER_ATTACK);
-	m_weapon.SetColliderOwner(&m_weapon);
-	CollisionManager::get_instance().RegisterDynamicCollider(&m_weapon.GetCollider());
 
 
 	m_playAnimSpeed = PLAY_ANIM_SPD;
@@ -80,7 +75,7 @@ void Lumine::PostInit(void)
 	};
 	DeferredTaskOptions options{};
 	options.async = true; // 非同期実行
-	options.debugName = "AsyncFbxModelLoader_LoadModel_Lumine"; // デバッグ用の名前
+	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Lumine"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
 	RawDeferredTask::Add(
 		ctx,
@@ -92,12 +87,10 @@ void Lumine::PostInit(void)
 			ctx->owner->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
 			ctx->owner->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
 			ctx->owner->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
+
+			ctx->owner->GameObject::PostInit();
 		},
-		[](void* ptr)
-		{
-			auto* ctx = static_cast<InitContext*>(ptr);
-			return ctx->owner->instance.pModel != nullptr;
-		},
+		nullptr,
 		options
 	);
 }
@@ -122,7 +115,7 @@ void Lumine::InitializeAnimation(void)
 void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(instance.pModel->GetModelData(), animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Lumine::LoadWeapon(char* modelPath, char* modelName)
@@ -131,6 +124,8 @@ void Lumine::LoadWeapon(char* modelPath, char* modelName)
 	config.modelPath = modelPath;
 	config.modelName = modelName;
 	config.modelType = SkinnedModelType::Weapon;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::PLAYER_ATTACK;
 	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
 	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
 	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);

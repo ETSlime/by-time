@@ -42,7 +42,6 @@
 //=============================================================================
 Enemy::Enemy(EnemyType enemyType, Transform trans)
 {
-
 	//MapEditor::get_instance().AddToList(this);
 	m_enemyAttr.enemyType = enemyType;
 
@@ -67,9 +66,6 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 		break;
 	}
 
-	instance.transform.pos = trans.pos;
-	instance.transform.rot = trans.rot;
-	instance.transform.scl = trans.scl;
 	m_enemyAttr.initTrans.pos = trans.pos;
 	m_enemyAttr.initTrans.rot = trans.rot;
 	m_enemyAttr.initTrans.scl = trans.scl;

@@ -27,12 +27,12 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
         return;
     }
 
-    // すでに同じファイルパスのタスクが存在するなら重複登録しない
+    // すでに同じファイルのタスクが存在する場合はコールバックだけ記録して終了
     if (TextureUploadQueue::get_instance().HasTask(filename))
     {
-        // すでにロード中、コールバックを即時呼び出し（成功を仮定）
-        if (onFinish)
-            onFinish(true, userData); // 成功と仮定で呼び出し
+        // 読み込み中なので、待機コールバックを登録して終了っ
+        TextureUploadQueue::get_instance().RegisterPendingCallback(
+            filename, outSRV, onFinish, userData);
         return;
     }
 
@@ -47,7 +47,7 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
     task->fileBuffer = nullptr;
     task->bufferSize = 0;
 
-    // 登録（主スレッド）
+    // メインスレッドで登録
     TextureUploadQueue::get_instance().Push(task);
 
     // Deferred 登録（スレッドプールでファイル読み込み）
@@ -66,6 +66,7 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
             FILE* fp = fopen(task->path, "rb");
             if (!fp) 
             {
+                // 読み込み失敗時もイベントを完了にしておくことで、主スレッドは進める
                 if (task->onFinish) task->onFinish(false, task->userData);
                 SetEvent(task->finishEvent);
                 return;

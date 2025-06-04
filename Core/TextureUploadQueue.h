@@ -1,8 +1,11 @@
 #pragma once
 //=============================================================================
 //
-//  [TextureUploadQueue.h]
+// テクスチャ非同期アップロード管理 [TextureUploadQueue.h]
 // Author :
+// GPUリソースへの非同期アップロードを一括管理するテクスチャ配送キューちゃんっ
+// 読み込みリクエストを受け付けて、専用のワーカースレッドがバッファ読み込み → SRV生成を担当！
+// 登録されたタスクは Update() により逐次処理され、完了時にはコールバック通知されるよっ
 // 
 //=============================================================================
 #include "main.h"
@@ -24,136 +27,52 @@
 //*****************************************************************************
 struct TextureUploadTask 
 {
-    char* path; // テクスチャパス
-    BYTE* fileBuffer; // 読み込まれたファイルバッファ
-    unsigned int bufferSize; // バッファサイズ
+    char* path = nullptr; // テクスチャパス
+    BYTE* fileBuffer = nullptr; // 読み込まれたファイルバッファ
+    unsigned int bufferSize = 0; // バッファサイズ
 
-    ID3D11ShaderResourceView** outSRV; // 出力先ポインタ（モデルが保持）
+    ID3D11ShaderResourceView** outSRV = nullptr; // 出力先ポインタ（モデルが保持）
 
     void (*onFinish)(bool success, void* userData); // コールバック関数
-    void* userData; // コールバックに渡すデータ
+    void* userData = nullptr; // コールバックに渡すデータ
 
     HANDLE finishEvent = nullptr; // 主スレッド通知用（主スレッドからWaitForSingleObject可能）
 }; // アップロードタスク構造体
 
+struct PendingCallback
+{
+    ID3D11ShaderResourceView** outSRV; // 読み込み後に代入するポインタ
+    void(*onFinish)(bool success, void* userData); // 完了時に呼ばれる関数ポインタ
+    void* userData; // 任意のユーザーデータ
+}; // 非同期テクスチャ読み込みを待機しているコールバック情報構造体
 
 class TextureUploadQueue : public SingletonBase<TextureUploadQueue>
 {
 public:
+    void Init(void);
+    void ShutDown(void);
 
-    void Init(void)
-    {
-        m_taskMap = HashMap<const char*, TextureUploadTask*, CharPtrHash, CharPtrEquals>(
-            MAX_TEXTURE_UPLOAD_SIZE,
-            CharPtrHash(),
-            CharPtrEquals());
-    }
+    // 読み込み済みバッファがあればSRVを作成し、ペンディングコールバックも通知する
+    void Update(void);
+    // 新しい非同期アップロードを登録
+    void Push(TextureUploadTask* task);
 
-    bool TextureUploadQueue::HasTask(const char* path) 
-    {
-        m_lock.Lock();
-        bool exists = m_taskMap.search(path) != nullptr;
-        m_lock.Unlock();
-        return exists;
-    }
+    bool HasTask(const char* path);
+    TextureUploadTask* GetTask(const char* path);
 
-    void Push(TextureUploadTask* task)
-    {
-        m_lock.Lock();
-
-        if (!m_taskMap.search(task->path)) 
-        {
-            m_taskMap.insert(task->path, task);
-        }
-
-        m_lock.Unlock();
-    }
-
-    TextureUploadTask* GetTask(const char* path) 
-    {
-        m_lock.Lock();
-        TextureUploadTask* result = m_taskMap[path];
-        m_lock.Unlock();
-        return result;
-    }
-
-    void ShutDown(void)
-    {
-        for (auto& it : m_taskMap)
-        {
-            TextureUploadTask* task = it.value;
-            if (!task) continue;
-
-            // バッファ解放
-            SAFE_DELETE_ARRAY(task->fileBuffer);
-
-            // イベント解放
-            if (task->finishEvent)
-            {
-                ThreadPool::get_instance().ReleaseFinishEvent(task->finishEvent);
-                task->finishEvent = nullptr;
-            }
-
-            // 失敗通知
-            if (task->onFinish)
-            {
-                task->onFinish(false, task->userData);
-            }
-
-            SAFE_DELETE(task);
-        }
-
-        m_taskMap.clear();
-    }
-
-    void Update() 
-    {
-        m_lock.Lock();
-
-        for (auto& it = m_taskMap.begin(); it != m_taskMap.end();)
-        {
-            TextureUploadTask* task = (*it).value;
-
-            if (task->finishEvent && WaitForSingleObject(task->finishEvent, 0) != WAIT_OBJECT_0)
-            {
-                ++it;
-                continue; // スキップ（次フレーム再確認）
-            }
-
-
-            // GPU アップロード処理
-            ID3D11ShaderResourceView* srv = nullptr;
-            HRESULT hr = D3DX11CreateShaderResourceViewFromMemory(
-                m_renderer.GetDevice(),
-                task->fileBuffer,
-                task->bufferSize,
-                nullptr,
-                nullptr,
-                &srv,
-                nullptr);
-
-            *(task->outSRV) = srv;
-            if (task->onFinish)
-                task->onFinish(SUCCEEDED(hr), task->userData);
-
-            if (SUCCEEDED(hr))
-                m_textureMgr.RegisterSRV(task->path, srv);
-
-            SAFE_DELETE_ARRAY(task->fileBuffer);
-
-            // イベントを完了状態に設定
-            if (task->finishEvent)
-                ThreadPool::get_instance().ReleaseFinishEvent(task->finishEvent);
-
-            // タスク削除
-            it = m_taskMap.erase(it);
-        }
-
-        m_lock.Unlock();
-    }
+    void RegisterPendingCallback(const char* filename, ID3D11ShaderResourceView** outSRV, 
+        void(*onFinish)(bool, void*), void* userData);
 
 private:
+    // ファイル読み込みが終わったらSRV生成を担当
+    void CreateAndUploadSRV(TextureUploadTask* task);
+    // 同じファイルを待ってる子たちに、出来たてのSRVをお届け~
+    void TextureUploadQueue::NotifyPendingCallbacks(const char* filename, ID3D11ShaderResourceView* srv, bool success);
+
+    // 現在ロード中のテクスチャタスクを パス をキーに管理
     HashMap<const char*, TextureUploadTask*, CharPtrHash, CharPtrEquals> m_taskMap;
+    // ファイル名ごとに待機中のコールバックを記録するマップ
+    HashMap<const char*, SimpleArray<PendingCallback>, CharPtrHash, CharPtrEquals> m_pendingCallbackMap;
     SpinLock m_lock;
     Renderer& m_renderer = Renderer::get_instance();
     TextureMgr& m_textureMgr = TextureMgr::get_instance();
