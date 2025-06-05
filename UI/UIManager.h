@@ -21,6 +21,7 @@ public:
     void Uninit(void) {Clear();}
     void Update(void);
     void Draw(void);
+    void DrawTexture(ID3D11ShaderResourceView* srv, float x, float y, float w, float h);
     void Clear(void);
     void AddElement(UIElement* element);
 

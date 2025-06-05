@@ -7,9 +7,21 @@
 #include "UI/UIManager.h"
 #include "UISpriteRenderer.h"
 
+#include "UI/ProgressBarUI.h"//変更点
+
 void UIManager::Init(void)
 {
     m_overlay.Initialize(m_renderer.GetDevice());
+    
+    // プログレスバーを画面下に設置（例）                                    //
+    float width = 300.0f;                                                    //
+    float height = 30.0f;                                                    //
+    float x = (SCREEN_WIDTH - width) / 2.0f;                                 //
+    float y = SCREEN_HEIGHT - height - 50.0f;                                //変更点
+                                                                             //
+    ProgressBarUI* progressBar = new ProgressBarUI(x, y, width, height);     //
+    progressBar->SetProgress(0.0f);                                          //
+    AddElement(progressBar);                                                 //
 }
 
 void UIManager::Update(void)
@@ -64,6 +76,25 @@ void UIManager::Draw(void)
         m_modal->Draw();
     }
 }
+
+void UIManager::DrawTexture(ID3D11ShaderResourceView* srv, float x, float y, float w, float h)
+{
+    if (!srv) return;
+
+    ID3D11DeviceContext* context = m_renderer.GetDeviceContext();
+
+    // シェーダーにテクスチャをセット
+    context->PSSetShaderResources(0, 1, &srv);
+
+    // 矩形描画用の頂点バッファ・入力レイアウト・シェーダーなどの準備
+    // ここはUIの共通描画で使ってる仕組みを流用してください。
+    // 例: m_overlay クラスの描画部分を参考に
+
+    // 座標に合わせて矩形を描画
+    m_overlay.Draw(context, x, y, w, h, { 1,1,1,1 }); // 白で描画してテクスチャ表示
+}
+
+
 
 void UIManager::AddElement(UIElement* element)
 {

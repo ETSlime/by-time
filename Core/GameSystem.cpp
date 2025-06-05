@@ -9,6 +9,8 @@
 #include "Utility/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
+#include "UI/ProgressBarUI.h"
+
 void GameSystem::Init(void)
 {
     m_effectSystem.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()); // エフェクトシステムの初期化
@@ -24,6 +26,12 @@ void GameSystem::Init(void)
     m_enemyManager.Init(m_player); // エネミーの初期化
 
     m_cursorManager.Init(); // カーソルマネージャの初期化
+
+    // プログレスバー追加（m_uiManagerを使う例）
+    ProgressBarUI* progressBar = new ProgressBarUI(100.0f, 500.0f, 300.0f, 30.0f);  //
+    progressBar->SetProgress(0.25f);                                                //変更点
+    m_uiManager.AddElement(progressBar);                                            //
+
 }
 
 void GameSystem::Shutdown(void)
@@ -56,6 +64,7 @@ void GameSystem::Update(void)
             break;
         case GameMode::GAME:
             UpdateGame(); // ゲームの更新処理
+            UIManager::get_instance().Update(); //変更点
             break;
         case GameMode::RESULT:
             UpdateResult(); // リザルト画面の更新処理
@@ -79,6 +88,7 @@ void GameSystem::Draw(void)
         break;
     case GameMode::GAME:
         DrawGame(); // ゲームの描画処理
+        UIManager::get_instance().Draw();   //変更点
         break;
     case GameMode::RESULT:
         DrawResult(); // リザルト画面の描画処理

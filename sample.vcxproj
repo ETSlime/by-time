@@ -189,6 +189,7 @@
     <ClInclude Include="UI\imgui\imstb_textedit.h" />
     <ClInclude Include="UI\imgui\imstb_truetype.h" />
     <ClInclude Include="UI\PauseModal.h" />
+    <ClInclude Include="UI\ProgressBarUI.h" />
     <ClInclude Include="UI\UIElement.h" />
     <ClInclude Include="UI\UIManager.h" />
     <ClInclude Include="UI\UIOverlayRenderer.h" />
@@ -245,6 +246,7 @@
     <ClCompile Include="UI\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="UI\imgui\imgui_tables.cpp" />
     <ClCompile Include="UI\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="UI\ProgressBarUI.cpp" />
     <ClCompile Include="UI\UIManager.cpp" />
     <ClCompile Include="UI\UIOverlayRenderer.cpp" />
     <ClCompile Include="UI\UISpriteRenderer.cpp" />

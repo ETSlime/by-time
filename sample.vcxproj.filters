@@ -233,6 +233,9 @@
     <ClInclude Include="Utility\HashMap.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="UI\ProgressBarUI.h">
+      <Filter>UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -377,5 +380,8 @@
       <Filter>Scene\Character</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="UI\ProgressBarUI.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
