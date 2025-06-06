@@ -70,6 +70,11 @@ void Player::Update(void)
 		return;
 	}
 
+	if (m_currentModelLoadCnt < m_totalModelLoadCnt && lumine->LoadFinished())
+	{
+		m_currentModelLoadCnt++;
+	}
+
 	UpdateActionQueue();
 
 	m_attributes = m_playerGO->GetAttributes();

@@ -82,7 +82,8 @@ void Camera::Update(void)
 {
 	if (!GetWindowActive() 
 		|| GameSystem::get_instance().IsPaused()
-		|| GameSystem::get_instance().IsAltDown()) 
+		|| GameSystem::get_instance().IsAltDown()
+		|| GameSystem::get_instance().GetMode() != GameMode::GAME)
 		return; // 非アクティブならカメラ更新スキップ
 
 	// パラメータ設定

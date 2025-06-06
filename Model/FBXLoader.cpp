@@ -647,7 +647,7 @@ bool FBXLoader::ParseObjectProperties(FILE* file, SkinnedMeshModelData* modelDat
                 modelData->fbxNodes.insert(node->nodeID, node);
 
                 char materialName[128];
-                if (sscanf(buffer, " Material: %*[^,], \"%[^\"]\", \"%[^\"]\"", materialName) != 1)
+                if (sscanf(buffer, " Material: %*[^,], \"%[^\"]\"", materialName) != 1)
                 {
                     delete node;
                     return false;   // Material‚Ì‰ğÍ‚ª¸”s‚µ‚½
@@ -2955,7 +2955,8 @@ void FBXLoader::HandleMeshNode(FbxNode* node, SkinnedMeshModelData* modelData)
         if (ppMeshData)
         {
             SimpleArray<FbxNode*> geometryNodeChilds = geometryNode->childNodes;
-            (*ppMeshData)->material = static_cast<FbxMaterial*>(materialNode->nodeData);
+            if (materialNode)
+                (*ppMeshData)->material = static_cast<FbxMaterial*>(materialNode->nodeData);
             
             for (UINT k = 0; k < geometryNodeChilds.getSize(); k++)
             {

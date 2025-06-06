@@ -64,6 +64,7 @@ using namespace DirectX;
 #define SAFE_DELETE(p) { if(p) { delete(p); (p) = nullptr; } }
 #define SAFE_DELETE_ARRAY(p) { if(p) { delete[](p); (p) = nullptr; } }
 #define ZERO(p) ZeroMemory(&p, sizeof(p))
+#define TO_UINT64(entry)			static_cast<uint64_t>(entry)
 
 // 補間用のデータ構造体を定義
 struct INTERPOLATION_DATA

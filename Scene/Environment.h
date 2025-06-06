@@ -243,7 +243,7 @@ private:
 
     DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
     Camera& m_camera = Camera::get_instance();
-    ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
+    ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
 };
 
 

@@ -290,6 +290,8 @@ void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
         }
     }
 
+    if (task->pendingTextureCount == 0)
+        task->texturesReady = true;
 
     task->isDone = true;
 }

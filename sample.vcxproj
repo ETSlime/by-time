@@ -129,6 +129,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -189,6 +190,11 @@
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
+    <ClInclude Include="UI\Base\UIAnimatedSprite.h" />
+    <ClInclude Include="UI\Base\UIElement.h" />
+    <ClInclude Include="UI\Base\UIManager.h" />
+    <ClInclude Include="UI\Base\UIOverlayRenderer.h" />
+    <ClInclude Include="UI\Base\UISpriteRenderer.h" />
     <ClInclude Include="UI\imgui\imconfig.h" />
     <ClInclude Include="UI\imgui\imgui.h" />
     <ClInclude Include="UI\imgui\imgui_impl_dx11.h" />
@@ -198,10 +204,8 @@
     <ClInclude Include="UI\imgui\imstb_textedit.h" />
     <ClInclude Include="UI\imgui\imstb_truetype.h" />
     <ClInclude Include="UI\PauseModal.h" />
-    <ClInclude Include="UI\UIElement.h" />
-    <ClInclude Include="UI\UIManager.h" />
-    <ClInclude Include="UI\UIOverlayRenderer.h" />
-    <ClInclude Include="UI\UISpriteRenderer.h" />
+    <ClInclude Include="UI\UILoadingScene.h" />
+    <ClInclude Include="UI\UITitleScene.h" />
     <ClInclude Include="Utility\DebugBoundingBoxRenderer.h" />
     <ClInclude Include="Utility\Debugproc.h" />
     <ClInclude Include="Utility\DoubleLinkedList.h" />
@@ -253,15 +257,17 @@
     <ClCompile Include="Scene\Ground.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
+    <ClCompile Include="UI\Base\UIAnimatedSprite.cpp" />
+    <ClCompile Include="UI\Base\UIManager.cpp" />
+    <ClCompile Include="UI\Base\UIOverlayRenderer.cpp" />
+    <ClCompile Include="UI\Base\UISpriteRenderer.cpp" />
     <ClCompile Include="UI\imgui\imgui.cpp" />
     <ClCompile Include="UI\imgui\imgui_draw.cpp" />
     <ClCompile Include="UI\imgui\imgui_impl_dx11.cpp" />
     <ClCompile Include="UI\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="UI\imgui\imgui_tables.cpp" />
     <ClCompile Include="UI\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="UI\UIManager.cpp" />
-    <ClCompile Include="UI\UIOverlayRenderer.cpp" />
-    <ClCompile Include="UI\UISpriteRenderer.cpp" />
+    <ClCompile Include="UI\UILoadingScene.cpp" />
     <ClCompile Include="Utility\DebugBoundingBoxRenderer.cpp" />
     <ClCompile Include="Utility\Debugproc.cpp" />
     <ClCompile Include="Utility\InputManager.cpp" />

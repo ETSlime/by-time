@@ -6,28 +6,29 @@
 //=============================================================================
 #include "Core/GameSystem.h"
 #include "UI/PauseModal.h"
+#include "UI/UITitleScene.h"
 #include "Utility/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
 void GameSystem::Init(void)
 {
+    m_mode = GameMode::GAME;
+
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
     m_effectSystem.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()); // エフェクトシステムの初期化
 
-    m_player = new Player(); // プレイヤーの初期化
+    m_UIManager.Init(); // UIManagerの初期化
 
-    m_ground = new Ground(); // 地面の初期化
-
-    m_skybox = new Skybox(); // Skyboxの初期化
-
-    m_uiManager.Init(); // UIManagerの初期化
-
-    m_enemyManager.Init(m_player); // エネミーの初期化
+    m_textureUploadQueue.Init();
 
     m_cursorManager.Init(); // カーソルマネージャの初期化
 
-    m_textureUploadQueue.Init();
+    m_currLoadCtx.startInitialLoad = true;
+    StartAsyncResourceLoading();
+
+    // 初期モードに応じてUIなどを切り替えるよっ！
+    ChangeMode(m_mode);
 }
 
 void GameSystem::Shutdown(void)
@@ -38,7 +39,7 @@ void GameSystem::Shutdown(void)
 
     SAFE_DELETE(m_skybox); // Skyboxの解放
 
-    m_uiManager.Uninit(); // UIManagerの解放
+    m_UIManager.Uninit(); // UIManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
@@ -51,7 +52,7 @@ void GameSystem::Update(void)
 {
     m_asyncModelLoader.Update(); // 非同期読み込み状態を更新
     m_deferredTaskSystem.Update(); // 遅延タスクの更新
-    m_textureUploadQueue.Update();
+    m_textureUploadQueue.Update(); // テクスチャアップロードキューの更新
 
     HandleInput();// 入力処理
 
@@ -69,13 +70,17 @@ void GameSystem::Update(void)
         case GameMode::GAME:
             UpdateGame(); // ゲームの更新処理
             break;
+        case GameMode::LOADING:
+            UpdateLoading();  // ローディング中は進行状況の更新と完了チェックを行う
+            break;
         case GameMode::RESULT:
             UpdateResult(); // リザルト画面の更新処理
             break;
         }
     }
 
-    m_uiManager.Update();
+    // UI 全体の更新を行う
+    m_UIManager.Update();
 }
 
 void GameSystem::Draw(void)
@@ -106,9 +111,37 @@ void GameSystem::Draw(void)
     m_renderer.SetRenderUI(); // UIの描画を設定
     // 深度テストを無効に
     m_renderer.SetDepthMode(DepthMode::Disable);
-    m_uiManager.Draw();
+    m_UIManager.Draw();
     // ライティングを有効に
     //m_lightManager.SetLightEnable(TRUE);
+}
+
+void GameSystem::InitTitle(void)
+{
+    m_UIManager.AddElement(new UITitleScene());
+    m_cursorManager.RestoreCursorAndEnterUIExclusive();
+}
+
+void GameSystem::InitGame(void)
+{
+
+}
+
+void GameSystem::InitResult(void)
+{
+}
+
+void GameSystem::ProcessModeLoading(void)
+{
+    auto* loadingUI = new UILoadingScene();
+    loadingUI->Init(
+        TextureMgr::get_instance().CreateTexture(LOADING_ANIM_TEXTURE_PATH),
+        m_skipLoadingFadeIn
+    );
+    m_UIManager.AddElement(loadingUI);
+    m_loadingScene = loadingUI;
+
+    StartAsyncResourceLoading(); // 非同期ロード開始
 }
 
 void GameSystem::RenderShadowPass(void)
@@ -136,13 +169,41 @@ void GameSystem::RenderShadowPass(void)
     }
 }
 
+void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
+{
+    m_mode = mode;
+
+    // 現在のUIを一旦クリアするよっ！
+    m_UIManager.Clear();
+
+    switch (mode)
+    {
+    case GameMode::TITLE:
+        InitTitle();
+        break;
+
+    case GameMode::GAME:
+        InitGame();
+        break;
+
+    case GameMode::RESULT:
+        InitResult();
+        break;
+    case GameMode::LOADING:
+        ProcessModeLoading();
+        break;
+    default:
+        break;
+    }
+}
+
 void GameSystem::PauseGame(void)
 {
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
     // ポーズモーダルを表示
-    m_uiManager.SetModalIfNotExist<PauseModal>(); 
+    m_UIManager.SetModalIfNotExist<PauseModal>(); 
 
 }
 
@@ -154,8 +215,30 @@ void GameSystem::ResumeGame(void)
     m_inputManager.SetMouseRecentered(true); // カメラ用：次のフレームでマウス位置リセットを要求
 }
 
-void GameSystem::PreloadResources(void)
+
+void GameSystem::StartAsyncResourceLoading(void)
 {
+    m_loadStatus.Clear();
+
+    if (m_currLoadCtx.startInitialLoad)
+    {
+        m_player = new Player(); // プレイヤーの初期化
+
+        m_ground = new Ground(); // 地面の初期化
+
+        m_skybox = new Skybox(); // Skyboxの初期化
+
+        m_enemyManager.Init(m_player); // エネミーの初期化
+
+        m_currLoadCtx.startInitialLoad = false;
+    }
+
+    if (!m_currLoadCtx.finishInitialLoad)
+    {
+        m_loadStatus.totalTasks += m_enemyManager.GetTotalEnemyLoadCnt();
+        m_loadStatus.totalTasks += m_player->GetTotalModelLoadCnt();
+        m_loadStatus.totalTasks += m_ground->GetTotalModelLoadCnt();
+    }
 
 }
 
@@ -173,7 +256,7 @@ void GameSystem::HandlePauseInput(void)
         {
             // ゲームを再開
             ResumeGame();
-            m_uiManager.ClearModal();
+            m_UIManager.ClearModal();
         }
         else
         {
@@ -181,6 +264,26 @@ void GameSystem::HandlePauseInput(void)
             PauseGame();
         }
     }
+}
+
+float GameSystem::CalculateCurrentLoadingProgress(void) const
+{
+    int doneTasks = 0;
+    if (!m_currLoadCtx.finishInitialLoad)
+    {
+        doneTasks += m_enemyManager.GetEnemyLoadedCnt();
+        doneTasks += m_player->GetCurrentModelLoadCnt();
+        doneTasks += m_ground->GetCurrentModelLoadCnt();
+    }
+
+    int totalTasks = m_loadStatus.totalTasks;
+
+    return totalTasks > 0 ? static_cast<float>(doneTasks) / static_cast<float>(totalTasks) : 1.0f;
+}
+
+bool GameSystem::IsAllResourceReady(void) const
+{
+    return m_loadStatus.totalTasks == m_loadStatus.doneTasks;
 }
 
 // 各モードの更新
@@ -212,6 +315,30 @@ void GameSystem::UpdateGame(void)
 #endif // !_ DEBUG
 }
 
+void GameSystem::UpdateLoading(void)
+{
+    if (m_loadingScene)
+    {
+        // 現在の読み込み進行を設定（0.0～1.0）
+        float progress = CalculateCurrentLoadingProgress();
+        m_loadingScene->SetProgress(progress);
+
+        // 全てのリソースが読み込まれたら通知する
+        if (IsAllResourceReady())
+        {
+            if (!m_currLoadCtx.finishInitialLoad)
+                m_currLoadCtx.finishInitialLoad = true;
+            m_loadingScene->NotifyResourceLoadComplete();
+        }
+
+        // ローディングが完全に終了したら、ゲームに切り替える
+        if (m_loadingScene->IsFinished())
+        {
+            ChangeMode(GameMode::GAME);
+        }
+    }
+}
+
 void GameSystem::UpdateResult(void)
 {
     // リザルト画面のロジック
@@ -221,6 +348,7 @@ void GameSystem::UpdateResult(void)
 void GameSystem::DrawTitle(void)
 {
     // タイトル画面の描画
+
 }
 
 void GameSystem::DrawGame(void)

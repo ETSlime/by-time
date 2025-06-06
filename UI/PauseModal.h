@@ -7,8 +7,8 @@
 // 
 //=============================================================================
 #pragma once
-#include "UIElement.h"
-#include "UI/UIManager.h"
+#include "UI/Base/UIElement.h"
+#include "UI/Base/UIManager.h"
 
 class PauseModal : public UIElement
 {
@@ -25,7 +25,7 @@ public:
     bool NeedsOverlay(void) const override { return true; } // オーバーレイが必要
     void DrawCustomOverlay(void) const override
     {
-        UIManager::get_instance().DrawOverlay(0.0f, 0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, { 1.0f, 0.7f, 0.9f, 0.4f });
+        UIManager::get_instance().DrawOverlay(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, { 1.0f, 0.7f, 0.9f, 0.4f });
     }
 };
 

@@ -13,11 +13,11 @@
 #include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
+#include "Effects/FireBallEffectRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-
 #define MAX_TREE			(0)
 
 #define TREE_SIZE			(350.0f)
@@ -83,18 +83,21 @@ Ground::Ground()
 	m_skinnedMeshGroundGO.push_back(fieldGO);
 	m_fieldGO = fieldGO;
 
+	if (!modelLoadMap.contains(config.modelName))
+	{
+		modelLoadMap[config.modelName] = 0;
+		m_totalModelLoadCnt++;
+	}
+
+	//GameObjectConfig config{};
+	//config.modelPath = MODEL_LAND_PATH;
+	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
-	//fieldGO->Instantiate(MODEL_FIELD_PATH);
-	//fieldGO->SetScale(XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE));
-	//fieldGO->SetRotation(XMFLOAT3(0, 0, 0.0f));
-	//fieldGO->SetPosition(XMFLOAT3(0.0f, -650.0f, 0.0f));
-	//fieldGO->Update();
-	//worldMatrix = fieldGO->GetWorldMatrix();
-	//fieldGO->GetModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	//fieldGO->GetModel()->BuildOctree();
-	//fieldGO->GetModel()->SetDrawBoundingBox(false);
-	//fieldGO->SetCastShadow(false);
-	//groundGO.push_back(fieldGO);
+	//fieldGO->Instantiate(config);
+	//m_groundGO.push_back(fieldGO);
+	//m_fieldGO = fieldGO;
 
 	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
 	GameObjectConfig bonfireConfig{};
@@ -105,6 +108,12 @@ Ground::Ground()
 	bonfireConfig.drawWorldAABB = true;
 	bonfireGO->Instantiate(bonfireConfig);
 	m_groundGO.push_back(bonfireGO);
+
+	if (!modelLoadMap.contains(bonfireConfig.modelPath))
+	{
+		modelLoadMap[bonfireConfig.modelPath] = 0;
+		m_totalModelLoadCnt++;
+	}
 
 	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
 	//GameObjectConfig banyanConfig{};
@@ -137,8 +146,8 @@ Ground::Ground()
 	fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
 	fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
-	fireparams.tilesX = 7;
-	fireparams.tilesY = 7;
+	fireparams.tilesX = FIREBALL_ANIM_TILE_X;
+	fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
 	fireparams.coneAngleDegree = 25.0f;
 	fireparams.coneRadius = 0.6f;
 	fireparams.coneLength = 5.0f;
@@ -182,6 +191,19 @@ void Ground::Update(void)
 	int size = m_groundGO.getSize();
 	for (int i = 0; i < size; i++)
 	{
+		if (m_currentModelLoadCnt < m_totalModelLoadCnt)
+		{
+			const char* modelPath = m_groundGO[i]->GetInstance()->modelPath;
+			if (modelLoadMap.contains(modelPath))
+			{
+				if (m_groundGO[i]->GetLoad() && modelLoadMap[modelPath] == 0)
+				{
+					modelLoadMap[modelPath] = 1;
+					m_currentModelLoadCnt++;
+				}
+			}
+		}
+
 		if (m_groundGO[i]->GetUse() == false) continue;
 		m_groundGO[i]->Update();
 	}
@@ -189,18 +211,21 @@ void Ground::Update(void)
 	size = m_skinnedMeshGroundGO.getSize();
 	for (int i = 0; i < size; i++)
 	{
+		if (m_currentModelLoadCnt < m_totalModelLoadCnt)
+		{
+			const char* modelName = m_skinnedMeshGroundGO[i]->GetInstance()->modelName;
+			if (modelLoadMap.contains(modelName))
+			{
+				if (m_skinnedMeshGroundGO[i]->GetLoad() && modelLoadMap[modelName] == 0)
+				{
+					modelLoadMap[modelName] = 1;
+					m_currentModelLoadCnt++;
+				}
+			}
+		}
+
 		if (m_skinnedMeshGroundGO[i]->GetUse() == false) continue;
 		m_skinnedMeshGroundGO[i]->Update();
-
-		//if (skinnedMeshGroundGO[i]->GetCollider().type == ColliderTag::TREE)
-		//{
-		//	if (skinnedMeshGroundGO[i]->GetAttributes().isGrounded == false)
-		//	{
-		//		Transform transform = skinnedMeshGroundGO[i]->GetTransform();
-		//		transform.pos.y -= 25;
-		//		skinnedMeshGroundGO[i]->SetTransform(transform);
-		//	}
-		//}
 	}
 
 	if (m_town)
@@ -312,8 +337,8 @@ void Ground::GenerateEnvironmentObj(void*)
 				// モデルのロード要求を発行（非同期ロードを開始）
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
 				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
-				Model::StoreModel(ctx->modelPath);
-				return Model::GetModel(ctx->modelPath) != nullptr && fieldGO->GetCollider().isInitialized;
+				Model* instanceModel = Model::StoreModel(ctx->modelPath);
+				return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
 			},
 			options
 		);

@@ -45,7 +45,7 @@ enum class ObjectCollisionType
 };
 
 #define DRAW_BOUNDING_BOX       1
-
+#define MAX_MODEL_TYPE			32
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -479,23 +479,28 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		options.debugName = "GameObject_InstantiateGameObject_PostInit"; // デバッグ用の名前
 		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
 
-		RawDeferredTask::Add(
-			ctx, // コンテキストを渡す
-			[](void* ptr) // タスクの実行関数
-			{
-				// コンテキストを取得
-				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
-				ctx->owner->PostInit();
-			},
-			[](void* ptr) // タスクの条件関数
-			{
-				// コンテキストを取得
-				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
-				// モデルがロードされているかチェック
-				return ctx->owner->DeferredCanRunModelReady();
-			},
-			options
-		);
+		if (instance.modelType == ModelType::Instanced)
+			PostInit();
+		else
+		{
+			RawDeferredTask::Add(
+				ctx, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+					ctx->owner->PostInit();
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+					// モデルがロードされているかチェック
+					return ctx->owner->DeferredCanRunModelReady();
+				},
+				options
+			);
+		}
 
 		// 非同期で実行するかどうかを決定
 		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;

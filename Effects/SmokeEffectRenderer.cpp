@@ -35,8 +35,6 @@ bool SmokeEffectRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* 
 void SmokeEffectRenderer::Shutdown(void)
 {
     ParticleEffectRendererBase::Shutdown();
-
-	SafeRelease(&m_diffuseTextureSRV);
 }
 
 bool SmokeEffectRenderer::CreateDiffuseTex(void)

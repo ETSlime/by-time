@@ -772,6 +772,7 @@ void SkinnedMeshModel::CreateGPUResources()
     if (m_GPUResource)
         return;
 
+    HRESULT hr = S_OK;
     for (auto& it : m_modelData.meshDataMap)
     {
         MeshData* meshData = it.value;
@@ -788,15 +789,20 @@ void SkinnedMeshModel::CreateGPUResources()
         ZeroMemory(&sd, sizeof(sd));
         sd.pSysMem = meshData->VertexArray;
 
-        Renderer::get_instance().GetDevice()->CreateBuffer(&bd, &sd, &meshData->VertexBuffer);
+        hr = Renderer::get_instance().GetDevice()->CreateBuffer(&bd, &sd, &meshData->VertexBuffer);
+        assert(SUCCEEDED(hr));
 
+#ifdef _DEBUG
         bd.ByteWidth = sizeof(SKINNED_VERTEX_3D) * 24;
         for (UINT i = 0; i < meshData->boundingBoxes.getSize(); i++)
         {
             SKINNED_MESH_BOUNDING_BOX* boundingBox = meshData->boundingBoxes[i];
-            Renderer::get_instance().GetDevice()->CreateBuffer(&bd, NULL, &boundingBox->BBVertexBuffer);
+            hr = Renderer::get_instance().GetDevice()->CreateBuffer(&bd, NULL, &boundingBox->BBVertexBuffer);
+            assert(SUCCEEDED(hr));
+
             CreateBoundingBoxVertex(boundingBox);
         }
+#endif // DEBUG
 
         m_modelData.boundingBox.maxPoint = meshData->boundingBoxes[0]->maxPoint;
         m_modelData.boundingBox.minPoint = meshData->boundingBoxes[0]->minPoint;
@@ -1695,8 +1701,10 @@ void SkinnedMeshModel::DrawBoundingBox(MeshData* meshData)
 
 void SkinnedMeshModel::CreateBoundingBoxVertex(SKINNED_MESH_BOUNDING_BOX* boundingBox) const
 {
+    HRESULT hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE msr;
-    Renderer::get_instance().GetDeviceContext()->Map(boundingBox->BBVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    hr = Renderer::get_instance().GetDeviceContext()->Map(boundingBox->BBVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    assert(SUCCEEDED(hr));
 
     SKINNED_VERTEX_3D* vertex = (SKINNED_VERTEX_3D*)msr.pData;
    

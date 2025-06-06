@@ -270,6 +270,8 @@ void Environment::Update(void)
     for (UINT i = 0; i < m_environmentObjects.getSize(); i++)
     {
         EnvironmentObject* obj = m_environmentObjects[i];
+
+        obj->modelGO->Update();
         if (obj->attributes.billboard)
         {
             Camera& camera = Camera::get_instance();
@@ -341,13 +343,13 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
     m_context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
     // インデックスバッファ設定
     m_context->IASetIndexBuffer(obj->indexBuffer, DXGI_FORMAT_R32_UINT, 0); 
-    m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_INSTANCED_DATA, m_perFrameBuffer);
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_INSTANCED_DATA, m_perFrameBuffer);
 
     m_context->VSSetShader(obj->vertexShader, nullptr, 0);
 
     // 風に影響される場合、ノイズテクスチャとピクセルシェーダーを設定
     if (obj->attributes.affectedByWind)
-        m_ShaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_TEX_NOISE, noiseTextureSRV);
+        m_shaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_TEX_NOISE, noiseTextureSRV);
 
     m_context->PSSetShader(obj->pixelShader, nullptr, 0);
 
@@ -357,7 +359,7 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
         ZeroMemory(&material, sizeof(material));
         material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         Renderer::get_instance().SetMaterial(material);
-        m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, obj->externDiffuseTextureSRV);
+        m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, obj->externDiffuseTextureSRV);
         // インスタンス化描画実行
         m_context->DrawIndexedInstanced(obj->indexCount, obj->instanceCount, 0, 0, 0);
     }
@@ -375,27 +377,27 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
             // テクスチャ設定
             if (subset[i].Material.MaterialData.noTexSampling == 0)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, subset[i].diffuseTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, subset[i].diffuseTexture);
             }
             if (subset[i].Material.MaterialData.normalMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_NORMAL, subset[i].normalTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_NORMAL, subset[i].normalTexture);
             }
             if (subset[i].Material.MaterialData.bumpMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_BUMP, subset[i].bumpTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_BUMP, subset[i].bumpTexture);
             }
             if (subset[i].Material.MaterialData.opacityMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_OPACITY, subset[i].opacityTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_OPACITY, subset[i].opacityTexture);
             }
             if (subset[i].Material.MaterialData.reflectMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_REFLECT, subset[i].reflectTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_REFLECT, subset[i].reflectTexture);
             }
             if (subset[i].Material.MaterialData.translucencyMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_TRANSLUCENCY, subset[i].translucencyTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_TRANSLUCENCY, subset[i].translucencyTexture);
             }
 
             // インスタンス化描画実行

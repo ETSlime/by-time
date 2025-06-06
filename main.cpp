@@ -24,7 +24,7 @@
 #include "Scene/EnemyManager.h"
 #include "Scene/Ground.h"
 #include "Scene/Scene.h"
-#include "UI/UIManager.h"
+#include "UI/Base/UIManager.h"
 #include "UI/PauseModal.h"
 #include "UI/imgui/imgui_impl_win32.h"
 
@@ -142,7 +142,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 	
-	if (!(GetForegroundWindow() == hWnd))
+	if (!(GetForegroundWindow() == hWnd) && gameSystem.GetMode() == GameMode::GAME)
 	{
 		gameSystem.PauseGame();
 	}
@@ -261,20 +261,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (LOWORD(wParam) != WA_INACTIVE)
 		{
 			// ウィンドウがアクティブになった
-			g_IsWindowActive = true;
-			g_IsGamePaused = false;
-			cursorManager.RememberCursorPosition(); // カーソル位置を保存
-			inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+			if (gameSystem.GetMode() == GameMode::GAME)
+			{
+				g_IsWindowActive = true;
+				g_IsGamePaused = false;
+				cursorManager.RememberCursorPosition(); // カーソル位置を保存
+				inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+			}
+
 		}
 		else
 		{
-			// ウィンドウが非アクティブになった
-			g_IsWindowActive = false;
-			g_IsGamePaused = true;
-			
-			// 自動ポーズ（手動入力と同じ処理）
-			gameSystem.PauseGame();
-			uiManager.SetModalIfNotExist<PauseModal>();
+			if (gameSystem.GetMode() == GameMode::GAME)
+			{
+				// ウィンドウが非アクティブになった
+				g_IsWindowActive = false;
+				g_IsGamePaused = true;
+
+				// 自動ポーズ（手動入力と同じ処理）
+				gameSystem.PauseGame();
+				uiManager.SetModalIfNotExist<PauseModal>();
+			}
 		}
 		break;
 

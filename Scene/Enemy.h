@@ -31,6 +31,7 @@ enum class EnemyUIType
 enum class EnemyType
 {
 	Hilichurl,
+	Max,
 };
 
 //*****************************************************************************

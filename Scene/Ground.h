@@ -21,6 +21,7 @@
 #define	MODEL_TREE_NAME				"Tree.fbx"
 #define	MODEL_FIELD_NAME			"Land.fbx"
 #define MODEL_BONFIRE_PATH			"data/MODEL/Environment/bonfire.obj"
+#define MODEL_LAND_PATH				"data/MODEL/Environment/Spaceland.obj"
 
 #define WORLD_MAX			(XMFLOAT3(50000.0f, 50000.0f, 50000.0f))
 #define WORLD_MIN			(XMFLOAT3(-50000.0f, -50000.0f, -50000.0f))
@@ -33,6 +34,9 @@ public:
 	void Update(void);
 	void Draw(void);
 
+	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
+	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
+
 private:
 
 	void GenerateEnvironmentObj(void*);
@@ -40,6 +44,9 @@ private:
 
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };
+
+	int m_currentModelLoadCnt = 0;
+	int m_totalModelLoadCnt = 0;
 
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*> m_skinnedMeshGroundGO;
 	SimpleArray<GameObject<ModelInstance>*>	m_groundGO;
@@ -49,4 +56,11 @@ private:
 	Town* m_town = nullptr;
 	Environment* m_environment = nullptr;
 	Renderer& m_renderer = Renderer::get_instance();
+
+	HashMap<const char*, int, CharPtrHash, CharPtrEquals> modelLoadMap =
+		HashMap<const char*, int, CharPtrHash, CharPtrEquals>(
+			MAX_MODEL_TYPE,
+			CharPtrHash(),
+			CharPtrEquals()
+		);
 };

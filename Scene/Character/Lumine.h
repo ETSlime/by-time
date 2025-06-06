@@ -27,6 +27,8 @@ public:
 	void Draw(void) override;
 	void DrawEffect(void) override;
 
+	bool LoadFinished(void) { return this->GetLoad() && m_weapon.GetLoad(); }
+
 	AnimStateMachine* GetStateMachine(void) override;
 
 	void PlayWalkAnim(void) override;

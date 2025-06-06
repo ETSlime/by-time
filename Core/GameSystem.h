@@ -15,7 +15,8 @@
 #include "Core/Async/AsyncModelLoader.h"
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
-#include "UI/UIManager.h"
+#include "UI/UILoadingScene.h"
+#include "UI/Base/UIManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/Ground.h"
@@ -33,8 +34,31 @@ enum class GameMode : int		// ゲームモード
     TITLE = 0,			        // タイトル画面
     TUTORIAL,			        // ゲーム説明画面
     GAME,				        // ゲーム画面
+    LOADING,                    // ゲームロード
     RESULT,				        // リザルト画面
     MAX
+};
+
+
+struct ResourceLoadContext
+{
+    GameMode nextMode;             // 次に入るモード（例：GAME）
+    char* sceneName = nullptr;     // 読み込むマップ名やステージID
+    bool startInitialLoad = false;
+    bool finishInitialLoad = false;
+    bool isFromLoad = false;       // セーブデータからの読込かどうか
+};
+
+struct ResourceLoadStatus
+{
+    int totalTasks = 0;         // 登録された全タスク数
+    int doneTasks = 0;          // 完了済みタスク数
+
+    void Clear(void)
+    {
+        totalTasks = 0;
+        doneTasks = 0;
+    }
 };
 
 // ゲーム全体の状態を管理するクラス
@@ -47,6 +71,7 @@ public:
     void Shutdown(void);
     void Update(void);
     void Draw(void);
+
     void RenderShadowPass(void);
 
     // ゲームの一時停止/再開
@@ -64,8 +89,7 @@ public:
     void ToggleMiniMap(void) { m_showMiniMap = !m_showMiniMap; }
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
-    // モード切り替え
-    void SetMode(GameMode mode) { m_mode = mode; }
+    void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode() const { return m_mode; }
 
 protected:
@@ -75,7 +99,7 @@ protected:
         , m_renderer(Renderer::get_instance())
         , m_lightManager(LightManager::get_instance())
         , m_inputManager(InputManager::get_instance())
-        , m_uiManager(UIManager::get_instance())
+        , m_UIManager(UIManager::get_instance())
         , m_enemyManager(EnemyManager::get_instance())
         , m_camera(Camera::get_instance())
         , m_scene(Scene::get_instance())
@@ -95,24 +119,49 @@ protected:
 
 
 private:
-    
-	void PreloadResources(void); // リソースの事前ロード
+    void InitTitle(void);
+    void InitGame(void);
+    void InitResult(void);
+    void ProcessModeLoading(void);
+
+    // モードごとの更新と描画関数
+    void UpdateTitle(void);
+    void UpdateGame(void);
+    void UpdateLoading(void);
+    void UpdateResult(void);
+
+    void DrawTitle(void);
+    void DrawGame(void);
+    void DrawResult(void);
+
+    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
+    void StartAsyncResourceLoading(void);
     void HandleInput(void);
     void HandlePauseInput(void);
+
+    // 非同期読み込み進行度を0.0～1.0で返す関数
+    float CalculateCurrentLoadingProgress(void) const;
+    // 読み込みがすべて完了したかを判定する関数
+    bool IsAllResourceReady(void) const;
 
     // 内部状態
     bool m_isPaused = false;
     bool m_inDialogue = false;
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか
+    bool m_skipLoadingFadeIn = false;
 
-    GameMode m_mode = GameMode::GAME;
+    GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
     Ground* m_ground = nullptr;
     Skybox* m_skybox = nullptr;
 
-    UIManager& m_uiManager;
+    ResourceLoadStatus m_loadStatus;
+    ResourceLoadContext m_currLoadCtx;
+    UILoadingScene* m_loadingScene = nullptr;
+
+    UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     Renderer& m_renderer;
     LightManager& m_lightManager;
@@ -127,13 +176,4 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
-
-    // モードごとの更新と描画関数
-    void UpdateTitle(void);
-    void UpdateGame(void);
-    void UpdateResult(void);
-
-    void DrawTitle(void);
-    void DrawGame(void);
-    void DrawResult(void);
 };
