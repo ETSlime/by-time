@@ -15,11 +15,11 @@
 6. [Model Import & Animation Management](#model-import--animation-management)
 7. [Lighting & Texture Slot Management](#lighting--texture-slot-management)
 8. [Shader Management](#shader-management)
-10. [Effect System](#effect-system)
-11. [Enemy AI System](#enemy-ai-system)
-12. [Asynchronous Architecture System](#asynchronous-architecture-system)
-13. [UI System (animation & scene integration)](#ui-system-animation--scene-integration)
-14. [Game Central Control](#game-central-control)
+9. [Effect System](#effect-system)
+10. [Enemy AI System](#enemy-ai-system)
+11. [Asynchronous Architecture System](#asynchronous-architecture-system)
+12. [UI System (animation & scene integration)](#ui-system-animation--scene-integration)
+13. [Game Central Control](#game-central-control)
 
 ---
 
@@ -169,13 +169,6 @@
 
 ---
 
-## 🖼 UI Manager Structure
-- `UIManager` handles all `UIElement` instances: sprites, text, gauges, etc.
-- Unified `SetSprite()` functions for rendering.
-- Supports visibility control, debug overlay, interaction.
-
----
-
 ## Effect System
 
 ### 🔥 FireEffectRenderer (Fire + Smoke)
@@ -210,19 +203,6 @@
 
 ---
 
-## Game Central Control
-
-### 🧠 GameSystem Class
-- Manages game state: Title → Tutorial → Game
-- Coordinates subsystems: Renderer, UI, Effects, Camera, AI
-- Provides ImGui interface to:
-  - Show AABBs
-  - Adjust CSM parameters
-  - Toggle debug options
-
----
-
-
 ## Asynchronous Architecture System
 
 ### 📦 Task Management
@@ -252,7 +232,7 @@
 - Callback on completion updates progress counter
 - Lock-protected access for upload task pool
 
-
+---
 
 ## UI System (Animation & Scene Integration)
 
@@ -279,7 +259,7 @@
 - Switching GameMode unloads old resources, async loads target models.
 - GameObject registration/destruction unified via central API.
 
-
+---
 
 ## Game Central Control
 
@@ -292,3 +272,5 @@
 - Each GameMode has its own set of resources (models, textures, UI) managed through asynchronous loading.
 - When entering a mode, async tasks are dispatched, and the scene switches once loading completes.
 - Upon exiting a mode, all registered GameObjects for that mode are automatically released to save memory.
+
+---
