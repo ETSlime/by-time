@@ -85,16 +85,13 @@ void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState i
 	m_enemyList.push_back(enemy);
 }
 
-void EnemyManager::RenderImGui(void)
+void EnemyManager::InitializeEnemyStatus(void)
 {
-	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
+	Node<Enemy*>* cur = m_enemyList.getHead();
+	while (cur != nullptr)
 	{
-		Node<Enemy*>* cur = m_enemyList.getHead();
-		while (cur != nullptr)
-		{
-			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
-			cur = cur->next;
-		}
+		cur->data->Initialize();
+		cur = cur->next;
 	}
 }
 
@@ -181,5 +178,18 @@ void EnemyManager::Update(void)
 		}
 		else
 			cur = cur->next;
+	}
+}
+
+void EnemyManager::RenderImGui(void)
+{
+	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
+	{
+		Node<Enemy*>* cur = m_enemyList.getHead();
+		while (cur != nullptr)
+		{
+			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
+			cur = cur->next;
+		}
 	}
 }

@@ -47,7 +47,21 @@ Lumine::Lumine()
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
 
+	swordTrail = new SwordTrail(&m_weapon);
+	swordTrail->SetTrailType(SwordTrailType::Normal);
+	swordTrail->SetTrailFrames(5);
 
+	InitializeStatus();
+}
+
+Lumine::~Lumine()
+{
+	SAFE_DELETE(m_stateMachine);
+	SAFE_DELETE(swordTrail);
+}
+
+void Lumine::InitializeStatus(void)
+{
 	m_playAnimSpeed = PLAY_ANIM_SPD;
 	weaponOnBackTimer = 0;
 	weaponOnHandTimer = 0;
@@ -55,16 +69,9 @@ Lumine::Lumine()
 	storeWeaponOnBack = false;
 	storeWeapon = false;
 	instance.renderProgress.progress = 0.0f;
-
-	swordTrail = new SwordTrail(&m_weapon);
-	swordTrail->SetTrailType(SwordTrailType::Normal);
-	swordTrail->SetTrailFrames(5);
-}
-
-Lumine::~Lumine()
-{
-	SAFE_DELETE(m_stateMachine);
-	SAFE_DELETE(swordTrail);
+	instance.attributes.Initialize();
+	if (m_stateMachine)
+		m_stateMachine->SetCurrentState(STATE(PlayerState::STANDING));
 }
 
 void Lumine::PostInit(void)
@@ -129,6 +136,7 @@ void Lumine::LoadWeapon(char* modelPath, char* modelName)
 	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
 	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
 	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
+	config.castShadow = false;
 	m_weapon.Instantiate(config);
 }
 
@@ -240,13 +248,18 @@ void Lumine::Draw(void)
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
+			m_weapon.SetCastShadow(false);
 			storeWeapon = false;
 		}
 	}
 
 	renderer.SetRenderProgress(instance.renderProgress);
 	if (instance.renderProgress.progress > 0)
+	{
+		m_weapon.SetCastShadow(true);
 		m_weapon.Draw();
+	}
+
 
 	if (instance.attributes.charSwitchEffect == TRUE)
 	{

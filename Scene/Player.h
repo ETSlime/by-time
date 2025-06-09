@@ -52,6 +52,8 @@ public:
 	void DrawEffect(void);
 	Transform GetTransform(void) const;
 
+	void InitializePlayerStatus(void);
+
 	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
 

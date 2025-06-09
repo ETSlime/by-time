@@ -19,6 +19,8 @@ public:
 	Lumine();
 	~Lumine();
 
+	void InitializeStatus(void);
+
 	// アニメーションやスクリプトなど、モデルに依存する処理をここで設定する
 	virtual void PostInit(void) override;
 	virtual void InitializeAnimation(void) override;

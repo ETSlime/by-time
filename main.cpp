@@ -299,6 +299,8 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 {
 	// ƒŒƒ“ƒ_ƒ‰[‚Ì‰Šú‰»
 	renderer.Init(hInstance, hWnd, bWindow);
+	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	renderer.SetClearColor(clearColor);
 
 	debugProc.Init(hWnd);
 

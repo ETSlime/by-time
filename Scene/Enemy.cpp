@@ -164,10 +164,6 @@ void Enemy::Update(void)
 
 
 		instance.attributes.spd *= pow(SPD_DECAY_RATE, timer.GetScaledDeltaTime());
-
-		{
-			//UpdateEditorSelect(GetMousePosX(), GetMousePosY());
-		}
 	}
 }
 

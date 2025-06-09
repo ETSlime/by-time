@@ -190,6 +190,7 @@
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
+    <ClInclude Include="UI\Base\ScreenFader.h" />
     <ClInclude Include="UI\Base\UIAnimatedSprite.h" />
     <ClInclude Include="UI\Base\UIElement.h" />
     <ClInclude Include="UI\Base\UIManager.h" />
@@ -256,7 +257,9 @@
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Ground.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
+    <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
+    <ClCompile Include="UI\Base\ScreenFader.cpp" />
     <ClCompile Include="UI\Base\UIAnimatedSprite.cpp" />
     <ClCompile Include="UI\Base\UIManager.cpp" />
     <ClCompile Include="UI\Base\UIOverlayRenderer.cpp" />

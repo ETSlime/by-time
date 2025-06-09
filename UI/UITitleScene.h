@@ -20,7 +20,6 @@
 class UITitleScene : public UIElement
 {
 public:
-
     UITitleScene()
     {
         // タイトルアニメの生成
@@ -37,6 +36,9 @@ public:
         // 表示位置とサイズを設定
         m_titleAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
         m_titleAnim->SetSize({ static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) });
+
+        // 最初はフェードインから始める（必要であれば）
+        m_UIManager.GetFader().StartFadeIn(1.0f); // 1秒でフェードイン
     }
 
     ~UITitleScene()
@@ -49,45 +51,39 @@ public:
         if (m_titleAnim)
             m_titleAnim->Update();
 
+        auto& fader = UIManager::get_instance().GetFader();
+
+        // フェードアウトがまだ始まってない場合、決定入力を待つ
         if (!m_fadeOutStarted)
         {
             // 決定キー押下でフェードアウト開始＆ローディングへ切り替え
             if (m_inputManager.GetKeyboardTrigger(KEY_CONFIRM))
             {
                 m_fadeOutStarted = true;
+                fader.StartFadeOut(1.0f); // 1秒でフェードアウト開始
             }
         }
         else
         {
-            m_fadeAlpha += m_timer.GetDeltaTime() * 1.5f;
-            if (m_fadeAlpha >= 1.0f)
+            // フェードアウトが完了したらゲームモードを変更
+            if (fader.IsFadeOutComplete())
             {
-                m_fadeAlpha = 1.0f;
-                // 完全にフェードアウトしたらローディングモードに切り替え
-                GameSystem::get_instance().ChangeMode(GameMode::LOADING);
+                GameSystem::get_instance().ChangeMode(GameMode::LOADING, true);
             }
         }
     }
 
-    void Draw() override
+    void Draw(void) override
     {
         if (m_titleAnim)
             m_titleAnim->Draw();
 
-        // 黒のフルスクリーンオーバーレイを描画（透明度は m_fadeAlpha）
-        m_UIManager.DrawOverlay(
-            static_cast<float>(SCREEN_CENTER_X), 
-            static_cast<float>(SCREEN_CENTER_Y),
-            static_cast<float>(SCREEN_WIDTH),
-            static_cast<float>(SCREEN_HEIGHT),
-            { 0, 0, 0, m_fadeAlpha } // このα値でフェードイン・フェードアウトするよ！
-        );
+        // ScreenFader の描画は UIManager 側で一括管理されるのでここでは不要
     }
 
 private:
     UIAnimatedSprite* m_titleAnim = nullptr; // タイトルのアニメ
     bool m_fadeOutStarted = false;            // フェードアウト開始フラグ
-    float m_fadeAlpha = 0.0f;                // フェード用透明度
 
     Timer& m_timer = Timer::get_instance();
     InputManager& m_inputManager = InputManager::get_instance();

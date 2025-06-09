@@ -25,19 +25,34 @@ void EffectSystem::Shutdown(void)
 	for (auto& effect : m_allEffects)
 	{
 		effect->Shutdown();
-		delete effect;
+		SAFE_DELETE(effect);
 	}
 }
 
 void EffectSystem::Update(void)
 {
+	// 中身だけお掃除して再利用する
+	m_toRemove.clear();
+
+	// すべてのエフェクトちゃんをループして、更新または削除フラグをチェックする
 	for (auto& effect : m_allEffects)
 	{
-		effect->Update();
+		// シャットダウン済みのは後で消すために記録しておく
+		if (effect->IsShutdown())
+			m_toRemove.push_back(effect);
+		else
+			// 生きてるのは毎フレームちゃんとアップデート
+			effect->Update();
+	}
+
+	// 安全のためにループが終わったあとで削除する
+	for (auto* effect : m_toRemove)
+	{
+		RemoveEffect(effect);
 	}
 }
 
-void EffectSystem::Draw(const XMMATRIX& viewProj)
+void EffectSystem::Draw(void)
 {
 	// 毎フレーム頭で分類クリア
 	m_billboardSimpleEffects.clear();
@@ -87,7 +102,7 @@ void EffectSystem::Draw(const XMMATRIX& viewProj)
 		for (auto* effect : m_billboardSimpleEffects)
 		{
 			effect->SetupPipeline();
-			effect->Draw(viewProj);
+			effect->Draw();
 		}
 	}
 
@@ -98,7 +113,7 @@ void EffectSystem::Draw(const XMMATRIX& viewProj)
 		for (auto* effect : m_billboardFlipbookEffects)
 		{
 			effect->SetupPipeline();
-			effect->Draw(viewProj);
+			effect->Draw();
 		}
 	}
 
@@ -116,7 +131,7 @@ void EffectSystem::Draw(const XMMATRIX& viewProj)
 		for (auto softBody : m_softBodyEffects)
 		{
 			softBody->SetupPipeline();
-			softBody->Draw(viewProj);
+			softBody->Draw();
 		}
 
 		lastType = EffectType::SoftBody;

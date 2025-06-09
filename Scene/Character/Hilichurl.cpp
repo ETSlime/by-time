@@ -43,7 +43,10 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 void Hilichurl::Initialize(void)
 {
 	Enemy::Initialize();
-	m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
+	if (instance.pModel)
+		instance.pModel->ResetCurrentAnim();
+	if (m_stateMachine)
+		m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
 }
 
 Hilichurl::~Hilichurl()
@@ -118,7 +121,7 @@ void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
 	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
 	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
 	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
-	weapon.Instantiate(config);
+	m_weapon.Instantiate(config);
 }
 
 void Hilichurl::Update(void)
@@ -174,7 +177,7 @@ void Hilichurl::Update(void)
 void Hilichurl::Draw(void)
 {
 	Enemy::Draw();
-	weapon.Draw();
+	m_weapon.Draw();
 }
 
 void Hilichurl::InitAnimInfo(void)
@@ -191,15 +194,20 @@ void Hilichurl::InitAnimInfo(void)
 
 void Hilichurl::UpdateWeapon(void)
 {
-	weapon.Update();
+	if (m_enemyAttr.isDead)
+		m_weapon.SetCastShadow(false);
+	else
+		m_weapon.SetCastShadow(true);
+
+	m_weapon.Update();
 	XMMATRIX weaponMtx = instance.pModel->GetWeaponTransformMtx();
-	weaponMtx = XMMatrixMultiply(weapon.GetWorldMatrix(), weaponMtx);
+	weaponMtx = XMMatrixMultiply(m_weapon.GetWorldMatrix(), weaponMtx);
 	weaponMtx = XMMatrixMultiply(weaponMtx, instance.transform.mtxWorld);
 
-	weapon.SetWorldMatrix(weaponMtx);
+	m_weapon.SetWorldMatrix(weaponMtx);
 
 	// ローカル空間のAABBを取得
-	BOUNDING_BOX weaponBB = weapon.GetSkinnedMeshModel()->GetBoundingBox();
+	BOUNDING_BOX weaponBB = m_weapon.GetSkinnedMeshModel()->GetBoundingBox();
 	XMFLOAT3 localMin = weaponBB.minPoint;
 	XMFLOAT3 localMax = weaponBB.maxPoint;
 
@@ -216,7 +224,7 @@ void Hilichurl::UpdateWeapon(void)
 	};
 
 	// 武器の変換行列（アニメーション＋ワールド行列）
-	weaponMtx = weapon.GetWorldMatrix(); // ※ここがボーン変形やアタッチ先の変換を含むこと！
+	weaponMtx = m_weapon.GetWorldMatrix(); // ※ここがボーン変形やアタッチ先の変換を含むこと！
 
 	// AABB初期化（最大／最小を初期値に設定）
 	XMVECTOR worldMin = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
@@ -235,7 +243,7 @@ void Hilichurl::UpdateWeapon(void)
 	XMStoreFloat3(&weaponBB.maxPoint, worldMax);
 
 	// コライダーに反映
-	weapon.SetColliderBoundingBox(weaponBB);
+	m_weapon.SetColliderBoundingBox(weaponBB);
 }
 
 AnimStateMachine* Hilichurl::GetStateMachine(void)
@@ -330,11 +338,11 @@ void Hilichurl::PlayAttackAnim(void)
 	if (curAnimTime >= m_stateMachine->GetCurrentAnimClip()->animInfo.animPhase.startAttackFraction
 		&& curAnimTime <= m_stateMachine->GetCurrentAnimClip()->animInfo.animPhase.endAttackFraction)
 	{
-		weapon.SetColliderEnable(true);
+		m_weapon.SetColliderEnable(true);
 	}
 	else
 	{
-		weapon.SetColliderEnable(false);
+		m_weapon.SetColliderEnable(false);
 	}
 
 	float dist = m_enemyAttr.distPlayerSq;
@@ -482,7 +490,7 @@ bool Hilichurl::CanDie(void) const
 
 void Hilichurl::OnAttackAnimationEnd(void)
 {
-	weapon.SetColliderEnable(false);
+	m_weapon.SetColliderEnable(false);
 
 	instance.attributes.isAttacking = false;
 

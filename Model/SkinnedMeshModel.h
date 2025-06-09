@@ -329,6 +329,7 @@ public:
 	AnimClipName GetCurrentAnim(void) { return m_modelData.currentAnimClip->name; }
 	AnimationClip* GetAnimationClip(AnimClipName clipName);
 	void PlayCurrentAnim(float playSpeed = 1.0f);
+	void ResetCurrentAnim(void);
 
 	XMMATRIX GetWeaponTransformMtx(void);
 	XMMATRIX GetBodyTransformMtx(void);

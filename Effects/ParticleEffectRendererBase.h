@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // パーティクルエフェクトの共通レンダラー基底クラス [ParticleEffectRendererBase.h]
@@ -6,9 +7,9 @@
 // 全パーティクル系エフェクトの基底クラス
 //
 //=============================================================================
-#pragma once
-#include "Effects/IEffectRenderer.h"
 #include "Core/Timer.h"
+#include "Core/Camera.h"
+#include "Effects/IEffectRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -63,8 +64,10 @@ public:
 
     virtual bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context) override;
     virtual void Shutdown(void) override;
+    virtual void Destroy(void) override { Shutdown(); }
+    virtual bool IsShutdown(void) override { return m_shutdown; }
     virtual void Update(void) final override; // 継承クラスでオーバーライド禁止
-    virtual void Draw(const XMMATRIX& viewProj) final override; // 継承クラスでオーバーライド禁止
+    virtual void Draw(void) final override; // 継承クラスでオーバーライド禁止
     virtual EffectType GetEffectType() const override { return EffectType::None; } // 基底クラスはNoneを返す
     virtual bool UseDrawIndirect() const { return false; } // DrawInstancedIndirectを使用するかどうか
     virtual void ConfigureEffect(const ParticleEffectParams& params);
@@ -178,13 +181,13 @@ protected:
     float m_accumulatedEmitCount = 0.0f; // 積算発生カウンタ（小数を保持）
     UINT m_particlesToEmitThisFrame = 0; // 今フレーム発生するパーティクル数
     UINT m_countBufferSizeBytes = sizeof(UINT);
-
+    bool m_shutdown = false;
     static HashMap<uint64_t, bool, HashUInt64, EqualUInt64> s_pipelineBoundMap;
 
     ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
     DebugProc& m_debugProc = DebugProc::get_instance();
     Timer& m_timer = Timer::get_instance();
-
+    Camera& m_camera = Camera::get_instance();
     ID3D11Buffer* m_drawArgsStaging = nullptr;
 };

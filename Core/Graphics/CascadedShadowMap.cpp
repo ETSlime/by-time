@@ -352,6 +352,13 @@ void CascadedShadowMap::BeginCascadeRender(int lightIndex, int cascadeIndex)
     m_context->OMSetRenderTargets(0, nullptr, m_dsvs[lightIndex][cascadeIndex]);
 #endif // _DEBUG
 
+    // ★注意★ 
+    // OMSetRenderTargets を呼び出すと、以前に設定された DepthStencilState が無効化される。
+    // そのため、RenderTarget / DepthStencilView を再設定した直後には、
+    // 必ず OMSetDepthStencilState を使って明示的に深度ステンシルステートを再設定する必要がある。
+    // これを行わないと、Releaseビルドでは深度書き込みが行われず、シャドウマップに何も描画されなくなる可能性がある。
+    m_context->OMSetDepthStencilState(m_renderer.GetDepthWriteState(), 0);
+
     m_currentCascadeIndex = cascadeIndex;
 
     // DSVをクリア

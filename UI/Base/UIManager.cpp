@@ -6,6 +6,7 @@
 //=============================================================================
 #include "UI/Base/UIManager.h"
 #include "UI/Base/UISpriteRenderer.h"
+#include "UI/Base/ScreenFader.h"
 
 void UIManager::Init(void)
 {
@@ -22,6 +23,7 @@ void UIManager::Init(void)
     assert(SUCCEEDED(hr));
 
     m_overlay.Initialize(m_spriteVB);
+    m_screenFader.Initialize();
 }
 
 void UIManager::Update(void)
@@ -35,6 +37,8 @@ void UIManager::Update(void)
         for (auto& e : m_elements)
             e->Update();
     }
+
+    m_screenFader.Update();
 }
 
 void UIManager::Draw(void)
@@ -72,9 +76,10 @@ void UIManager::Draw(void)
             DrawOverlay(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, { 0, 0, 0, 0.5f });
         }
 
-
         m_modal->Draw();
     }
+
+    m_screenFader.Draw();
 }
 
 void UIManager::AddElement(UIElement* element)
@@ -105,7 +110,7 @@ void UIManager::DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color)
     m_overlay.Draw(m_renderer.GetDeviceContext(), x, y, w, h, color);
 }
 
-void UIManager::Clear()
+void UIManager::Clear(void)
 {
     for (UINT i = 0; i < m_elements.getSize(); ++i)
     {

@@ -9,6 +9,7 @@
 #pragma once
 #include "ParticleEffectRendererBase.h"
 #include "Utility/SingletonBase.h"
+#include "Core/Camera.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -58,7 +59,7 @@ public:
     void Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
     void Shutdown(void);
     void Update(void);
-    void Draw(const XMMATRIX& viewProj);
+    void Draw(void);
 
     inline bool IsParticleEffectType(EffectType type)
     {
@@ -81,6 +82,7 @@ private:
     SimpleArray<IEffectRenderer*> m_fireEffects;      // ファイヤー
     SimpleArray<IEffectRenderer*> m_smokeEffects;     // スモーク
     SimpleArray<IEffectRenderer*> m_softBodyEffects;  // ソフトボディ
+    SimpleArray<IEffectRenderer*> m_toRemove;     // 削除が必要なエフェクトを一時的に保管するリスト
 
     ID3D11Device* m_device = nullptr;
     ID3D11DeviceContext* m_context = nullptr;

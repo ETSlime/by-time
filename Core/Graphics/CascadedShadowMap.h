@@ -82,7 +82,6 @@ struct CBCascadeDataArray
 class CascadedShadowMap 
 {
 public:
-
     CascadedShadowMap();
     ~CascadedShadowMap();
 
@@ -151,14 +150,14 @@ private:
 
     int m_currentCascadeIndex = 0;
 
-	CBCascadeData m_cascadeData[MAX_CASCADES]; // カスケードデータ
-	CascadePrivateData m_cascadePrivateData[MAX_CASCADES]; // カスケードプライベートデータ
+    CBCascadeData m_cascadeData[MAX_CASCADES]{}; // カスケードデータ
+    CascadePrivateData m_cascadePrivateData[MAX_CASCADES]{}; // カスケードプライベートデータ
 
-    ShadowMeshCollector m_perCascadeCollector[MAX_CASCADES]; // 各レイヤーのコレクタ
-    int m_cascadeObjectCount[MAX_CASCADES]; // 各レイヤーのカウント
+    ShadowMeshCollector m_perCascadeCollector[MAX_CASCADES]{}; // 各レイヤーのコレクタ
+    int m_cascadeObjectCount[MAX_CASCADES]{}; // 各レイヤーのカウント
 
-    float m_lastCascadeRadius;
-    XMVECTOR m_lastLightDir;
+    float m_lastCascadeRadius = 0;
+    XMVECTOR m_lastLightDir{};
 
 	CascadedShadowConfig m_config{}; // シャドウマップの設定
 
@@ -183,10 +182,11 @@ private:
 
     Camera& m_camera = Camera::get_instance();
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
+    Renderer& m_renderer = Renderer::get_instance();
 
     // debug
     XMVECTOR m_tempFrustumCenter[MAX_CASCADES];
-    XMMATRIX m_tempInvViewProj;
+    XMMATRIX m_tempInvViewProj{};
     XMVECTOR m_tempSliceCorners[MAX_CASCADES][8];
     DebugBoundingBoxRenderer m_debugBoundingBoxRenderer[MAX_CASCADES];
     bool m_showCascadeBox[MAX_CASCADES] = { true, true, true, true };

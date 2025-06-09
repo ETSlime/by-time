@@ -12,17 +12,18 @@
 // マクロ定義
 //*****************************************************************************
 #define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/loading 10.png"
+#define LOADING_ANIM_THRESHOLD            0.5f
 
+ // 内部サブ状態マネージャー
 enum class LoadingState
 {
-    FadeInBlack,          // 黒フェードイン中（最初に黒画面にする）
-    WaitForResources,     // リソース読み込み待ち（短時間ならアニメなし）
+    FadeInBlack,          // 最初に黒くフェードイン（外部でやってるなら skip）
+    WaitForResources,     // リソース読み込み待ち（短時間ならUI 表示しない）
     FadeOutBlackToShowUI, // 黒からフェードアウトしてアニメUI表示へ
     ShowLoadingUI,        // 読み込みアニメUIを表示中
-    FadeInBlackBeforeOut, // 再度黒くフェードイン（アニメ終了後）
-    FadeOutToGame,        // 黒からフェードアウトしてゲームへ
+    FadeInBeforeFinish,   // 読み込み完了後、再度黒にフェードイン
     Done                  // 完了！
-}; // 内部サブ状態マネージャー
+};
 
 class UILoadingScene : public UIElement
 {
@@ -48,13 +49,12 @@ private:
     // プログレスバーを中央下に表示
     void DrawProgressBar(void);
 
-    float m_fadeAlpha = 0.0f;
     float m_elapsedTime = 0.0f;
     bool m_showLoadingUI = false;
     bool m_resourceLoaded = false; // 外部から通知を受けたかどうか
     bool m_isAutoPlay = false;
     LoadingState m_state = LoadingState::FadeInBlack;
-    const float m_threshold = 0.5f; // これ以上でアニメUI表示
+    const float m_threshold = LOADING_ANIM_THRESHOLD; // これ以上でアニメUI表示
 
     // プログレス表示用
     float m_loadProgress = 0.0f; // 現在の読み込み進行 (0.0f～1.0f)
@@ -65,4 +65,5 @@ private:
 
     Timer& m_timer = Timer::get_instance();
     UIManager& m_UIManager = UIManager::get_instance();
+    ScreenFader& m_screenFader = m_UIManager.GetFader();
 };

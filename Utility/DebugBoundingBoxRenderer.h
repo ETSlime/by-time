@@ -36,6 +36,7 @@ public:
     ~DebugBoundingBoxRenderer();
 
 	void Initialize(char* name = nullptr);
+    void Shutdown(void);
 	void DrawBox(const BOUNDING_BOX& box, const XMMATRIX& viewProj, const XMFLOAT4& color);
 
     virtual void RenderImGui(void) override;

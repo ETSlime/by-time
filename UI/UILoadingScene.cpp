@@ -17,7 +17,6 @@
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
-    m_fadeAlpha = skipFadeIn ? 1.0f : 0.0f;
     m_state = skipFadeIn ? LoadingState::WaitForResources : LoadingState::FadeInBlack;
 
     // ローディングアニメーション用スプライト
@@ -28,12 +27,13 @@ void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
         LOADING_ANIM_TILE_Y, 
         LOADING_ANIM_SPD);
 
-    float screenW = static_cast<float>(SCREEN_WIDTH);
-    float screenH = static_cast<float>(SCREEN_HEIGHT);
-    float size = 128.0f;
-    m_loadingAnim->SetPosition({ screenW / 2.0f - size / 2.0f, screenH / 2.0f - size / 2.0f });
-    m_loadingAnim->SetSize({ size, size });
+    // 表示位置とサイズを設定
+    m_loadingAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
+    m_loadingAnim->SetSize({ static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) });
     m_loadingAnim->Play();
+
+    if (!skipFadeIn)
+        m_screenFader.StartFadeIn();
 }
 
 void UILoadingScene::Update(void)
@@ -66,17 +66,15 @@ void UILoadingScene::Update(void)
         }
     }
 
+    m_screenFader.Update();
+
     // 状態遷移の処理
     switch (m_state)
     {
         // 最初のフェードイン（黒画面へ）
     case LoadingState::FadeInBlack:
-        m_fadeAlpha += m_timer.GetDeltaTime();
-        if (m_fadeAlpha >= 1.0f)
-        {
-            m_fadeAlpha = 1.0f;
+        if (m_screenFader.IsFullyHidden())
             m_state = LoadingState::WaitForResources;
-        }
         break;
 
         // リソース読み込み待ち（軽いならアニメなし）
@@ -85,51 +83,36 @@ void UILoadingScene::Update(void)
         {
             // 一定時間以上かかっているのでアニメを表示する
             m_showLoadingUI = true;
+            m_screenFader.StartFadeIn();
             m_state = LoadingState::FadeOutBlackToShowUI;
         }
         if (m_resourceLoaded && !m_showLoadingUI)
         {
             // 読み込み完了、アニメ不要ならそのままゲームへ
-            m_state = LoadingState::FadeOutToGame;
+            m_screenFader.StartFadeOut();
+            m_state = LoadingState::Done;
         }
         break;
 
         // 黒フェードアウト → アニメ表示
     case LoadingState::FadeOutBlackToShowUI:
-        m_fadeAlpha -= m_timer.GetDeltaTime();
-        if (m_fadeAlpha <= 0.0f)
-        {
-            m_fadeAlpha = 0.0f;
+        if (m_screenFader.IsFullyVisible())
             m_state = LoadingState::ShowLoadingUI;
-        }
         break;
 
         // アニメ表示中（読み込み完了を待つ）
     case LoadingState::ShowLoadingUI:
         if (m_resourceLoaded)
         {
-            m_state = LoadingState::FadeInBlackBeforeOut;
+            m_screenFader.StartFadeOut();
+            m_state = LoadingState::FadeInBeforeFinish;
         }
         break;
 
         // フェードイン（アニメ終了→画面を黒く戻す）
-    case LoadingState::FadeInBlackBeforeOut:
-        m_fadeAlpha += m_timer.GetDeltaTime();
-        if (m_fadeAlpha >= 1.0f)
-        {
-            m_fadeAlpha = 1.0f;
-            m_state = LoadingState::FadeOutToGame;
-        }
-        break;
-
-        // 最後のフェードアウト → ゲーム画面へ
-    case LoadingState::FadeOutToGame:
-        m_fadeAlpha -= m_timer.GetDeltaTime();
-        if (m_fadeAlpha <= 0.0f)
-        {
-            m_fadeAlpha = 0.0f;
+    case LoadingState::FadeInBeforeFinish:
+        if (m_screenFader.IsFullyHidden())
             m_state = LoadingState::Done;
-        }
         break;
 
     default:
@@ -139,21 +122,13 @@ void UILoadingScene::Update(void)
 
 void UILoadingScene::Draw(void)
 {
-    if (m_state == LoadingState::ShowLoadingUI)
+    if (m_state != LoadingState::Done)
     {
         if (m_loadingAnim)
             m_loadingAnim->Draw();
 
         DrawProgressBar();
     }
-
-    // 黒のフルスクリーンを表示（透明度は m_fadeAlpha）
-    UIManager::get_instance().DrawOverlay(
-        0.0f, 0.0f,
-        static_cast<float>(SCREEN_WIDTH),
-        static_cast<float>(SCREEN_HEIGHT),
-        { 0.0f, 0.0f, 0.0f, m_fadeAlpha }
-    );
 }
 
 void UILoadingScene::DrawProgressBar(void)

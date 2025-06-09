@@ -157,6 +157,7 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 	if (instance.pModel && instance.postInit && instance.pModel->AreAllTexturesLoaded())
 	{
 		instance.load = true; // モデルがロードされたらロードフラグを立てる
+		Scene::get_instance().RegisterGameObject(this); // renderableObjectsに登録
 	}
 	else
 	{

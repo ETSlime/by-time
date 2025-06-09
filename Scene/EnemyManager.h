@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // エネミーたちのまとめ役ちゃん [EnemyManager.h]
@@ -6,8 +7,6 @@
 // ダブルリンクリストで敵ちゃんたちをしっかり整列させてるお姉さんタイプかも…？
 //
 //=============================================================================
-#pragma once
-
 #include "Scene/Enemy.h"
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"
@@ -27,6 +26,7 @@ public:
 
 	// 敵キャラの生成
 	void SpawnEnemy(EnemyType enemType, Transform trans, EnemyState initState); 
+	void InitializeEnemyStatus(void);
 
 	int GetTotalEnemyLoadCnt(void) const { return m_totalEnemyLoadCnt; }
 	int GetEnemyLoadedCnt(void) const { return m_currentEnemyLoadCnt; }

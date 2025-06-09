@@ -391,6 +391,9 @@ public:
 	RenderMode GetRenderMode(void);
 	void SetRenderMode(RenderMode mode);
 
+	ID3D11DepthStencilState* GetDepthWriteState(void) const { return m_DepthStateEnable; }
+	ID3D11DepthStencilState* GetDepthDisabledState(void) const { return m_DepthStateDisable; }
+
 	void BindViewBuffer(ShaderStage stage);
 
 

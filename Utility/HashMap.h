@@ -437,32 +437,40 @@ public:
 
     Iterator erase(const Iterator& it)
     {
+        // 無効なイテレーターだったら end() を返して即終了
         if (it.current == nullptr) return end();
 
         Key key = it->key;
 
+        // キーからハッシュ値を計算して対応するバケットインデックスを取得する
         unsigned int index = hashFunc(key) % size;
 
+        // remove() を使ってノードを削除
         remove(key);
 
+        // バケットの中を探索して、削除されたキーとは違う最初のノードを探す
         Node* nextNode = buckets[index];
         while (nextNode != nullptr)
         {
             if (!equalsFunc(nextNode->data.key, key))
             {
+                // 次の有効なノードを持つイテレーターを返す
                 return Iterator(buckets, size, index, nextNode);
             }
             nextNode = nextNode->next;
         }
 
+        // 現在のバケットに次がなければ、次のバケットを探す
         for (int i = index + 1; i < size; ++i)
         {
             if (buckets[i] != nullptr)
             {
+                // 最初に見つけた非空バケットの先頭ノードから再開
                 return Iterator(buckets, size, i, buckets[i]);
             }
         }
 
+        // すべて見終わったら end() を返す
         return end();
     }
 };

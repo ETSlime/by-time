@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 全エフェクト共通の描画インターフェースクラス [IEffectRenderer.h]
@@ -6,8 +7,8 @@
 // 初期化／更新／描画／位置制御などのインターフェースを提供する
 // 
 //=============================================================================
-#pragma once
 #include "Core/Graphics/Renderer.h"
+#include "Scene/Scene.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -28,18 +29,20 @@ enum class EffectType
     SoftBody,
 };
 
-class IEffectRenderer
+class IEffectRenderer : public ISceneEntity
 {
 public:
     virtual ~IEffectRenderer() = default;
 
     virtual bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context) = 0;
     virtual void Shutdown(void) = 0;
+    virtual bool IsShutdown(void) = 0;
     virtual void Update(void) = 0;
-    virtual void Draw(const XMMATRIX& viewProj) = 0;
+    virtual void Draw(void) = 0;
     virtual void SetupPipeline() = 0;
 
     virtual const XMFLOAT3& GetPosition() const = 0;
     virtual void SetPosition(const XMFLOAT3& pos) = 0;
     virtual EffectType GetEffectType() const = 0;
+    virtual bool IsEffectRenderer(void) const override { return true; }
 };

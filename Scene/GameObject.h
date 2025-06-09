@@ -1,5 +1,4 @@
 #pragma once
-
 //=============================================================================
 //
 // ゲームオブジェクト共通基底クラス群 [GameObject.h]
@@ -49,7 +48,6 @@ enum class ObjectCollisionType
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
-
 struct Transform
 {
 	XMMATRIX			mtxWorld;			// ワールドマトリックス
@@ -95,6 +93,11 @@ struct Attributes
 	bool			attackWindow2 = false;
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
+
+	void Initialize(void)
+	{
+		*this = {};
+	}
 };
 
 struct InstanceModelAttribute
@@ -112,38 +115,13 @@ struct InstanceModelAttribute
 	SimpleArray<Collider>* colliderArray = nullptr;
 };
 
-struct SkinnedMeshModelInstance
-{
-	char*				modelPath = nullptr;
-	char*				modelName = nullptr;
-	char*				modelFullPath = nullptr;
-	bool				use = false;
-	bool				load = false;
-	bool				postInit = false;
-	bool				castShadow = true;
-	bool				enableAlphaTest = false;
-	SkinnedMeshModel*	pModel = nullptr;
-	bool				modelBuildTaskRegistered = false;
-	Transform			transform;
-	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
-	ColliderTag			colliderTag = ColliderTag::DEFAULT;
-	Attributes			attributes;
-	Collider			collider;
-
-	BOOL			isSelected = false;
-	BOOL			isCursorIn = false;
-	int				editorIdx = -1;
-
-	bool			drawWorldAABB = false;
-	ModelType		modelType = ModelType::SkinnedMesh;
-	RenderProgressBuffer renderProgress;
-};
-
 struct ModelInstance
 {
 	char*				modelPath = nullptr;
+	char*				modelName = nullptr;
 	bool				use = false;
 	bool				load = false;
+	bool				markedForDelete = false;
 	bool				postInit = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
@@ -168,6 +146,35 @@ struct ModelInstance
 	// インスタンス化されたモデルかどうか
 	InstanceModelAttribute instanceAttribute;
 
+};
+
+struct SkinnedMeshModelInstance
+{
+	char*				modelPath = nullptr;
+	char*				modelName = nullptr;
+	char*				modelFullPath = nullptr;
+	bool				use = false;
+	bool				load = false;
+	bool				markedForDelete = false;
+	bool				postInit = false;
+	bool				castShadow = true;
+	bool				enableAlphaTest = false;
+
+	SkinnedMeshModel*	pModel = nullptr;
+	bool				modelBuildTaskRegistered = false;
+	Transform			transform;
+	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
+	ColliderTag			colliderTag = ColliderTag::DEFAULT;
+	Attributes			attributes;
+	Collider			collider;
+
+	BOOL			isSelected = false;
+	BOOL			isCursorIn = false;
+	int				editorIdx = -1;
+
+	bool			drawWorldAABB = false;
+	ModelType		modelType = ModelType::SkinnedMesh;
+	RenderProgressBuffer renderProgress;
 };
 
 struct GameObjectConfig 
@@ -200,21 +207,23 @@ struct SkinnedGameObjectConfig
 
 
 // 非テンプレート基底クラス
-class IGameObject
+class IGameObject : public ISceneEntity
 {
 public:
-	virtual ~IGameObject() = default;
+	virtual ~IGameObject(void) = default;
 
-	virtual bool GetUse() const = 0;
-	virtual bool GetLoad() const = 0;
-	virtual bool GetCastShadow() const = 0;
-	virtual BOUNDING_BOX GetBoundingBoxWorld() const = 0;
-	virtual const XMMATRIX& GetWorldMatrix() const = 0;
+	virtual bool GetUse(void) const = 0;
+	virtual bool GetLoad(void) const = 0;
+	virtual bool GetCastShadow(void) const = 0;
+	virtual BOUNDING_BOX GetBoundingBoxWorld(void) const = 0;
+	virtual const XMMATRIX& GetWorldMatrix(void) const = 0;
+	virtual bool IsMarkedForDelete(void) const = 0;
 	//virtual void OnCollisionEnter(const Collider& collider) = 0;
 	//virtual void OnCollisionEnter(const Collider& collider) = 0;
 
 	virtual void CollectShadowMesh(ShadowMeshCollector& collector) const = 0;
-	virtual ModelType GetModelType() const = 0;
+	virtual ModelType GetModelType(void) const = 0;
+	virtual bool IsGameObject(void) const override { return true; }
 };
 
 template<typename TModel>
@@ -225,6 +234,8 @@ public:
 	~GameObject();
 	void Instantiate(const GameObjectConfig& config);
 	void Instantiate(const SkinnedGameObjectConfig& config);
+	virtual void Destroy() override { instance.markedForDelete = true; }
+	virtual bool IsMarkedForDelete() const override { return instance.markedForDelete; }
 
 	// モデルの読み込みが完了した後に呼び出される初期化処理関数
 	virtual void PostInit() { instance.postInit = true; }
@@ -418,8 +429,6 @@ public:
 template <typename T>
 GameObject<T>::GameObject()
 {
-	Scene::get_instance().RegisterGameObject(this);
-
 #ifdef _DEBUG
 	DebugProc::get_instance().Register(this);
 #endif // DEBUG
@@ -432,6 +441,14 @@ GameObject<T>::GameObject()
 template <typename T>
 GameObject<T>::~GameObject()
 {
+#ifdef _DEBUG
+	DebugProc::get_instance().Unregister(this);
+#endif // DEBUG
+
+#if DRAW_BOUNDING_BOX
+	m_debugBoundingBoxRenderer.Shutdown();
+#endif
+
 	if (instance.pModel)
 	{
 		instance.load = false;
@@ -446,8 +463,6 @@ GameObject<T>::~GameObject()
 			}
 		}
 	}
-
-	Scene::get_instance().UnregisterGameObject(this);
 }
 
 template <typename T>
@@ -457,7 +472,10 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 
 	// モデルパスが空なら設定
 	if (!instance.modelPath)
+	{
 		instance.modelPath = const_cast<char*>(config.modelPath);
+		instance.modelName = const_cast<char*>(config.modelPath);
+	}
 
 	if (!instance.pModel)
 		instance.pModel = Model::StoreModel(config.modelPath);
@@ -569,6 +587,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 	if (instance.pModel && instance.postInit)
 	{
 		instance.load = true; // モデルがロードされたらロードフラグを立てる
+		Scene::get_instance().RegisterGameObject(this); // renderableObjectsに登録
 	}
 	else
 	{

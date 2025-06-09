@@ -12,7 +12,7 @@
 
 void GameSystem::Init(void)
 {
-    m_mode = GameMode::GAME;
+    m_mode = GameMode::TITLE;
 
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
@@ -124,7 +124,7 @@ void GameSystem::InitTitle(void)
 
 void GameSystem::InitGame(void)
 {
-
+    ResumeGame();
 }
 
 void GameSystem::InitResult(void)
@@ -172,6 +172,7 @@ void GameSystem::RenderShadowPass(void)
 void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
 {
     m_mode = mode;
+    m_skipLoadingFadeIn = skipLoadingFadeIn;
 
     // 現在のUIを一旦クリアするよっ！
     m_UIManager.Clear();
@@ -232,6 +233,12 @@ void GameSystem::StartAsyncResourceLoading(void)
 
         m_currLoadCtx.startInitialLoad = false;
     }
+    else
+    {
+        m_ground->LoadScene(SceneID::SCENE_1);
+        m_player->InitializePlayerStatus();
+        m_enemyManager.InitializeEnemyStatus();
+    }
 
     if (!m_currLoadCtx.finishInitialLoad)
     {
@@ -245,6 +252,84 @@ void GameSystem::StartAsyncResourceLoading(void)
 void GameSystem::HandleInput(void)
 {
     HandlePauseInput();
+
+    if (m_mode == GameMode::GAME)
+    {
+        auto& fader = UIManager::get_instance().GetFader();
+
+        if (InputManager::get_instance().GetKeyboardTrigger(DIK_RETURN))
+        {
+            if (!fader.IsFading())
+            {
+                struct ReturnToTitleContext
+                {
+                    GameSystem* gameSystem;
+                };
+
+                fader.StartFadeOut(); // 画面を黒くフェードイン
+
+                DeferredTaskOptions options{};
+                options.async = false; // 同期で実行
+                options.debugName = "Switch_Scene"; // デバッグ用の名前
+                auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
+
+                RawDeferredTask::Add(
+                    ctx, // コンテキストを渡す
+                    [](void* ptr)
+                    {
+                        GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
+                        if (self->m_ground->GetCurrentScene() == SceneID::SCENE_1)
+                            self->m_ground->LoadScene(SceneID::SCENE_2);
+                        else
+                            self->m_ground->LoadScene(SceneID::SCENE_1);
+                        UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+                    },
+                    [](void* ptr)
+                    {
+                        return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+                    },
+                    options
+                );
+            }
+        }
+
+        if (InputManager::get_instance().GetKeyboardTrigger(DIK_BACK))
+        {
+            if (!fader.IsFading())
+            {
+                struct ReturnToTitleContext
+                {
+                    GameSystem* gameSystem;
+                };
+
+                fader.StartFadeOut(); // 画面を黒くフェードイン
+
+                DeferredTaskOptions options{};
+                options.async = false; // 同期で実行
+                options.debugName = "Return_To_Title"; // デバッグ用の名前
+                auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
+
+                RawDeferredTask::Add(
+                    ctx, // コンテキストを渡す
+                    [](void* ptr)
+                    {
+                        GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
+                        self->m_ground->UnloadCurrentScene();
+                        self->Update();
+                        self->ChangeMode(GameMode::TITLE);
+                        UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+                    },
+                    [](void* ptr)
+                    {
+                        return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+                    },
+                    options
+                );
+            }
+        }
+
+    }
+
 }
 
 void GameSystem::HandlePauseInput(void)
@@ -266,7 +351,7 @@ void GameSystem::HandlePauseInput(void)
     }
 }
 
-float GameSystem::CalculateCurrentLoadingProgress(void) const
+float GameSystem::CalculateCurrentLoadingProgress(void)
 {
     int doneTasks = 0;
     if (!m_currLoadCtx.finishInitialLoad)
@@ -276,6 +361,7 @@ float GameSystem::CalculateCurrentLoadingProgress(void) const
         doneTasks += m_ground->GetCurrentModelLoadCnt();
     }
 
+    m_loadStatus.doneTasks = doneTasks;
     int totalTasks = m_loadStatus.totalTasks;
 
     return totalTasks > 0 ? static_cast<float>(doneTasks) / static_cast<float>(totalTasks) : 1.0f;
@@ -319,6 +405,13 @@ void GameSystem::UpdateLoading(void)
 {
     if (m_loadingScene)
     {
+        if (!m_currLoadCtx.finishInitialLoad)
+        {
+            m_enemyManager.Update();
+            m_player->Update();
+            m_ground->Update();
+        }
+
         // 現在の読み込み進行を設定（0.0～1.0）
         float progress = CalculateCurrentLoadingProgress();
         m_loadingScene->SetProgress(progress);
@@ -334,6 +427,8 @@ void GameSystem::UpdateLoading(void)
         // ローディングが完全に終了したら、ゲームに切り替える
         if (m_loadingScene->IsFinished())
         {
+            // 画面が黒い状態からゲーム画面へフェードインを開始
+            m_UIManager.GetFader().StartFadeIn();
             ChangeMode(GameMode::GAME);
         }
     }
@@ -388,7 +483,7 @@ void GameSystem::DrawGame(void)
     m_player->DrawEffect(); // プレイヤーのエフェクト描画
 
     m_renderer.SetDepthMode(DepthMode::Particle); // パーティクルの深度設定
-    m_effectSystem.Draw(m_camera.GetViewProjMtx()); // エフェクトの描画
+    m_effectSystem.Draw(); // エフェクトの描画
     m_renderer.SetBlendState(BLEND_MODE_ALPHABLEND); // ブレンドステートを設定
 
     //m_renderer.SetCullingMode(CULL_MODE_BACK);

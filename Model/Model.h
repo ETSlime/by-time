@@ -74,15 +74,7 @@ struct SUBSET
 		IndexNum = 0;
 	}
 
-	~SUBSET()
-	{
-		SafeRelease(&diffuseTexture);
-		SafeRelease(&normalTexture);
-		SafeRelease(&bumpTexture);
-		SafeRelease(&opacityTexture);
-		SafeRelease(&reflectTexture);
-		SafeRelease(&translucencyTexture);
-	}
+	~SUBSET(){}
 };
 
 // ÉÇÉfÉãç\ë¢ëÃ

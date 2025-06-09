@@ -81,7 +81,7 @@ private:
 
 	void UpdateWeapon(void);
 
-	GameObject<SkinnedMeshModelInstance> weapon;
+	GameObject<SkinnedMeshModelInstance> m_weapon;
 	AnimStateMachine* m_stateMachine;
 	EnemyState m_initState;
 	float m_playAnimSpeed;

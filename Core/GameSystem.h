@@ -140,7 +140,7 @@ private:
     void HandlePauseInput(void);
 
     // ”ñ“¯Šú“Ç‚İ‚İis“x‚ğ0.0`1.0‚Å•Ô‚·ŠÖ”
-    float CalculateCurrentLoadingProgress(void) const;
+    float CalculateCurrentLoadingProgress(void);
     // “Ç‚İ‚İ‚ª‚·‚×‚ÄŠ®—¹‚µ‚½‚©‚ğ”»’è‚·‚éŠÖ”
     bool IsAllResourceReady(void) const;
 

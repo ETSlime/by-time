@@ -691,6 +691,11 @@ void SkinnedMeshModel::PlayCurrentAnim(float playSpeed)
     m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(ANIM_SPD * playSpeed * t.GetScaledDeltaTime());
 }
 
+void SkinnedMeshModel::ResetCurrentAnim(void)
+{
+    m_modelData.currentAnimClip->currentTime = 0;
+}
+
 XMMATRIX SkinnedMeshModel::GetWeaponTransformMtx(void)
 {
     if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.weaponTransformIdx)

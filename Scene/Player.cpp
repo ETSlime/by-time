@@ -280,6 +280,19 @@ Transform Player::GetTransform(void) const
 	return m_playerGO->GetTransform();
 }
 
+void Player::InitializePlayerStatus(void)
+{
+	if (lumine)
+	{
+		Transform transform;
+		transform.pos = PLAYER_INIT_POS;
+		lumine->SetTransform(transform);
+		lumine->InitializeStatus();
+	}
+
+	Update();
+}
+
 void Player::UpdateActionQueue(void)
 {
 	m_playerAttr.actionQueueClearTime++;
