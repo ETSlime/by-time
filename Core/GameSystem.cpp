@@ -21,7 +21,7 @@ void GameSystem::Init(void)
 
     m_skybox = new Skybox(); // Skyboxの初期化
 
-    m_uiManager.Init(); // UIManagerの初期化
+    UIManager::get_instance().Init(); // UIManagerの初期化
 
     m_enemyManager.Init(m_player); // エネミーの初期化
 
@@ -29,8 +29,9 @@ void GameSystem::Init(void)
 
     // プログレスバー追加（m_uiManagerを使う例）
     ProgressBarUI* progressBar = new ProgressBarUI(100.0f, 500.0f, 300.0f, 30.0f);  //
-    progressBar->SetProgress(0.25f);                                                //変更点
-    m_uiManager.AddElement(progressBar);                                            //
+    progressBar->SetProgress(0.25f); //変更点
+    progressBar->SetZOrder(1000);
+    UIManager::get_instance().AddElement(progressBar);                                            //
 
 }
 

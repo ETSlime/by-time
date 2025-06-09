@@ -12,16 +12,6 @@
 void UIManager::Init(void)
 {
     m_overlay.Initialize(m_renderer.GetDevice());
-    
-    // プログレスバーを画面下に設置（例）                                    //
-    float width = 300.0f;                                                    //
-    float height = 30.0f;                                                    //
-    float x = (SCREEN_WIDTH - width) / 2.0f;                                 //
-    float y = SCREEN_HEIGHT - height - 50.0f;                                //変更点
-                                                                             //
-    ProgressBarUI* progressBar = new ProgressBarUI(x, y, width, height);     //
-    progressBar->SetProgress(0.0f);                                          //
-    AddElement(progressBar);                                                 //
 }
 
 void UIManager::Update(void)
@@ -98,6 +88,7 @@ void UIManager::DrawTexture(ID3D11ShaderResourceView* srv, float x, float y, flo
 
 void UIManager::AddElement(UIElement* element)
 {
+    OutputDebugStringA("UIManager::AddElement CALLED!\n");
     m_elements.push_back(element);
 }
 

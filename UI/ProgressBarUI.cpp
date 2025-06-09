@@ -1,55 +1,58 @@
-#include "ProgressBarUI.h"
-#include "UIManager.h"
-#include "Utility/InputManager.h"
+// ProgressBarUI.cpp
+
+#include "UI/ProgressBarUI.h"
+#include "UI/UIManager.h"
 
 ProgressBarUI::ProgressBarUI(float x, float y, float width, float height)
 {
     m_position = { x, y };
     m_size = { width, height };
     m_progress = 0.0f;
-    m_backgroundColor = { 0.2f, 0.2f, 0.2f, 1.0f };
-    m_fillColor = { 0.8f, 0.4f, 0.1f, 1.0f };
+
+    // デフォルトカラー
+    m_backgroundColor = { 1.0f, 0.0f, 0.0f, 1.0f }; // 赤
+    m_fillColor = { 0.0f, 1.0f, 0.0f, 1.0f };       // 緑
+
     m_backgroundTexture = nullptr;
     m_fillTexture = nullptr;
+
 }
 
 void ProgressBarUI::Update()
 {
-    float mx = static_cast<float>(InputManager::get_instance().GetMouseX());
-    float my = static_cast<float>(InputManager::get_instance().GetMouseY());
-
-    if (InputManager::get_instance().IsMouseLeftPressed() && IsMouseOver(mx, my))
-    {
-        OnMouseClick(mx, my);
-    }
+    // 必要に応じてアニメーションや自動進行など
 }
 
 void ProgressBarUI::Draw()
 {
-    auto& ui = UIManager::get_instance();
+    OutputDebugStringA("ProgressBarUI::Draw CALLED!\n"); // ←これを追加
 
-    // 背景
+    ID3D11DeviceContext* context = Renderer::get_instance().GetDeviceContext();
+
+    // 背景の描画
     if (m_backgroundTexture)
     {
-        ui.DrawTexture(m_backgroundTexture, m_position.x, m_position.y, m_size.x, m_size.y);
+        UIManager::get_instance().DrawTexture(m_backgroundTexture, m_position.x, m_position.y, m_size.x, m_size.y);
     }
     else
     {
-        ui.DrawOverlay(m_position.x, m_position.y, m_size.x, m_size.y, m_backgroundColor);
+        UIManager::get_instance().DrawOverlay(m_position.x, m_position.y, m_size.x, m_size.y, m_backgroundColor);
     }
 
-    // プログレス部分
-    float fillWidth = m_size.x * m_progress;
-    if (m_fillTexture)
+    // 塗り部分（進捗に応じた幅）
+    float fillWidth = m_size.x * Clamp(m_progress, 0.0f, 1.0f);
+    if (fillWidth > 0.0f)
     {
-        ui.DrawTexture(m_fillTexture, m_position.x, m_position.y, fillWidth, m_size.y);
-    }
-    else
-    {
-        ui.DrawOverlay(m_position.x, m_position.y, fillWidth, m_size.y, m_fillColor);
+        if (m_fillTexture)
+        {
+            UIManager::get_instance().DrawTexture(m_fillTexture, m_position.x, m_position.y, fillWidth, m_size.y);
+        }
+        else
+        {
+            UIManager::get_instance().DrawOverlay(m_position.x, m_position.y, fillWidth, m_size.y, m_fillColor);
+        }
     }
 }
-
 
 void ProgressBarUI::SetProgress(float progress)
 {
@@ -79,6 +82,8 @@ bool ProgressBarUI::IsMouseOver(float mx, float my) const
 
 void ProgressBarUI::OnMouseClick(float mouseX, float mouseY)
 {
+    if (!IsMouseOver(mouseX, mouseY)) return;
+
     float relativeX = (mouseX - m_position.x) / m_size.x;
-    SetProgress(relativeX);
+    SetProgress(Clamp(relativeX, 0.0f, 1.0f));
 }
