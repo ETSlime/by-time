@@ -1,7 +1,7 @@
 # 🧠 ETSlime Game Engine Development Notes (Complete English Edition)
 
 > This document records the entire implementation and architecture of ETSlime's DirectX 11-based game engine in module-by-module detail.  
-> Tech Stack: C++ / DirectX 11 / HLSL / Win32 / ImGui / Compute Shader
+> Tech Stack: C++ / DirectX 11 / HLSL / Win32 / ImGui / Compute Shader / Async Task System
 
 ---
 
@@ -15,10 +15,11 @@
 6. [Model Import & Animation Management](#model-import--animation-management)
 7. [Lighting & Texture Slot Management](#lighting--texture-slot-management)
 8. [Shader Management](#shader-management)
-9. [UI System](#ui-system)
 10. [Effect System](#effect-system)
 11. [Enemy AI System](#enemy-ai-system)
-12. [Game Central Control](#game-central-control)
+12. [Asynchronous Architecture System](#asynchronous-architecture-system)
+13. [UI System (animation & scene integration)](#ui-system-animation--scene-integration)
+14. [Game Central Control](#game-central-control)
 
 ---
 
@@ -168,9 +169,7 @@
 
 ---
 
-## UI System
-
-### 🖼 UI Manager Structure
+## 🖼 UI Manager Structure
 - `UIManager` handles all `UIElement` instances: sprites, text, gauges, etc.
 - Unified `SetSprite()` functions for rendering.
 - Supports visibility control, debug overlay, interaction.
@@ -222,3 +221,74 @@
   - Toggle debug options
 
 ---
+
+
+## Asynchronous Architecture System
+
+### 📦 Task Management
+- Unified async system manages model and resource loading.
+- Supports:
+  - `DeferredTaskBinder<T>`: Structured task bound to class methods.
+  - `RawDeferredTask`: Raw function or lambda-based task execution.
+
+### 🔁 Thread Pool
+- Custom `ThreadPool` with Win32 `CreateEvent` for task wake/wait.
+- TaskOptions support: priorities, delayed tasks, etc.
+
+### 🔒 Thread Safety
+- Implements `SpinLock` and `LightweightMutex`.
+- Octree construction uses internal locks for multithread safety.
+
+### 🧵 Async Model Loading
+- Model load split into phases:
+  1. Sub-thread reads/parses `.obj` / `.fbx`
+  2. Main thread creates GPU resources
+  3. Callback notifies completion and model is initialized
+
+### 🖼 Async Texture Upload
+- Read and upload split:
+  - Sub-thread reads file and pushes to `TextureUploadQueue`
+  - Main thread waits via `WaitForSingleObject` and creates SRV
+- Callback on completion updates progress counter
+- Lock-protected access for upload task pool
+
+
+
+## UI System (Animation & Scene Integration)
+
+### 🎞 UIAnimatedSprite
+- Plays frame-based UI animations using sprite sheets.
+- Supports looping, framerate control, fade out.
+
+### 🌗 ScreenFader
+- `ScreenFader` handles fade-in/out transitions globally.
+- Uses `UIOverlayRenderer` and alpha control.
+- Exposed API integrates with all scene transitions.
+
+### ⏳ UILoadingScene
+- Loading screen scene with internal state machine:
+  - Entry → Loading → Completion → Exit animation transitions
+- Duration and animation timing controlled automatically.
+
+### 🏠 UITitleScene
+- Dedicated scene for the title screen (logo, buttons, intro animations).
+- Press Enter triggers fade-out and transitions to main game.
+
+### 🔁 Scene & GameMode Management
+- `Scene` extended to support model load/unload by SceneID.
+- Switching GameMode unloads old resources, async loads target models.
+- GameObject registration/destruction unified via central API.
+
+
+
+## Game Central Control
+
+### 🧠 GameSystem & Async Resource Loading
+- Manages resources per GameMode (Title / Loading / Game).
+- Each mode loads models, textures, UI asynchronously via task system.
+- Scene transition triggered after load complete.
+- All resources of previous mode are automatically unloaded to save memory.
+- Supports preloading and unloading resources by different GameModes (e.g., Title, Loading, In-Game).
+- Each GameMode has its own set of resources (models, textures, UI) managed through asynchronous loading.
+- When entering a mode, async tasks are dispatched, and the scene switches once loading completes.
+- Upon exiting a mode, all registered GameObjects for that mode are automatically released to save memory.
