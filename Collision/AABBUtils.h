@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // AABB（軸対称境界ボックス）ユーティリティ [AABBUtils.h]
@@ -6,9 +7,9 @@
 // バウンディングボックスに関する各種計算処理を提供する
 // 
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Utility/SimpleArray.h"
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -156,8 +157,52 @@ struct BOUNDING_BOX
         outCorners[6] = XMFLOAT3(xMin, yMax, zMax);
         outCorners[7] = XMFLOAT3(xMax, yMax, zMax);
     }
+};
 
+struct Triangle
+{
+    XMFLOAT3 v0, v1, v2;
+    BOUNDING_BOX aabb;
+    XMFLOAT3 normal;
 
+    // AABBを計算
+    Triangle(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, bool alwaysFaceUp = false) : v0(a), v1(b), v2(c)
+    {
+        aabb.minPoint.x = min(min(v0.x, v1.x), v2.x);
+        aabb.minPoint.y = min(min(v0.y, v1.y), v2.y);
+        aabb.minPoint.z = min(min(v0.z, v1.z), v2.z);
+        aabb.maxPoint.x = max(max(v0.x, v1.x), v2.x);
+        aabb.maxPoint.y = max(max(v0.y, v1.y), v2.y);
+        aabb.maxPoint.z = max(max(v0.z, v1.z), v2.z);
+
+        // 法線を計算する（頂点座標から交叉積を利用して正規化する）
+        XMVECTOR v0Vec = XMLoadFloat3(&v0);
+        XMVECTOR v1Vec = XMLoadFloat3(&v1);
+        XMVECTOR v2Vec = XMLoadFloat3(&v2);
+        XMVECTOR edge1 = XMVectorSubtract(v1Vec, v0Vec);
+        XMVECTOR edge2 = XMVectorSubtract(v2Vec, v0Vec);
+        XMVECTOR normVec = XMVector3Cross(edge1, edge2);
+        normVec = XMVector3Normalize(normVec);
+
+        // 法線のy成分を確認し、負の場合は反転
+        if (XMVectorGetY(normVec) < 0.0f && alwaysFaceUp)
+        {
+            normVec = XMVectorNegate(normVec);  // 法線反転
+        }
+        XMStoreFloat3(&normal, normVec);
+    }
+
+    // コンストラクタ：三角形の法線を直接指定できるようにする
+    Triangle(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, const XMFLOAT3& norm)
+        : v0(a), v1(b), v2(c), normal(norm)
+    {
+        aabb.minPoint.x = min(min(v0.x, v1.x), v2.x);
+        aabb.minPoint.y = min(min(v0.y, v1.y), v2.y);
+        aabb.minPoint.z = min(min(v0.z, v1.z), v2.z);
+        aabb.maxPoint.x = max(max(v0.x, v1.x), v2.x);
+        aabb.maxPoint.y = max(max(v0.y, v1.y), v2.y);
+        aabb.maxPoint.z = max(max(v0.z, v1.z), v2.z);
+    }
 };
 
 class AABBUtils 

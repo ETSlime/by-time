@@ -534,7 +534,9 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const XMMATRIX& worldMatrix = ctx->owner->GetWorldMatrix();
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
+					// モデルのボクセルグリッドをビルド
+					model->Deferred_BuildMeshVoxelGrid(worldMatrix, true);
 				},
 				[](void* ptr) // タスクの条件関数
 				{
@@ -557,7 +559,9 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					// モデルのボクセルグリッドをビルド
+					model->Deferred_BuildBoundingBoxVoxelGrid(boundingBox);
 				},
 				[](void* ptr) // タスクの条件関数
 				{

@@ -19,19 +19,33 @@ const float STEP_OFFSET = 15.0f;
 
 void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
 {
-    if (staticOctree == nullptr)
-        staticOctree = new OctreeNode(boundingBox);
+    if (m_staticOctree == nullptr)
+        m_staticOctree = new OctreeNode(boundingBox);
     else
     {
-        SAFE_DELETE(staticOctree);
-        staticOctree = new OctreeNode(boundingBox);
+        SAFE_DELETE(m_staticOctree);
+        m_staticOctree = new OctreeNode(boundingBox);
     }
+}
+
+void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize)
+{
+    if (m_voxelGrid == nullptr)
+        m_voxelGrid = new VoxelGrid();
+    else
+    {
+        SAFE_DELETE(m_voxelGrid);
+        m_voxelGrid = new VoxelGrid();
+    }
+
+	// ボクセルグリッドの初期化
+	m_voxelGrid->Initialize(voxelSize);
+    m_voxelGrid->Build(triangles);
 }
 
 void CollisionManager::Update()
 {
     int numColliders = dynamicColliders.getSize();
-
     
     for (int i = 0; i < numColliders; i++)
     {
@@ -42,15 +56,15 @@ void CollisionManager::Update()
             dynamicCol->enable == false) continue;
 
         // 動的オブジェクトと静的オブジェクト（地面）の衝突検出
-        if (staticOctree)
+        if (m_staticOctree)
         {
             auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(dynamicCol->owner);
             Transform transform = colliderOwner->GetTransform();
 
 
             // 動的オブジェクトの AABB を元に、静的八分木から候補となる三角形をクエリする
-            SimpleArray<Triangle*> candidates;
-            staticOctree->queryRange(dynamicCol->aabb, candidates);
+            SimpleArray<const Triangle*> candidates;
+            m_staticOctree->QueryRange(dynamicCol->aabb, candidates);
 
             bool hasCollision = false;
             bool hasValidSlope = false;
@@ -405,6 +419,42 @@ void CollisionManager::Update()
                 eventBus.publishCollision(collisionEvent);
             }
         }
+    }
+}
+
+bool CollisionManager::OctreeInsertTriangle(const Triangle* tri)
+{
+	bool success = false;
+    if (m_staticOctree)
+        success = m_staticOctree->Insert(tri);
+    return success;
+}
+
+void CollisionManager::VoxelGridInsertTriangle(const Triangle* tri)
+{
+    if (m_voxelGrid)
+    {
+        m_voxelGrid->InsertTriangle(tri);
+    }
+    else
+    {
+		// ボクセルグリッドが初期化されていない場合は新規に作成
+		m_voxelGrid = new VoxelGrid();
+		m_voxelGrid->Initialize();
+		m_voxelGrid->InsertTriangle(tri);
+    }
+}
+
+void CollisionManager::VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles)
+{
+    if (m_voxelGrid)
+        m_voxelGrid->Build(triangles);
+    else
+    {
+		// ボクセルグリッドが初期化されていない場合は新規に作成
+		m_voxelGrid = new VoxelGrid();
+		m_voxelGrid->Initialize();
+		m_voxelGrid->Build(triangles);
     }
 }
 

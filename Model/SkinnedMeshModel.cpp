@@ -513,6 +513,9 @@ void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
 
 void SkinnedMeshModel::BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceUp)
 {
+	if (m_buildTriangles) return;
+
+	// すべてのメッシュデータに対して三角形を構築
     for (auto& it : m_modelData.meshDataMap)
     {
         MeshData* meshData = it.value;
@@ -552,12 +555,15 @@ void SkinnedMeshModel::BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceU
 
             }
         }
-
     }
+
+    m_buildTriangles = true;
 }
 
 void SkinnedMeshModel::BuildBoundingBoxTriangles(BOUNDING_BOX box)
 {
+    if (m_buildTriangles) return;
+
     for (auto& it : m_modelData.meshDataMap)
     {
         MeshData* meshData = it.value;
@@ -606,6 +612,8 @@ void SkinnedMeshModel::BuildBoundingBoxTriangles(BOUNDING_BOX box)
         meshData->triangles.push_back(new Triangle(v3, v2, v0, normalZPlus)); // 三角形 11
         meshData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
     }
+
+    m_buildTriangles = true;
 }
 
 bool SkinnedMeshModel::BuildOctree(void)
@@ -620,18 +628,45 @@ bool SkinnedMeshModel::BuildOctree(void)
         if (!meshData->boundingBoxes.getSize())
             return false;
 
-        if (CollisionManager::get_instance().staticOctree == nullptr)
-            CollisionManager::get_instance().staticOctree = new OctreeNode(m_modelData.boundingBox);
+        if (!CollisionManager::get_instance().IsInitializedOctree())
+            CollisionManager::get_instance().InitOctree(m_modelData.boundingBox);
 
         int numTriangles = meshData->triangles.getSize();
         for (int i = 0; i < numTriangles; i++)
         {
-            if (!CollisionManager::get_instance().staticOctree->insert(meshData->triangles[i]))
+            if (!CollisionManager::get_instance().OctreeInsertTriangle(meshData->triangles[i]))
                 return false;
         }
     }
 
     return true;
+}
+
+bool SkinnedMeshModel::BuildVoxelGrid(bool batchInsert)
+{
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        MeshData* meshData = it.value;
+
+        if (!meshData->triangles.getSize())
+            return false;
+
+        if (batchInsert)
+        {
+            CollisionManager::get_instance().VoxelGridInsertTriangles(meshData->triangles);
+		}
+        else
+        {
+            int numTriangles = meshData->triangles.getSize();
+            for (int i = 0; i < numTriangles; i++)
+            {
+                CollisionManager::get_instance().VoxelGridInsertTriangle(meshData->triangles[i]);
+            }
+        }
+
+    }
+
+	return true;
 }
 
 const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
@@ -646,7 +681,7 @@ const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
     return nullptr;
 }
 
-bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+bool SkinnedMeshModel::Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
 {
     SetDrawBoundingBox(drawBoundingBox);
 
@@ -657,13 +692,31 @@ bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, 
     return success;
 }
 
-bool SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+bool SkinnedMeshModel::Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
 {
     SetDrawBoundingBox(drawBoundingBox);
 
     bool success = false;
     BuildBoundingBoxTriangles(box);
     success = BuildOctree();
+
+    return success;
+}
+
+bool SkinnedMeshModel::Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
+{
+    bool success = false;
+    BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+    success = BuildVoxelGrid(true);
+
+    return success;
+}
+
+bool SkinnedMeshModel::Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box)
+{
+    bool success = false;
+    BuildBoundingBoxTriangles(box);
+    success = BuildVoxelGrid(false);
 
     return success;
 }
@@ -1159,19 +1212,6 @@ void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransf
                     pMtxTrans[i] = 0.0f;
                 }
             }
-
-            //if (i == cnt - 1 && pLimbID)
-            //{
-            //    //PrintDebugProc("%d\n", *pLimbID);
-            //    PrintDebugProc("%f, %f, %f, %f \n", pMtxTrans[0],
-            //        pMtxTrans[1], pMtxTrans[2], pMtxTrans[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[1].m128_f32[0],
-            //        mtxTrans.r[1].m128_f32[1], mtxTrans.r[1].m128_f32[2], mtxTrans.r[1].m128_f32[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[2].m128_f32[0],
-            //        mtxTrans.r[2].m128_f32[1], mtxTrans.r[2].m128_f32[2], mtxTrans.r[2].m128_f32[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[3].m128_f32[0],
-            //        mtxTrans.r[3].m128_f32[1], mtxTrans.r[3].m128_f32[2], mtxTrans.r[3].m128_f32[3]);
-            //}
 
             XMFLOAT4X4 finalTransform;
             XMStoreFloat4x4(&finalTransform, mtxTrans);

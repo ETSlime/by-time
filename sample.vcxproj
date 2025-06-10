@@ -142,6 +142,7 @@
     <ClInclude Include="Collision\AABBUtils.h" />
     <ClInclude Include="Collision\CollisionManager.h" />
     <ClInclude Include="Collision\OctreeNode.h" />
+    <ClInclude Include="Collision\VoxelGrid.h" />
     <ClInclude Include="Core\Async\AsyncModelLoader.h" />
     <ClInclude Include="Core\Async\AsyncResourceLoader.h" />
     <ClInclude Include="Core\Async\DeferredTaskAPI.h" />
@@ -220,6 +221,8 @@
     <ClCompile Include="AI\AnimStateMachine.cpp" />
     <ClCompile Include="Collision\AABBUtils.cpp" />
     <ClCompile Include="Collision\CollisionManager.cpp" />
+    <ClCompile Include="Collision\OctreeNode.cpp" />
+    <ClCompile Include="Collision\VoxelGrid.cpp" />
     <ClCompile Include="Core\Async\AsyncModelLoader.cpp" />
     <ClCompile Include="Core\Async\AsyncResourceLoader.cpp" />
     <ClCompile Include="Core\Async\DeferredTaskSystem.cpp" />

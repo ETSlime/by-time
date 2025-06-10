@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 八分木と動的衝突体による当たり判定管理 [CollisionManager.h]
@@ -6,11 +7,11 @@
 // 衝突イベントの発行・購読システムを統合的に管理する
 // 
 //=============================================================================
-#pragma once
 #include "Collision/OctreeNode.h"
-#include "Utility/SimpleArray.h"
+#include "Collision/VoxelGrid.h"
 #include "Utility/SingletonBase.h"
 #include "Model/Model.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -106,33 +107,36 @@ public:
 class CollisionManager : public SingletonBase<CollisionManager>
 {
 public:
+    void Update(void);
+
+	// 静的オブジェクトの八分木を初期化する
+    void InitOctree(const BOUNDING_BOX& boundingBox);
+	// 静的オブジェクトのボクセルグリッドを初期化する
+    void InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize = 1.0f);
+
+    bool IsInitializedOctree(void) const { return m_staticOctree != nullptr; }
+    bool OctreeInsertTriangle(const Triangle* tri);
+    void VoxelGridInsertTriangle(const Triangle* tri);
+    void VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles);
+
+    // 動的衝突体の登録
+    void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
+    // 動的衝突体リストのクリア
+    void ClearDynamicColliders(void) { dynamicColliders.clear(); }
+
+private:
+    bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
+
     // 静的オブジェクト（例：地面モデル）の八分木
-    OctreeNode* staticOctree = nullptr;
+    OctreeNode* m_staticOctree = nullptr;
+    // 動的オブジェクトのボクセルグリッド（例：パーティクル）
+    VoxelGrid* m_voxelGrid = nullptr;
 
     // 動的オブジェクト（プレイヤー、敵、その他）の衝突体リスト
     SimpleArray<const Collider*> dynamicColliders;
 
     // イベントバスのインスタンス
     EventBus eventBus;
-
-    void InitOctree(const BOUNDING_BOX& boundingBox);
-
-    // 動的衝突体の登録
-    void RegisterDynamicCollider(const Collider* collider)
-    {
-        dynamicColliders.push_back(collider);
-    }
-
-    // 動的衝突体リストのクリア
-    void ClearDynamicColliders() 
-    {
-        dynamicColliders.clear();
-    }
-
-    void Update();
-
-private:
-    bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
 
     //// 精密衝突判定関数（Collider と Triangle 間の衝突判定）
     //bool PreciseCollision(Collider* col, Triangle* tri);

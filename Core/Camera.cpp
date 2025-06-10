@@ -339,12 +339,6 @@ void Camera::Update(void)
 	}
 
 #endif
-
-
-
-#ifdef _DEBUG	// デバッグ情報を表示する
-	m_debugProc.PrintDebugProc("Camera:ZC QE TB YN UM R\n");
-#endif
 }
 
 

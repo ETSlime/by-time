@@ -711,7 +711,6 @@ void ParticleEffectRendererBase::UpdateDrawArgsInstanceCount(void)
     m_context->Map(m_drawArgsStaging, 0, D3D11_MAP_READ, 0, &mapped);
 
     DrawArgs* args = reinterpret_cast<DrawArgs*>(mapped.pData);
-    m_debugProc.PrintDebugProc("InstanceCount = %u\n", args->InstanceCount);
 
     m_context->Unmap(m_drawArgsStaging, 0);
 #endif // DEBUG
