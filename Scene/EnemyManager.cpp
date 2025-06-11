@@ -69,6 +69,12 @@ void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState i
 		return;
 	}
 
+	if (!enemyLoadMap.contains(TO_UINT64(enemyType)))
+	{
+		enemyLoadMap[TO_UINT64(enemyType)] = 0;
+		m_totalEnemyLoadCnt++;
+	}
+
 	if (initState == EnemyState::IDLE)
 		enemy->SetRandomMove(true);
 	else
@@ -79,16 +85,13 @@ void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState i
 	m_enemyList.push_back(enemy);
 }
 
-void EnemyManager::RenderImGui(void)
+void EnemyManager::InitializeEnemyStatus(void)
 {
-	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
+	Node<Enemy*>* cur = m_enemyList.getHead();
+	while (cur != nullptr)
 	{
-		Node<Enemy*>* cur = m_enemyList.getHead();
-		while (cur != nullptr)
-		{
-			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
-			cur = cur->next;
-		}
+		cur->data->Initialize();
+		cur = cur->next;
 	}
 }
 
@@ -152,14 +155,41 @@ void EnemyManager::Update(void)
 	while (cur != nullptr)
 	{
 		cur->data->Update();
+
+		if (m_currentEnemyLoadCnt < m_totalEnemyLoadCnt)
+		{
+			EnemyType enemyType = cur->data->GetEnemyAttribute().enemyType;
+			if (enemyLoadMap.contains(TO_UINT64(enemyType)))
+			{
+				if (cur->data->GetLoad() && enemyLoadMap[TO_UINT64(enemyType)] == 0)
+				{
+					enemyLoadMap[TO_UINT64(enemyType)] = 1;
+					m_currentEnemyLoadCnt++;
+				}
+			}
+		}
+
 		if (cur->data->GetUse() == FALSE)
 		{
 			Node<Enemy*>* toDelete = cur;
 			cur = cur->next;
-			delete toDelete->data;
+			SAFE_DELETE(toDelete->data);
 			m_enemyList.remove(toDelete);
 		}
 		else
 			cur = cur->next;
+	}
+}
+
+void EnemyManager::RenderImGui(void)
+{
+	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
+	{
+		Node<Enemy*>* cur = m_enemyList.getHead();
+		while (cur != nullptr)
+		{
+			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
+			cur = cur->next;
+		}
 	}
 }

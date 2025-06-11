@@ -23,7 +23,7 @@ void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
         staticOctree = new OctreeNode(boundingBox);
     else
     {
-        delete staticOctree;
+        SAFE_DELETE(staticOctree);
         staticOctree = new OctreeNode(boundingBox);
     }
 }
@@ -37,8 +37,8 @@ void CollisionManager::Update()
     {
         const Collider* dynamicCol = dynamicColliders[i];
 
-        if (dynamicCol->type == ColliderType::WALL ||
-            dynamicCol->type == ColliderType::STATIC_OBJECT ||
+        if (dynamicCol->tag == ColliderTag::WALL ||
+            dynamicCol->tag == ColliderTag::STATIC_OBJECT ||
             dynamicCol->enable == false) continue;
 
         // 動的オブジェクトと静的オブジェクト（地面）の衝突検出
@@ -69,9 +69,9 @@ void CollisionManager::Update()
                 {
                     hasCollision = true;
                     // 動的オブジェクトがプレイヤーと敵の場合のみ、斜面の高さ補正を計算する
-                    if (dynamicCol->type == ColliderType::PLAYER ||
-                        dynamicCol->type == ColliderType::ENEMY ||
-                        dynamicCol->type == ColliderType::TREE)
+                    if (dynamicCol->tag == ColliderTag::PLAYER ||
+                        dynamicCol->tag == ColliderTag::ENEMY ||
+                        dynamicCol->tag == ColliderTag::TREE)
                     {
                         //障害物の中心を求める
                         XMFLOAT3 obstacleCenter =
@@ -149,15 +149,15 @@ void CollisionManager::Update()
                     // 静的オブジェクトは Triangle* で管理しているので、ここでは衝突対象の種類を WALL とする
                     static Collider dummyStatic;
                     dummyStatic.aabb = candidates[j]->aabb;
-                    dummyStatic.type = ColliderType::WALL;
+                    dummyStatic.tag = ColliderTag::WALL;
                     collisionEvent.colliderB = &dummyStatic;
                     eventBus.publishCollision(collisionEvent);
                 }
             }
 
 
-            if (dynamicCol->type == ColliderType::PLAYER ||
-                dynamicCol->type == ColliderType::ENEMY)
+            if (dynamicCol->tag == ColliderTag::PLAYER ||
+                dynamicCol->tag == ColliderTag::ENEMY)
             {
                 if (hasCollision)
                 {
@@ -262,10 +262,10 @@ void CollisionManager::Update()
             bool isObstacle = false;
             if (dynamicColliders[i]->aabb.intersects(dynamicColliders[j]->aabb))
             {
-                if ((dynamicCol->type == ColliderType::ENEMY && dynamicCol2->type == ColliderType::PLAYER_ATTACK)
-                    || (dynamicCol2->type == ColliderType::ENEMY && dynamicCol->type == ColliderType::PLAYER_ATTACK))
+                if ((dynamicCol->tag == ColliderTag::ENEMY && dynamicCol2->tag == ColliderTag::PLAYER_ATTACK)
+                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::PLAYER_ATTACK))
                 {
-                    const Collider* enemyCol = dynamicCol->type == ColliderType::ENEMY ? dynamicCol : dynamicCol2;
+                    const Collider* enemyCol = dynamicCol->tag == ColliderTag::ENEMY ? dynamicCol : dynamicCol2;
                     auto colliderOwner = static_cast<Enemy*>(enemyCol->owner);
 
                     if (colliderOwner->GetAttributes().hitTimer <= 0)
@@ -285,10 +285,10 @@ void CollisionManager::Update()
                         }
                     }
                 }
-                else if ((dynamicCol->type == ColliderType::PLAYER && dynamicCol2->type == ColliderType::ENEMY_ATTACK)
-                    || (dynamicCol2->type == ColliderType::PLAYER && dynamicCol->type == ColliderType::ENEMY_ATTACK))
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ENEMY_ATTACK)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_ATTACK))
                 {
-                    const Collider* playerCol = dynamicCol->type == ColliderType::PLAYER ? dynamicCol : dynamicCol2;
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
                     auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(playerCol->owner);
 
                     if (colliderOwner->GetAttributes().hitTimer <= 0)
@@ -411,10 +411,10 @@ void CollisionManager::Update()
 bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col2)
 {
 
-    return (col1->type == ColliderType::PLAYER && col2->type == ColliderType::PLAYER_ATTACK) ||
-        (col2->type == ColliderType::PLAYER && col1->type == ColliderType::PLAYER_ATTACK) ||
-        (col1->type == ColliderType::ENEMY && col2->type == ColliderType::ENEMY_ATTACK) ||
-        (col2->type == ColliderType::ENEMY && col1->type == ColliderType::ENEMY_ATTACK);
+    return (col1->tag == ColliderTag::PLAYER && col2->tag == ColliderTag::PLAYER_ATTACK) ||
+        (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_ATTACK) ||
+        (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
+        (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
 }
 
 //bool CollisionManager::PreciseCollision(Collider* col, Triangle* tri)

@@ -37,19 +37,73 @@
 
 Lumine::Lumine()
 {
-	Instantiate("data/MODEL/character/Lumine", "Character_output.fbx", SkinnedModelType::Lumine);
-	instance.collider.type = ColliderType::PLAYER;
-	instance.collider.owner = this;
-	instance.collider.enable = true;
-	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+	SkinnedGameObjectConfig config;
+	config.modelPath = "data/MODEL/character/Lumine";
+	config.modelName = "Character_output.fbx";
+	config.modelType = SkinnedModelType::Lumine;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::PLAYER;
+	Instantiate(config);
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
-	m_weapon.SetColliderType(ColliderType::PLAYER_ATTACK);
-	m_weapon.SetColliderOwner(&m_weapon);
-	CollisionManager::get_instance().RegisterDynamicCollider(&m_weapon.GetCollider());
-	
-	//weapon.SetDrawWorldAABB(false);
 
+	swordTrail = new SwordTrail(&m_weapon);
+	swordTrail->SetTrailType(SwordTrailType::Normal);
+	swordTrail->SetTrailFrames(5);
+
+	InitializeStatus();
+}
+
+Lumine::~Lumine()
+{
+	SAFE_DELETE(m_stateMachine);
+	SAFE_DELETE(swordTrail);
+}
+
+void Lumine::InitializeStatus(void)
+{
+	m_playAnimSpeed = PLAY_ANIM_SPD;
+	weaponOnBackTimer = 0;
+	weaponOnHandTimer = 0;
+	weaponOnBack = false;
+	storeWeaponOnBack = false;
+	storeWeapon = false;
+	instance.renderProgress.progress = 0.0f;
+	instance.attributes.Initialize();
+	if (m_stateMachine)
+		m_stateMachine->SetCurrentState(STATE(PlayerState::STANDING));
+}
+
+void Lumine::PostInit(void)
+{
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Lumine"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			ctx->owner->InitializeAnimation();
+
+			ctx->owner->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
+			ctx->owner->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
+			ctx->owner->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
+
+			ctx->owner->GameObject::PostInit();
+		},
+		nullptr,
+		options
+	);
+}
+
+void Lumine::InitializeAnimation(void)
+{
 	AddAnimation("data/MODEL/character/Lumine/", "Idle.fbx", AnimClipName::ANIM_STANDING);
 	AddAnimation("data/MODEL/character/Lumine/", "Looking Around.fbx", AnimClipName::ANIM_IDLE);
 	AddAnimation("data/MODEL/character/Lumine/", "Sneak Walk.fbx", AnimClipName::ANIM_DASH);
@@ -61,47 +115,39 @@ Lumine::Lumine()
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3);
 
-	instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
-	instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
-	instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
-
-	m_playAnimSpeed = PLAY_ANIM_SPD;
-	weaponOnBackTimer = 0;
-	weaponOnHandTimer = 0;
-	weaponOnBack = false;
-	storeWeaponOnBack = false;
-	storeWeapon = false;
-	instance.renderProgress.progress = 0.0f;
-
-	swordTrail = new SwordTrail(&m_weapon);
-	swordTrail->SetTrailType(SwordTrailType::Normal);
-	swordTrail->SetTrailFrames(5);
 	SetupAnimStateMachine();
 	InitAnimInfo();
-}
-
-Lumine::~Lumine()
-{
-	SAFE_DELETE(m_stateMachine);
-	SAFE_DELETE(swordTrail);
 }
 
 void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(renderer.GetDevice(), *instance.pModel, animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Lumine::LoadWeapon(char* modelPath, char* modelName)
 {
-	m_weapon.Instantiate(modelPath, modelName, SkinnedModelType::Weapon);
-	m_weapon.SetScale(XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE));
-	m_weapon.SetPosition(XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z));
-	m_weapon.SetRotation(XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z));
+	SkinnedGameObjectConfig config;
+	config.modelPath = modelPath;
+	config.modelName = modelName;
+	config.modelType = SkinnedModelType::Weapon;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::PLAYER_ATTACK;
+	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
+	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
+	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
+	config.castShadow = false;
+	m_weapon.Instantiate(config);
 }
 
 void Lumine::Update(void)
 {
+	if (!instance.load)
+	{
+		GameObject::Update();
+		return;
+	}
+
 	if (!m_inputManager.GetKeyboardPress(DIK_W)
 		&& !m_inputManager.GetKeyboardPress(DIK_S)
 		&& !m_inputManager.GetKeyboardPress(DIK_A)
@@ -171,6 +217,8 @@ void Lumine::Update(void)
 
 void Lumine::Draw(void)
 {
+	if (!instance.load) return;
+
 	if (storeWeaponOnBack)
 	{
 		instance.renderProgress.isRandomFade = true;
@@ -200,13 +248,18 @@ void Lumine::Draw(void)
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
+			m_weapon.SetCastShadow(false);
 			storeWeapon = false;
 		}
 	}
 
 	renderer.SetRenderProgress(instance.renderProgress);
 	if (instance.renderProgress.progress > 0)
+	{
+		m_weapon.SetCastShadow(true);
 		m_weapon.Draw();
+	}
+
 
 	if (instance.attributes.charSwitchEffect == TRUE)
 	{

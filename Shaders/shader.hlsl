@@ -188,7 +188,7 @@ void VertexShaderPolygon( in  float3 inPosition		: POSITION0,
 						  out float4 outDiffuse		: COLOR0,
 						  out float4 outWorldPos    : POSITION0,
                           out float3 outTangent     : TANGENT,
-						  out float4 outshadowCoord[LIGHT_MAX_NUM] : TEXCOORD1)
+						  out float4 outshadowCoord[LIGHT_MAX_NUM_CASCADE] : TEXCOORD1)
 {
 	matrix wvp;
     wvp = mul(WorldBuffer.world, View);
@@ -204,7 +204,7 @@ void VertexShaderPolygon( in  float3 inPosition		: POSITION0,
 
     outWorldPos = mul(float4(inPosition, 1.0f), WorldBuffer.world);
     outViewPos = mul(outWorldPos, View).xyz;
-    for (int i = 0; i < LIGHT_MAX_NUM; ++i)
+    for (int i = 0; i < LIGHT_MAX_NUM_CASCADE; ++i)
     {
         outshadowCoord[i] = mul(outWorldPos, g_CascadeArray[i].lightViewProj);
     }
@@ -369,7 +369,7 @@ void PixelShaderPolygon( in  float4 inPosition		: SV_POSITION,
 						 in  float4 inDiffuse		: COLOR0,
 						 in  float4 inWorldPos      : POSITION0,
                          in  float3 inTangent       : TANGENT,
-						 in float4 inShadowCoord[LIGHT_MAX_NUM] : TEXCOORD1,
+						 in float4 inShadowCoord[LIGHT_MAX_NUM_CASCADE] : TEXCOORD1,
 
 						 out float4 outDiffuse		: SV_Target )
 {

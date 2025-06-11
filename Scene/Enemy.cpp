@@ -42,11 +42,9 @@
 //=============================================================================
 Enemy::Enemy(EnemyType enemyType, Transform trans)
 {
-
 	//MapEditor::get_instance().AddToList(this);
 	m_enemyAttr.enemyType = enemyType;
 
-	instance.load = true;
 	m_behaviorTree = nullptr;
 	m_player = nullptr;
 
@@ -68,9 +66,6 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 		break;
 	}
 
-	instance.transform.pos = trans.pos;
-	instance.transform.rot = trans.rot;
-	instance.transform.scl = trans.scl;
 	m_enemyAttr.initTrans.pos = trans.pos;
 	m_enemyAttr.initTrans.rot = trans.rot;
 	m_enemyAttr.initTrans.scl = trans.scl;
@@ -93,6 +88,12 @@ Enemy::~Enemy()
 //=============================================================================
 void Enemy::Update(void)
 {
+	if (!instance.load)
+	{
+		GameObject::Update();
+		return;
+	}
+
 	if (instance.use == true)		// このエネミーが使われている？
 	{
 
@@ -163,10 +164,6 @@ void Enemy::Update(void)
 
 
 		instance.attributes.spd *= pow(SPD_DECAY_RATE, timer.GetScaledDeltaTime());
-
-		{
-			//UpdateEditorSelect(GetMousePosX(), GetMousePosY());
-		}
 	}
 }
 
@@ -556,6 +553,8 @@ void Enemy::CooldownMove(void)
 //=============================================================================
 HRESULT Enemy::MakeVertexHPGauge(float width, float height)
 {
+	HRESULT hr = S_OK;
+
 	// 頂点バッファ生成
 	D3D11_BUFFER_DESC bd;
 	ZeroMemory(&bd, sizeof(bd));
@@ -564,11 +563,13 @@ HRESULT Enemy::MakeVertexHPGauge(float width, float height)
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-	Renderer::get_instance().GetDevice()->CreateBuffer(&bd, NULL, &m_HPGaugeVertexBuffer);
+	hr = Renderer::get_instance().GetDevice()->CreateBuffer(&bd, NULL, &m_HPGaugeVertexBuffer);
+	assert(SUCCEEDED(hr));
 
 	// 頂点バッファに値をセットする
 	D3D11_MAPPED_SUBRESOURCE msr;
-	Renderer::get_instance().GetDeviceContext()->Map(m_HPGaugeVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	hr = Renderer::get_instance().GetDeviceContext()->Map(m_HPGaugeVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	assert(SUCCEEDED(hr));
 
 	VERTEX_3D* vertex = (VERTEX_3D*)msr.pData;
 

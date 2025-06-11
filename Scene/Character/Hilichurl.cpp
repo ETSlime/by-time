@@ -24,20 +24,68 @@
 
 Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType::Hilichurl, transform)
 {
-	Instantiate("data/MODEL/enemy/Hilichurl", "Character_output.fbx", SkinnedModelType::Hilichurl);
-	instance.collider.type = ColliderType::ENEMY;
-	instance.collider.owner = this;
-	instance.collider.enable = true;
-	CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+	SkinnedGameObjectConfig config;
+	config.modelPath = "data/MODEL/enemy/Hilichurl";
+	config.modelName = "Character_output.fbx";
+	config.modelType = SkinnedModelType::Hilichurl;
+	config.drawWorldAABB = false;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::ENEMY;
+	Instantiate(config);
 
 	LoadWeapon("data/MODEL/enemy/Hilichurl", "Stick.fbx");
-	weapon.SetColliderType(ColliderType::ENEMY_ATTACK);
-	weapon.SetColliderOwner(&weapon);
-	CollisionManager::get_instance().RegisterDynamicCollider(&weapon.GetCollider());
 
-	instance.pModel->SetDrawBoundingBox(false);
-	weapon.GetSkinnedMeshModel()->SetDrawBoundingBox(false);
 
+	m_initState = initState;
+	m_playAnimSpeed = PLAY_ANIM_SPD;
+}
+
+void Hilichurl::Initialize(void)
+{
+	Enemy::Initialize();
+	if (instance.pModel)
+		instance.pModel->ResetCurrentAnim();
+	if (m_stateMachine)
+		m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
+}
+
+Hilichurl::~Hilichurl()
+{
+	SAFE_DELETE(m_stateMachine);
+}
+
+void Hilichurl::PostInit(void)
+{
+	instance.transform.pos = m_enemyAttr.initTrans.pos;
+	instance.transform.rot = m_enemyAttr.initTrans.rot;
+	instance.transform.scl = m_enemyAttr.initTrans.scl;
+
+	InitHPGauge();
+
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Hilichurl"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			ctx->owner->InitializeAnimation();
+
+			ctx->owner->GameObject::PostInit();
+		},
+		nullptr,
+		options
+	);
+}
+
+void Hilichurl::InitializeAnimation(void)
+{
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Happy Idle.fbx", AnimClipName::ANIM_IDLE);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Walking.fbx", AnimClipName::ANIM_WALK);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Running.fbx", AnimClipName::ANIM_RUN);
@@ -52,43 +100,35 @@ Hilichurl::Hilichurl(Transform transform, EnemyState initState):Enemy(EnemyType:
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Swing Dancing.fbx", AnimClipName::ANIM_DANCE);
 	AddAnimation("data/MODEL/enemy/Hilichurl/", "Falling Back Death.fbx", AnimClipName::ANIM_DIE);
 
-
-	m_playAnimSpeed = PLAY_ANIM_SPD;
-
-	SetupAnimStateMachine(initState);
-	InitHPGauge();
-
+	SetupAnimStateMachine(m_initState);
 	InitAnimInfo();
-}
-
-void Hilichurl::Initialize(void)
-{
-	Enemy::Initialize();
-	m_stateMachine->SetCurrentState(STATE(m_enemyAttr.initState));
-}
-
-Hilichurl::~Hilichurl()
-{
-	SAFE_DELETE(m_stateMachine);
 }
 
 void Hilichurl::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(renderer.GetDevice(), *instance.pModel, animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
 }
 
 void Hilichurl::LoadWeapon(char* modelPath, char* modelName)
 {
-	weapon.Instantiate(modelPath, modelName, SkinnedModelType::Weapon);
-	weapon.SetScale(XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE));
-	weapon.SetPosition(XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z));
-	weapon.SetRotation(XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z));
+	SkinnedGameObjectConfig config;
+	config.modelPath = modelPath;
+	config.modelName = modelName;
+	config.modelType = SkinnedModelType::Weapon;
+	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.colliderTag = ColliderTag::ENEMY_ATTACK;
+	config.scale = XMFLOAT3(WEAPON_SIZE, WEAPON_SIZE, WEAPON_SIZE);
+	config.position = XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z);
+	config.rotation = XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z);
+	m_weapon.Instantiate(config);
 }
 
 void Hilichurl::Update(void)
 {
 	Enemy::Update();
+
+	if (!instance.load || !m_stateMachine) return;
 
 	m_stateMachine->Update(ANIM_BLEND_SPD, dynamic_cast<ISkinnedMeshModelChar*>(this));
 
@@ -137,7 +177,7 @@ void Hilichurl::Update(void)
 void Hilichurl::Draw(void)
 {
 	Enemy::Draw();
-	weapon.Draw();
+	m_weapon.Draw();
 }
 
 void Hilichurl::InitAnimInfo(void)
@@ -154,15 +194,20 @@ void Hilichurl::InitAnimInfo(void)
 
 void Hilichurl::UpdateWeapon(void)
 {
-	weapon.Update();
+	if (m_enemyAttr.isDead)
+		m_weapon.SetCastShadow(false);
+	else
+		m_weapon.SetCastShadow(true);
+
+	m_weapon.Update();
 	XMMATRIX weaponMtx = instance.pModel->GetWeaponTransformMtx();
-	weaponMtx = XMMatrixMultiply(weapon.GetWorldMatrix(), weaponMtx);
+	weaponMtx = XMMatrixMultiply(m_weapon.GetWorldMatrix(), weaponMtx);
 	weaponMtx = XMMatrixMultiply(weaponMtx, instance.transform.mtxWorld);
 
-	weapon.SetWorldMatrix(weaponMtx);
+	m_weapon.SetWorldMatrix(weaponMtx);
 
 	// ローカル空間のAABBを取得
-	BOUNDING_BOX weaponBB = weapon.GetSkinnedMeshModel()->GetBoundingBox();
+	BOUNDING_BOX weaponBB = m_weapon.GetSkinnedMeshModel()->GetBoundingBox();
 	XMFLOAT3 localMin = weaponBB.minPoint;
 	XMFLOAT3 localMax = weaponBB.maxPoint;
 
@@ -179,7 +224,7 @@ void Hilichurl::UpdateWeapon(void)
 	};
 
 	// 武器の変換行列（アニメーション＋ワールド行列）
-	weaponMtx = weapon.GetWorldMatrix(); // ※ここがボーン変形やアタッチ先の変換を含むこと！
+	weaponMtx = m_weapon.GetWorldMatrix(); // ※ここがボーン変形やアタッチ先の変換を含むこと！
 
 	// AABB初期化（最大／最小を初期値に設定）
 	XMVECTOR worldMin = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
@@ -198,7 +243,7 @@ void Hilichurl::UpdateWeapon(void)
 	XMStoreFloat3(&weaponBB.maxPoint, worldMax);
 
 	// コライダーに反映
-	weapon.SetColliderBoundingBox(weaponBB);
+	m_weapon.SetColliderBoundingBox(weaponBB);
 }
 
 AnimStateMachine* Hilichurl::GetStateMachine(void)
@@ -293,11 +338,11 @@ void Hilichurl::PlayAttackAnim(void)
 	if (curAnimTime >= m_stateMachine->GetCurrentAnimClip()->animInfo.animPhase.startAttackFraction
 		&& curAnimTime <= m_stateMachine->GetCurrentAnimClip()->animInfo.animPhase.endAttackFraction)
 	{
-		weapon.SetColliderEnable(true);
+		m_weapon.SetColliderEnable(true);
 	}
 	else
 	{
-		weapon.SetColliderEnable(false);
+		m_weapon.SetColliderEnable(false);
 	}
 
 	float dist = m_enemyAttr.distPlayerSq;
@@ -445,7 +490,7 @@ bool Hilichurl::CanDie(void) const
 
 void Hilichurl::OnAttackAnimationEnd(void)
 {
-	weapon.SetColliderEnable(false);
+	m_weapon.SetColliderEnable(false);
 
 	instance.attributes.isAttacking = false;
 

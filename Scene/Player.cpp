@@ -64,6 +64,17 @@ Player::~Player()
 
 void Player::Update(void)
 {
+	if (!m_playerGO->GetInstance()->load)
+	{
+		m_playerGO->Update();
+		return;
+	}
+
+	if (m_currentModelLoadCnt < m_totalModelLoadCnt && lumine->LoadFinished())
+	{
+		m_currentModelLoadCnt++;
+	}
+
 	UpdateActionQueue();
 
 	m_attributes = m_playerGO->GetAttributes();
@@ -267,6 +278,19 @@ void Player::RenderImGui(void)
 Transform Player::GetTransform(void) const
 {
 	return m_playerGO->GetTransform();
+}
+
+void Player::InitializePlayerStatus(void)
+{
+	if (lumine)
+	{
+		Transform transform;
+		transform.pos = PLAYER_INIT_POS;
+		lumine->SetTransform(transform);
+		lumine->InitializeStatus();
+	}
+
+	Update();
 }
 
 void Player::UpdateActionQueue(void)

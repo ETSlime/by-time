@@ -73,6 +73,14 @@ void DebugBoundingBoxRenderer::Initialize(char* name)
     m_device->CreateBuffer(&cbDesc, nullptr, &m_constantBuffer);
 }
 
+void DebugBoundingBoxRenderer::Shutdown(void)
+{
+    DebugProc::get_instance().Unregister(this);
+    SafeRelease(&m_vertexBuffer);
+    SafeRelease(&m_indexBuffer);
+    SafeRelease(&m_constantBuffer);
+}
+
 void DebugBoundingBoxRenderer::DrawBox(const BOUNDING_BOX& box, const XMMATRIX& viewProj, const XMFLOAT4& color)
 {
     XMVECTOR minPt = XMLoadFloat3(&box.minPoint);

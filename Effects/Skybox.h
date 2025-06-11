@@ -9,10 +9,6 @@
 //=============================================================================
 #pragma once
 #include "Core/Graphics/Renderer.h"
-//*****************************************************************************
-// マクロ定義
-//*****************************************************************************
-#define	TEXTURE_SKYBOX_PATH		"data/TEXTURE/BrightSky.dds"
 
 //*****************************************************************************
 // 構造体定義
@@ -52,6 +48,9 @@ private:
     ID3D11Device* m_device;
     ID3D11DeviceContext* m_context;
 
+    float m_timeOfDay;
+    bool m_dayToNight;
+    static float s_blendFactor;
 
     ShaderSet m_shaderSet;
 
@@ -63,8 +62,5 @@ private:
     ID3D11ShaderResourceView* m_skyboxNightSRVs[6];
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
-
-    float m_timeOfDay;
-    bool m_dayToNight;
-    static float s_blendFactor;
+    Renderer& m_renderer = Renderer::get_instance();
 };

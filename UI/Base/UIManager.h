@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // すべてのUIちゃんを統括する管理お姉さま [UIManager.h]
@@ -6,16 +7,17 @@
 // UI界の女王さまみたいな存在で、みんながスムーズに動けるように支えてくれてるの~
 //
 //=============================================================================
-#pragma once
-#include "Utility/SingletonBase.h"
-#include "UIElement.h"
-#include "UIOverlayRenderer.h"
+#include "main.h"
 #include "Utility/SimpleArray.h"
+#include "Utility/SingletonBase.h"
+#include "UI/Base/UIElement.h"
+#include "UI/Base/UIOverlayRenderer.h"
+#include "UI/Base/ScreenFader.h"
 
 class UIManager : public SingletonBase<UIManager>
 {
 public:
-    UIManager() : m_modal(nullptr) {}
+    UIManager() : m_modal(nullptr), m_spriteVB(nullptr) {}
 
     void Init(void);
     void Uninit(void) {Clear();}
@@ -36,13 +38,19 @@ public:
     }
 
     void SetModal(UIElement* modal);
-    bool IsModalActive() const;
+    bool IsModalActive(void) const;
     void ClearModal(void);
 
     void DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color);
+
+    ID3D11Buffer* GetSpriteVertexBuffer(void) const { return m_spriteVB; }
+    ScreenFader& GetFader(void) { return m_screenFader; }
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     UIElement* m_modal; // モーダルUIの保持
-    UIOverlayRenderer m_overlay; // UIオーバーレイ描画クラス
+    UIOverlayRenderer m_overlay; // UIオーバーレイ描画
+    ScreenFader m_screenFader;
+    ID3D11Buffer* m_spriteVB;
     Renderer& m_renderer = Renderer::get_instance();
 };

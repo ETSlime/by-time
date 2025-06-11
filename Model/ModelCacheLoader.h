@@ -11,7 +11,7 @@
 #include "Core/Graphics/Renderer.h"
 #include "Utility/SimpleArray.h"
 
-struct MODEL_DATA;
+struct StaticModelData;
 
 class ModelCacheLoader 
 {
@@ -31,8 +31,8 @@ public:
         return WriteFile(hFile, src, size, &bytesWritten, nullptr) && bytesWritten == size;
     }
 
-    static bool LoadFromCache(const char* cachePath, MODEL_DATA* modelData);
-    static bool SaveToCache(const char* cachePath, const MODEL_DATA* modelData);
+    static bool LoadFromCache(const char* cachePath, StaticModelData* modelData);
+    static bool SaveToCache(const char* cachePath, const StaticModelData* modelData);
 
     // .obj パスから .bin パスに変換（char* を使う）
     static void ConvertToBinPath(const char* objPath, char* outBinPath, size_t maxLength);

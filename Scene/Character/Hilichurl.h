@@ -30,15 +30,13 @@ class Hilichurl : public Enemy, public ISkinnedMeshModelChar
 public:
 	Hilichurl(Transform transform, EnemyState initState = EnemyState::IDLE);
 	~Hilichurl();
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
-	void LoadWeapon(char* modelPath, char* modelName);
+
+	// アニメーションやスクリプトなど、モデルに依存する処理をここで設定する
+	virtual void PostInit(void) override;
+	virtual void InitializeAnimation(void) override;
 
 	void Update(void) override;
 	void Draw(void) override;
-
-	void InitAnimInfo(void) override;
-
-	void UpdateWeapon(void);
 
 	void SetupAnimStateMachine(EnemyState initState);
 
@@ -73,8 +71,19 @@ public:
 	virtual void OnDieAnimationEnd() override;
 
 private:
-	GameObject<SkinnedMeshModelInstance> weapon;
+	struct InitContext
+	{
+		Hilichurl* owner;
+	};
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void LoadWeapon(char* modelPath, char* modelName);
+	void InitAnimInfo(void) override;
+
+	void UpdateWeapon(void);
+
+	GameObject<SkinnedMeshModelInstance> m_weapon;
 	AnimStateMachine* m_stateMachine;
+	EnemyState m_initState;
 	float m_playAnimSpeed;
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 };

@@ -9,6 +9,7 @@
 //=============================================================================
 #include "main.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Async/SpinLock.h"
 #include "Utility/HashMap.h"
 #include "Utility/SingletonBase.h"
 
@@ -67,23 +68,24 @@ struct SRV_POOL
 	}
 };
 
+
 class TextureMgr : public SingletonBase<TextureMgr>
 {
 public:
-	TextureMgr();
-	~TextureMgr();
+	void Shutdown(void);
 
-	void Init(ID3D11Device* device);
-	void Uninit(void);
+	// 非同期読み込み（スレッド内でロード、完了後コールバック）
+	void RequestTextureAsync(const char* filename, ID3D11ShaderResourceView** outSRV,
+		void (*onFinish)(bool success, void* userData), void* userData = nullptr);
 
+	// 同期ロード（使用推奨せず）
 	ID3D11ShaderResourceView* CreateTexture(char* filename);
 
-private:
-	TextureMgr(const TextureMgr& rhs);
-	TextureMgr& operator=(const TextureMgr& rhs) = default;
+
+	void RegisterSRV(const char* path, ID3D11ShaderResourceView* srv);
 
 private:
-	ID3D11Device* md3dDevice;
-	static HashMap<char*, SRV_POOL*, CharPtrHash, CharPtrEquals> mTextureSRV;
-	Renderer& renderer = Renderer::get_instance();
+	HashMap<const char*, SRV_POOL*, CharPtrHash, CharPtrEquals> m_TextureSRVMap;
+	SpinLock m_lock;
+	Renderer& m_renderer = Renderer::get_instance();
 };

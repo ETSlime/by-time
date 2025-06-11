@@ -77,7 +77,26 @@ bool Environment::Initialize(void)
 
 EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType type)
 {
-    EnvironmentObject* obj;
+    EnvironmentObject* obj = InitializeEnvironmentObjAttributes(type);
+
+    if (obj == nullptr)
+        return nullptr; // オブジェクトの初期化に失敗した場合はnullptrを返す
+
+    if (!LoadEnvironmentObj(obj))
+    {
+        SAFE_DELETE(obj);
+        return nullptr;
+    }
+
+    m_environmentObjects.push_back(obj);
+
+    return obj;
+}
+
+EnvironmentObject* Environment::InitializeEnvironmentObjAttributes(EnvironmentObjectType type)
+{
+    EnvironmentObject* obj = nullptr;
+
 
     switch (type)
     {
@@ -90,11 +109,11 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.collision = false;
         obj->attributes.adaptedToTerrain = true;
         obj->attributes.billboard = false;
-		obj->attributes.isDynamic = false;
+        obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = GRASS_MAX_SLOPE_ANGLE;
         obj->modelPath = GRASS_1_MODEL_PATH;
         obj->extDiffuseTexPath = GRASS_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Grass_2:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -108,7 +127,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = GRASS_MAX_SLOPE_ANGLE;
         obj->modelPath = GRASS_2_MODEL_PATH;
         obj->extDiffuseTexPath = GRASS_2_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Clover_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -122,7 +141,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = CLOVER_MAX_SLOPE_ANGLE;
         obj->modelPath = CLOVER_1_MODEL_PATH;
         obj->extDiffuseTexPath = CLOVER_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Bush_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -135,7 +154,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = BUSH_MAX_SLOPE_ANGLE;
         obj->modelPath = BUSH_1_MODEL_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Bush_2:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -148,7 +167,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = BUSH_MAX_SLOPE_ANGLE;
         obj->modelPath = BUSH_2_MODEL_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Flower_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -162,7 +181,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = FLOWER_MAX_SLOPE_ANGLE;
         obj->modelPath = FLOWER_1_MODEL_PATH;
         obj->extDiffuseTexPath = FLOWER_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Shrubbery_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -176,7 +195,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = SHRUBBERY_MAX_SLOPE_ANGLE;
         obj->modelPath = SHRUBBERY_1_MODEL_PATH;
         obj->extDiffuseTexPath = SHRUBBERY_1_TEX_PATH;
-        break;
+        return obj;
     case EnvironmentObjectType::Tree_1:
         obj = new EnvironmentObject();
         obj->type = type;
@@ -190,20 +209,35 @@ EnvironmentObject* Environment::InitializeEnvironmentObj(EnvironmentObjectType t
         obj->attributes.maxSlopeAngle = TREE_MAX_SLOPE_ANGLE;
         obj->modelPath = TREE_1_MODEL_PATH;
         obj->extDiffuseTexPath = TREE_1_TEX_PATH;
-        break;
+        return obj;
     default:
-        return nullptr;
+		return nullptr; // 未対応のタイプはnullptrを返す
     }
+}
 
-    if (!LoadEnvironmentObj(obj))
+const char* Environment::GetModelPathByType(EnvironmentObjectType type)
+{
+    switch (type)
     {
-        SAFE_DELETE(obj);
-        return nullptr;
+	case EnvironmentObjectType::Grass_1:
+		return GRASS_1_MODEL_PATH;
+	case EnvironmentObjectType::Grass_2:
+		return GRASS_2_MODEL_PATH;
+	case EnvironmentObjectType::Clover_1:
+		return CLOVER_1_MODEL_PATH;
+	case EnvironmentObjectType::Bush_1:
+		return BUSH_1_MODEL_PATH;
+	case EnvironmentObjectType::Bush_2:
+		return BUSH_2_MODEL_PATH;
+	case EnvironmentObjectType::Flower_1:
+		return FLOWER_1_MODEL_PATH;
+	case EnvironmentObjectType::Shrubbery_1:
+		return SHRUBBERY_1_MODEL_PATH;
+	case EnvironmentObjectType::Tree_1:
+		return TREE_1_MODEL_PATH;
+	default:
+		return nullptr; // 未対応のタイプはnullptrを返す
     }
-
-    m_environmentObjects.push_back(obj);
-
-    return obj;
 }
 
 Environment::~Environment()
@@ -236,6 +270,8 @@ void Environment::Update(void)
     for (UINT i = 0; i < m_environmentObjects.getSize(); i++)
     {
         EnvironmentObject* obj = m_environmentObjects[i];
+
+        obj->modelGO->Update();
         if (obj->attributes.billboard)
         {
             Camera& camera = Camera::get_instance();
@@ -307,13 +343,13 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
     m_context->IASetVertexBuffers(0, 2, buffers, strides, offsets);
     // インデックスバッファ設定
     m_context->IASetIndexBuffer(obj->indexBuffer, DXGI_FORMAT_R32_UINT, 0); 
-    m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_INSTANCED_DATA, m_perFrameBuffer);
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_INSTANCED_DATA, m_perFrameBuffer);
 
     m_context->VSSetShader(obj->vertexShader, nullptr, 0);
 
     // 風に影響される場合、ノイズテクスチャとピクセルシェーダーを設定
     if (obj->attributes.affectedByWind)
-        m_ShaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_TEX_NOISE, noiseTextureSRV);
+        m_shaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_TEX_NOISE, noiseTextureSRV);
 
     m_context->PSSetShader(obj->pixelShader, nullptr, 0);
 
@@ -323,7 +359,7 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
         ZeroMemory(&material, sizeof(material));
         material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
         Renderer::get_instance().SetMaterial(material);
-        m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, obj->externDiffuseTextureSRV);
+        m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, obj->externDiffuseTextureSRV);
         // インスタンス化描画実行
         m_context->DrawIndexedInstanced(obj->indexCount, obj->instanceCount, 0, 0, 0);
     }
@@ -341,27 +377,27 @@ void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
             // テクスチャ設定
             if (subset[i].Material.MaterialData.noTexSampling == 0)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, subset[i].diffuseTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, subset[i].diffuseTexture);
             }
             if (subset[i].Material.MaterialData.normalMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_NORMAL, subset[i].normalTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_NORMAL, subset[i].normalTexture);
             }
             if (subset[i].Material.MaterialData.bumpMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_BUMP, subset[i].bumpTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_BUMP, subset[i].bumpTexture);
             }
             if (subset[i].Material.MaterialData.opacityMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_OPACITY, subset[i].opacityTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_OPACITY, subset[i].opacityTexture);
             }
             if (subset[i].Material.MaterialData.reflectMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_REFLECT, subset[i].reflectTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_REFLECT, subset[i].reflectTexture);
             }
             if (subset[i].Material.MaterialData.translucencyMapSampling == 1)
             {
-                m_ShaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_TRANSLUCENCY, subset[i].translucencyTexture);
+                m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_TRANSLUCENCY, subset[i].translucencyTexture);
             }
 
             // インスタンス化描画実行
@@ -466,8 +502,10 @@ float Environment::RayIntersectTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT
 bool Environment::LoadEnvironmentObj(EnvironmentObject* obj)
 {
     obj->modelGO = new GameObject<ModelInstance>();
-    obj->modelGO->Instantiate(obj->modelPath);
-	obj->modelGO->SetModelType(ModelType::Instanced);
+    GameObjectConfig config{};
+	config.modelPath = obj->modelPath;
+	config.modelType = ModelType::Instanced;
+    obj->modelGO->Instantiate(config);
 
     const SUBSET* subset = obj->modelGO->GetModel()->GetSubset();
     unsigned int subsetNum = obj->modelGO->GetModel()->GetSubNum();
@@ -495,7 +533,7 @@ bool Environment::LoadEnvironmentObj(EnvironmentObject* obj)
 			return false;
 	}
 
-    const MODEL_DATA* modelData = obj->modelGO->GetModel()->GetModelData();
+    const StaticModelData* modelData = obj->modelGO->GetModel()->GetModelData();
     BOUNDING_BOX boudningBox = obj->modelGO->GetModel()->GetBoundingBox();
     obj->modelGO->SetIsInstanced(true); // インスタンス化フラグを立てる
 

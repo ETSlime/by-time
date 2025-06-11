@@ -206,8 +206,8 @@ float Skybox::AdjustBlendFactor(float time)
 
 void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
 {
-    Renderer::get_instance().ResetRenderTarget();
-    Renderer::get_instance().SetCullingMode(CULL_MODE_NONE);
+    m_renderer.ResetRenderTarget();
+    m_renderer.SetCullingMode(CULL_MODE_NONE);
 
     UINT stride = sizeof(SkyBoxVertex);
     UINT offset = 0;
@@ -238,6 +238,6 @@ void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
 
     m_context->OMSetDepthStencilState(m_depthStencilState, 0);
     m_context->Draw(36, 0);
-    Renderer::get_instance().SetDepthEnable(TRUE);
-    Renderer::get_instance().SetCullingMode(CULL_MODE_BACK);
+    m_renderer.SetDepthEnable(TRUE);
+    m_renderer.SetCullingMode(CULL_MODE_BACK);
 }

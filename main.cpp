@@ -5,27 +5,27 @@
 //
 //=============================================================================
 #include "main.h"
-#include "Core/Graphics/Renderer.h"
-#include "Utility/InputManager.h"
+#include "Core/Timer.h"
+#include "Core/LightManager.h"
+#include "Core/GameSystem.h"
+#include "Core/TextureMgr.h"
 #include "Core/Camera.h"
+#include "Core/CursorManager.h"
+#include "Core/Shader/ShaderManager.h"
+#include "Core/Shader/ShaderResourceBinder.h"
+#include "Core/Graphics/Renderer.h"
+#include "Core/Graphics/ShadowMapRenderer.h"
+#include "Collision/CollisionManager.h"
+#include "Utility/InputManager.h"
 #include "Utility/Debugproc.h"
 #include "Model/Model.h"
-#include "Scene/EnemyManager.h"
-#include "Core/LightManager.h"
-#include "Scene/Ground.h"
 #include "Model/FBXLoader.h"
-#include "Core/TextureMgr.h"
 #include "Model/SkinnedMeshModel.h"
-#include "Collision/CollisionManager.h"
-#include "Core/Timer.h"
-#include "Core/Shader/ShaderManager.h"
-#include "Core/Graphics/ShadowMapRenderer.h"
+#include "Scene/EnemyManager.h"
+#include "Scene/Ground.h"
 #include "Scene/Scene.h"
-#include "UI/UIManager.h"
-#include "Core/GameSystem.h"
+#include "UI/Base/UIManager.h"
 #include "UI/PauseModal.h"
-#include "Core/CursorManager.h"
-#include "Core/Shader/ShaderResourceBinder.h"
 #include "UI/imgui/imgui_impl_win32.h"
 
 //*****************************************************************************
@@ -72,6 +72,7 @@ Scene& scene = Scene::get_instance();
 UIManager& uiManager = UIManager::get_instance();
 CursorManager& cursorManager = CursorManager::get_instance();
 ShaderResourceBinder& shaderResourceBinder = ShaderResourceBinder::get_instance();
+TextureMgr& textureMgr = TextureMgr::get_instance();
 
 #ifdef _DEBUG
 int		g_CountFPS;							// FPSカウンタ
@@ -141,7 +142,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 	
-	if (!(GetForegroundWindow() == hWnd))
+	if (!(GetForegroundWindow() == hWnd) && gameSystem.GetMode() == GameMode::GAME)
 	{
 		gameSystem.PauseGame();
 	}
@@ -260,20 +261,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (LOWORD(wParam) != WA_INACTIVE)
 		{
 			// ウィンドウがアクティブになった
-			g_IsWindowActive = true;
-			g_IsGamePaused = false;
-			cursorManager.RememberCursorPosition(); // カーソル位置を保存
-			inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+			if (gameSystem.GetMode() == GameMode::GAME)
+			{
+				g_IsWindowActive = true;
+				g_IsGamePaused = false;
+				cursorManager.RememberCursorPosition(); // カーソル位置を保存
+				inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+			}
+
 		}
 		else
 		{
-			// ウィンドウが非アクティブになった
-			g_IsWindowActive = false;
-			g_IsGamePaused = true;
-			
-			// 自動ポーズ（手動入力と同じ処理）
-			gameSystem.PauseGame();
-			uiManager.SetModalIfNotExist<PauseModal>();
+			if (gameSystem.GetMode() == GameMode::GAME)
+			{
+				// ウィンドウが非アクティブになった
+				g_IsWindowActive = false;
+				g_IsGamePaused = true;
+
+				// 自動ポーズ（手動入力と同じ処理）
+				gameSystem.PauseGame();
+				uiManager.SetModalIfNotExist<PauseModal>();
+			}
 		}
 		break;
 
@@ -291,6 +299,8 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 {
 	// レンダラーの初期化
 	renderer.Init(hInstance, hWnd, bWindow);
+	float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	renderer.SetClearColor(clearColor);
 
 	debugProc.Init(hWnd);
 
@@ -333,6 +343,8 @@ void Uninit(void)
 	inputManager.Shutdown();
 
 	gameSystem.Shutdown();
+
+	textureMgr.Shutdown();
 
 	// レンダラーの終了処理
 	renderer.Shutdown();

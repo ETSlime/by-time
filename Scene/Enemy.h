@@ -31,6 +31,7 @@ enum class EnemyUIType
 enum class EnemyType
 {
 	Hilichurl,
+	Max,
 };
 
 //*****************************************************************************
@@ -96,7 +97,7 @@ struct EnemyAttributes
 		die = false;
 		isDead = false;
 		startFadeOut = false;
-		randomMove = true;
+		randomMove = false;
 
 		fixedDirMove = false;
 		fixedDir = 0.0f;
@@ -150,6 +151,7 @@ public:
 	Enemy(EnemyType enemyType, Transform trans);
 	~Enemy();
 
+	virtual void Initialize(void);
 	inline const EnemyAttributes& GetEnemyAttribute(void) { return m_enemyAttr; }
 	void Update(void) override;
 	void Draw(void) override;
@@ -175,7 +177,6 @@ public:
 protected:
 	EnemyAttributes m_enemyAttr;
 	const Player* m_player;
-	virtual void Initialize(void);
 private:
 	void SetNewPosTarget(void);
 	void StartWaiting(void);

@@ -35,6 +35,7 @@ public:
 
 	void PrintDebugProc(char* fmt, ...);
 	void Register(IDebugUI* ui);
+	void Unregister(IDebugUI* ui);
 
 	void BeginFrame(void);
 	void Draw(void);

@@ -52,6 +52,11 @@ public:
 	void DrawEffect(void);
 	Transform GetTransform(void) const;
 
+	void InitializePlayerStatus(void);
+
+	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
+	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
+
 private:
 
 	void UpdateActionQueue(void);
@@ -70,6 +75,8 @@ private:
 	Mitachurl* mitachurl;
 
 	bool m_drawBoundingBox = true;
+	int m_currentModelLoadCnt = 0;
+	int m_totalModelLoadCnt = 1;
 
 	GameObject<SkinnedMeshModelInstance>* m_playerGO;
 

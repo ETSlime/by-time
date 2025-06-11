@@ -50,10 +50,12 @@ public:
 
     SimpleArray& operator=(const SimpleArray& other)
     {
-        if (this != &other) {
+        if (this != &other) 
+        {
             delete[] array;
             array = new T[other.capacity];
-            for (UINT i = 0; i < other.size; i++) {
+            for (UINT i = 0; i < other.size; i++) 
+            {
                 array[i] = other.array[i];
             }
             capacity = other.capacity;
@@ -72,22 +74,38 @@ public:
             
     }
 
-    void push_back(const T& item) {
-        if (size >= capacity) {
+    void push_back(const T& item) 
+    {
+        if (size >= capacity) 
+        {
             int newCapacity = (capacity == 0) ? 4 : capacity * 2;
             T* newArray = new T[newCapacity];
-            for (UINT i = 0; i < size; i++) {
-                newArray[i] = array[i];
-            }
-            //for (int i = 0; i < size; i++) {
-            //    newArray[i] = std::move(array[i]);
+            //for (UINT i = 0; i < size; i++) 
+            //{
+            //    newArray[i] = array[i];
             //}
+            for (UINT i = 0; i < size; i++) {
+                newArray[i] = std::move(array[i]);
+            }
             delete[] array;
             array = newArray;
             capacity = newCapacity;
         }
         array[size] = item;
         size++;
+    }
+
+    void pop_back()
+    {
+        if (size == 0) return;
+
+        size--;
+
+        // 要素のデストラクタを明示的に呼び出し（非トリビアル型に対応）
+        if (!std::is_trivially_destructible<T>::value)
+        {
+            array[size].~T();
+        }
     }
 
     void push_back(T&& item) {
@@ -196,6 +214,10 @@ public:
         {
             array[i] = std::move(array[i + 1]);
         }
+
+        // 最後の要素を明示的にデストラクタ呼び出し（デバッグ安全）
+        array[size - 1] = T(); // または std::move(T()) / std::default_constructed<T>()
+
         size--;
     }
 

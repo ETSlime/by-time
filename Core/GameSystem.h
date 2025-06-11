@@ -8,17 +8,21 @@
 //=============================================================================
 #pragma once
 #include "main.h"
-#include "Utility/SingletonBase.h"
-#include "UI/UIManager.h"
+#include "Core/Camera.h"
+#include "Core/CursorManager.h"
+#include "Core/TextureUploadQueue.h"
+#include "Core/Async/AsyncResourceLoader.h"
+#include "Core/Async/AsyncModelLoader.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Graphics/ShadowMapRenderer.h"
+#include "UI/UILoadingScene.h"
+#include "UI/Base/UIManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/Ground.h"
 #include "Effects/Skybox.h"
-#include "Core/Camera.h"
-#include "Core/Graphics/ShadowMapRenderer.h"
-#include "Core/CursorManager.h"
 #include "Effects/EffectSystem.h"
+#include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
 
 //*****************************************************************************
@@ -30,8 +34,31 @@ enum class GameMode : int		// ゲームモード
     TITLE = 0,			        // タイトル画面
     TUTORIAL,			        // ゲーム説明画面
     GAME,				        // ゲーム画面
+    LOADING,                    // ゲームロード
     RESULT,				        // リザルト画面
     MAX
+};
+
+
+struct ResourceLoadContext
+{
+    GameMode nextMode;             // 次に入るモード（例：GAME）
+    char* sceneName = nullptr;     // 読み込むマップ名やステージID
+    bool startInitialLoad = false;
+    bool finishInitialLoad = false;
+    bool isFromLoad = false;       // セーブデータからの読込かどうか
+};
+
+struct ResourceLoadStatus
+{
+    int totalTasks = 0;         // 登録された全タスク数
+    int doneTasks = 0;          // 完了済みタスク数
+
+    void Clear(void)
+    {
+        totalTasks = 0;
+        doneTasks = 0;
+    }
 };
 
 // ゲーム全体の状態を管理するクラス
@@ -44,6 +71,7 @@ public:
     void Shutdown(void);
     void Update(void);
     void Draw(void);
+
     void RenderShadowPass(void);
 
     // ゲームの一時停止/再開
@@ -53,16 +81,15 @@ public:
     bool IsAltDown(void) const { return m_isAltDown; } // Altキーが押されているかどうか
 
     // 会話モード切替
-    void EnterDialogue(void);
-    void ExitDialogue(void);
+    void EnterDialogue(void) { m_inDialogue = true; }
+    void ExitDialogue(void) { m_inDialogue = false; }
     bool IsInDialogue(void) const { return m_inDialogue; }
 
     // ミニマップ表示切替
-    void ToggleMiniMap(void);
+    void ToggleMiniMap(void) { m_showMiniMap = !m_showMiniMap; }
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
-    // モード切り替え
-    void SetMode(GameMode mode);
+    void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode() const { return m_mode; }
 
 protected:
@@ -71,15 +98,19 @@ protected:
         : SingletonBase()
         , m_renderer(Renderer::get_instance())
         , m_lightManager(LightManager::get_instance())
-		, m_inputManager(InputManager::get_instance())
-        , m_uiManager(UIManager::get_instance())
+        , m_inputManager(InputManager::get_instance())
+        , m_UIManager(UIManager::get_instance())
         , m_enemyManager(EnemyManager::get_instance())
         , m_camera(Camera::get_instance())
         , m_scene(Scene::get_instance())
         , m_shadowMapRenderer(ShadowMapRenderer::get_instance())
         , m_cursorManager(CursorManager::get_instance())
         , m_effectSystem(EffectSystem::get_instance())
-        , m_shaderManager(ShaderManager::get_instance()) {}
+        , m_shaderManager(ShaderManager::get_instance())
+        , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
+        , m_asyncModelLoader(AsyncModelLoader::get_instance())
+        , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
+        , m_textureUploadQueue(TextureUploadQueue::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -88,22 +119,49 @@ protected:
 
 
 private:
+    void InitTitle(void);
+    void InitGame(void);
+    void InitResult(void);
+    void ProcessModeLoading(void);
+
+    // モードごとの更新と描画関数
+    void UpdateTitle(void);
+    void UpdateGame(void);
+    void UpdateLoading(void);
+    void UpdateResult(void);
+
+    void DrawTitle(void);
+    void DrawGame(void);
+    void DrawResult(void);
+
+    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
+    void StartAsyncResourceLoading(void);
+    void HandleInput(void);
+    void HandlePauseInput(void);
+
+    // 非同期読み込み進行度を0.0～1.0で返す関数
+    float CalculateCurrentLoadingProgress(void);
+    // 読み込みがすべて完了したかを判定する関数
+    bool IsAllResourceReady(void) const;
+
     // 内部状態
     bool m_isPaused = false;
     bool m_inDialogue = false;
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか
+    bool m_skipLoadingFadeIn = false;
 
-    void HandleInput(void);
-    void HandlePauseInput(void);
-
-    GameMode m_mode = GameMode::GAME;
+    GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
     Ground* m_ground = nullptr;
     Skybox* m_skybox = nullptr;
 
-    UIManager& m_uiManager;
+    ResourceLoadStatus m_loadStatus;
+    ResourceLoadContext m_currLoadCtx;
+    UILoadingScene* m_loadingScene = nullptr;
+
+    UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     Renderer& m_renderer;
     LightManager& m_lightManager;
@@ -114,13 +172,8 @@ private:
     EffectSystem& m_effectSystem;
     ShaderManager& m_shaderManager;
     InputManager& m_inputManager;
-
-    // モードごとの更新と描画関数
-    void UpdateTitle(void);
-    void UpdateGame(void);
-    void UpdateResult(void);
-
-    void DrawTitle(void);
-    void DrawGame(void);
-    void DrawResult(void);
+    AsyncResourceLoader& m_asyncResourceLoader;
+    AsyncModelLoader& m_asyncModelLoader;
+	DeferredTaskSystem& m_deferredTaskSystem;
+    TextureUploadQueue& m_textureUploadQueue;
 };

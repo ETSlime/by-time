@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // ふんわりフェードで包み込む魔法の子 [UIOverlayRenderer.h]
@@ -6,7 +7,6 @@
 // シンプルな矩形をふわっと描画して、世界に魔法をかけてくれるの
 //
 //=============================================================================
-#pragma once
 #include "Core/Graphics/Renderer.h"
 
 //*****************************************************************************
@@ -18,8 +18,7 @@
 class UIOverlayRenderer
 {
 public:
-    bool Initialize(ID3D11Device* device);
-    void Shutdown();
+    bool Initialize(ID3D11Buffer* vertexBuffer);
 
     // 瞬間表示（アルファ指定）
     void Draw(ID3D11DeviceContext* ctx, float x, float y, float width, float height, XMFLOAT4 color);
@@ -32,6 +31,9 @@ public:
     bool IsFading() const { return m_isFading; }
 
 private:
+    // 現在のアルファ値を取得
+    float ComputeAlpha() const;
+
     ID3D11Buffer* m_vertexBuffer = nullptr;
     ID3D11ShaderResourceView* m_whiteTextureSRV = nullptr;
     float m_fadeTime = 0.0f;
@@ -40,6 +42,6 @@ private:
     bool m_isFading = false;
     XMFLOAT4 m_targetColor = { 0, 0, 0, 0 };
 
-    // 現在のアルファ値を取得
-    float ComputeAlpha() const;
+    Renderer& m_renderer = Renderer::get_instance();
+    ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
 };

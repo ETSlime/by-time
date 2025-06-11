@@ -6,17 +6,18 @@
 //=============================================================================
 #include "main.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/Async//DeferredTaskAPI.h"
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
 #include "Utility/Debugproc.h"
 #include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
+#include "Effects/FireBallEffectRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-
 #define MAX_TREE			(0)
 
 #define TREE_SIZE			(350.0f)
@@ -34,141 +35,65 @@ Ground::Ground()
 	DebugProc::get_instance().Register(this);
 #endif // DEBUG
 
-	Transform trans;
-	trans.pos = XMFLOAT3(12937.0f, -2384.0f, -19485.0f);
-
-	//for (int i = 0; i < MAX_TREE; i++)
-	//{
-	//	float radius = 20000.f;
-	//	float r = GetRandFloat(2000.0f, radius);
-	//	float angle = GetRandFloat(0.0f, 2.0f * 3.14159265359f);
-	//	float x = trans.pos.x + r * cos(angle);
-	//	float z = trans.pos.z + r * sin(angle);
-	//	float size = GetRandFloat(TREE_SIZE * .8f, TREE_SIZE * 2.5f);
-	//	GameObject<SkinnedMeshModelInstance>* treeGO = new GameObject<SkinnedMeshModelInstance>();
-	//	treeGO->Instantiate(MODEL_ENVIRONMENT_PATH, MODEL_TREE_NAME, ModelType::Tree);
-	//	treeGO->GetInstance()->pModel->SetBodyDiffuseTexture("data/MODEL/Environment/Bark.jpg");
-	//	treeGO->SetPosition(XMFLOAT3(x, trans.pos.y, z));
-	//	treeGO->SetRotation(XMFLOAT3(0.0f, 0.0f, 0.0f));
-	//	treeGO->SetScale(XMFLOAT3(size, size, size));
-	//	
-	//	treeGO->GetSkinnedMeshModel()->SetBoundingBoxSize(XMFLOAT3(0.1f, 1.0f, 0.1f));
-	//	treeGO->GetSkinnedMeshModel()->SetBoundingBoxLocationOffset(XMFLOAT3(-0.55f, 0.0f, 0.2f));
-	//	treeGO->SetColliderOwner(treeGO);
-	//	treeGO->SetColliderEnable(true);
-	//	treeGO->SetColliderType(ColliderType::TREE);
-	//	CollisionManager::get_instance().RegisterDynamicCollider(&treeGO->GetCollider());
-
-	//	skinnedMeshGroundGO.push_back(treeGO);
-	//}
+	InitSceneLoadMap();
 
 	BOUNDING_BOX worldBB;
 	worldBB.maxPoint = WORLD_MAX;
 	worldBB.minPoint = WORLD_MIN;
 	CollisionManager::get_instance().InitOctree(worldBB);
 
-	m_town = new Town();
+	//m_town = new Town();
 
-	XMMATRIX worldMatrix;
-
+	SkinnedGameObjectConfig config;
+	config.modelPath = MODEL_ENVIRONMENT_PATH;
+	config.modelName = MODEL_FIELD_NAME;
+	config.modelType = SkinnedModelType::Field;
+	config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
+	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
-	fieldGO->Instantiate(MODEL_ENVIRONMENT_PATH, MODEL_FIELD_NAME, SkinnedModelType::Field);
-	fieldGO->SetScale(XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE));
-	fieldGO->SetRotation(XMFLOAT3(XM_PI / 2, XM_PI, 0.0f));
-	fieldGO->SetPosition(XMFLOAT3(0.0f, -650.0f, 0.0f));
-	fieldGO->Update();
-	worldMatrix = fieldGO->GetWorldMatrix();
-	fieldGO->GetSkinnedMeshModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	fieldGO->GetSkinnedMeshModel()->BuildOctree();
-	fieldGO->GetSkinnedMeshModel()->SetDrawBoundingBox(false);
-	fieldGO->SetCastShadow(false);
-	m_skinnedMeshGroundGO.push_back(fieldGO);
+	fieldGO->Instantiate(config);
+	m_persistentSkinnedGOs.push_back(fieldGO);
+	m_fieldGO = fieldGO;
 
+	if (!m_modelLoadMap.contains(config.modelName))
+	{
+		m_modelLoadMap[config.modelName] = 0;
+		m_totalModelLoadCnt++;
+		m_persistentModelLoadCnt++;
+	}
+
+	//GameObjectConfig config{};
+	//config.modelPath = MODEL_LAND_PATH;
+	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
-	//fieldGO->Instantiate(MODEL_FIELD_PATH);
-	//fieldGO->SetScale(XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE));
-	//fieldGO->SetRotation(XMFLOAT3(0, 0, 0.0f));
-	//fieldGO->SetPosition(XMFLOAT3(0.0f, -650.0f, 0.0f));
-	//fieldGO->Update();
-	//worldMatrix = fieldGO->GetWorldMatrix();
-	//fieldGO->GetModel()->BuildTrianglesByWorldMatrix(worldMatrix, true);
-	//fieldGO->GetModel()->BuildOctree();
-	//fieldGO->GetModel()->SetDrawBoundingBox(false);
-	//fieldGO->SetCastShadow(false);
-	//groundGO.push_back(fieldGO);
+	//fieldGO->Instantiate(config);
+	//m_groundGO.push_back(fieldGO);
+	//m_fieldGO = fieldGO;
 
-	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
-	bonfireGO->Instantiate(MODEL_BONFIRE_PATH);
-	bonfireGO->SetScale(XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE));
-	bonfireGO->SetPosition(XMFLOAT3(12582.0f, -2051.0f, -19485.0f));
-	bonfireGO->Update();
-	bonfireGO->SetCastShadow(true);
-	worldMatrix = bonfireGO->GetWorldMatrix();
-	BOUNDING_BOX boundingBox = bonfireGO->GetCollider().aabb;
-	bonfireGO->GetModel()->BuildTrianglesByBoundingBox(boundingBox);
-	bonfireGO->GetModel()->BuildOctree();
-	bonfireGO->GetModel()->SetDrawBoundingBox(true);
-	m_groundGO.push_back(bonfireGO);
-
-	ParticleEffectParams params;
-	params.type = EffectType::Smoke;
-	params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
-	params.scale = 250.0f;
-	params.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
-	params.spawnRateMin = 2.0f;
-	params.spawnRateMax = 5.0f;
-	params.lifeMin = 3.0f;
-	params.lifeMax = 6.0f;
-	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
-	EffectSystem::get_instance().SpawnParticleEffect(params);
-
-	FireBallEffectParams fireparams;
-	fireparams.type = EffectType::FireBall;
-	fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);
-	fireparams.scale = 43.0f;
-	fireparams.lifeMin = 1.0f;
-	fireparams.lifeMax = 1.0f;
-	fireparams.spawnRateMin = 0.0f;
-	fireparams.spawnRateMax = 10.0f;
-	fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
-	fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
-	fireparams.tilesX = 7;
-	fireparams.tilesY = 7;
-	fireparams.coneAngleDegree = 25.0f;
-	fireparams.coneRadius = 0.6f;
-	fireparams.coneLength = 5.0f;
-	fireparams.frameLerpCurve = 1.0f;
-	fireparams.rotationSpeed = 0.0f;
-	fireparams.startSpeedMin = 2.0f;
-	fireparams.startSpeedMax = 3.0f;
-	EffectSystem::get_instance().SpawnParticleEffect(fireparams);
-	
 	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	//banyanGO->Instantiate(MODEL_BANYAN_PATH);
-	//banyanGO->SetPosition(XMFLOAT3(-12280.0f, -2254.0f, -4650.0f));
-	//banyanGO->SetScale(XMFLOAT3(50.0f, 50.0f, 50.0f));
-	//groundGO.push_back(banyanGO);
+	//GameObjectConfig banyanConfig{};
+	//banyanConfig.modelPath = MODEL_BANYAN_PATH;
+	//banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
+	//banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
+	//banyanGO->Instantiate(banyanConfig);
+	//m_groundGO.push_back(banyanGO);
 
-	InstanceParams instanceParams;
-	instanceParams.type = EnvironmentObjectType::Bush_2;
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12882.0f,
-		-18385.0f,
-		0.5 * XM_PI,
-		0.3f
-	));
-
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12482.0f,
-		-17385.0f,
-		0.5,
-		0.3f
-	));
-
-	m_environment = new Environment();
-	m_environment->GenerateInstanceByParams(instanceParams, fieldGO->GetSkinnedMeshModel(), fieldGO->GetBoundingBoxWorld());
-	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+	
+	DeferredTaskOptions options{};
+	options.async = false; // 同期実行
+	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	DeferredTaskBinder<Ground>::Add(
+		this,
+		nullptr,
+		&Ground::GenerateEnvironmentObj,
+		&Ground::DeferredIsFieldReady,
+		options
+	);
 }
 
 //=============================================================================
@@ -176,12 +101,6 @@ Ground::Ground()
 //=============================================================================
 Ground::~Ground()
 {
-	int size = m_groundGO.getSize();
-	for (int i = 0; i < size; i++)
-	{
-		if (m_groundGO[i])
-			delete m_groundGO[i];
-	}
 }
 
 //=============================================================================
@@ -189,29 +108,10 @@ Ground::~Ground()
 //=============================================================================
 void Ground::Update(void)
 {
-	int size = m_groundGO.getSize();
-	for (int i = 0; i < size; i++)
-	{
-		if (m_groundGO[i]->GetUse() == false) continue;
-		m_groundGO[i]->Update();
-	}
-
-	size = m_skinnedMeshGroundGO.getSize();
-	for (int i = 0; i < size; i++)
-	{
-		if (m_skinnedMeshGroundGO[i]->GetUse() == false) continue;
-		m_skinnedMeshGroundGO[i]->Update();
-
-		//if (skinnedMeshGroundGO[i]->GetCollider().type == ColliderType::TREE)
-		//{
-		//	if (skinnedMeshGroundGO[i]->GetAttributes().isGrounded == false)
-		//	{
-		//		Transform transform = skinnedMeshGroundGO[i]->GetTransform();
-		//		transform.pos.y -= 25;
-		//		skinnedMeshGroundGO[i]->SetTransform(transform);
-		//	}
-		//}
-	}
+	UpdateGameObjectArray<GameObject<ModelInstance>>(m_staticGOs);
+	UpdateGameObjectArray<GameObject<ModelInstance>>(m_persistentStaticGOs);
+	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
+	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 
 	if (m_town)
 		m_town->Update();
@@ -237,53 +137,245 @@ void Ground::Draw(void)
 	}
 	else if (m_renderer.GetRenderMode() == RenderMode::OBJ)
 	{
-		UINT size = m_groundGO.getSize();
-		for (UINT i = 0; i < size; i++)
-		{
-			if (m_groundGO[i]->GetUse() == false) continue;
-
-			m_groundGO[i]->Draw();
-		}
+		DrawGameObjectArray<GameObject<ModelInstance>>(m_staticGOs);
+		DrawGameObjectArray<GameObject<ModelInstance>>(m_persistentStaticGOs);
 	}
 	else if (m_renderer.GetRenderMode() == RenderMode::SKINNED_MESH)
 	{
-		UINT size = m_skinnedMeshGroundGO.getSize();
-		for (UINT i = 0; i < size; i++)
-		{
-			if (m_skinnedMeshGroundGO[i]->GetUse() == false)
-				continue;
-
-			m_skinnedMeshGroundGO[i]->Draw();
-		}
+		DrawGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
+		DrawGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 	}
 
 	m_renderer.SetLightModeBuffer(0);
 }
 
-void Ground::CollectStaticShadowMeshes(SimpleArray<StaticRenderData>& outMeshes)
+void Ground::UnloadCurrentScene(void)
 {
-	//UINT size = groundGO.getSize();
-	//for (UINT i = 0; i < size; ++i)
-	//{
-	//	auto* go = groundGO[i];
-	//	if (!go->GetUse() || !go->GetCastShadow()) continue;
+	for (auto it = m_modelLoadMap.begin(); it != m_modelLoadMap.end();)
+	{
+		if ((*it).value == 1)
+			it = m_modelLoadMap.erase(it);
+		else
+			++it;
+	}
 
-	//	go->CollectShadowMeshes(outMeshes);
-	//}
+	m_staticGOs.clear();
+	m_skinnedGOs.clear();
+	m_totalModelLoadCnt = m_persistentModelLoadCnt;
+	m_currentModelLoadCnt = 0;
+
+	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentScene)))
+		return;
+
+	auto& sceneData = m_sceneEntityMap[TO_UINT64(m_currentScene)];
+
+	// まずはシーンから登録解除
+	for (ISceneEntity* entity : sceneData)
+		m_scene.UnregisterEntity(entity);
+
+	// オブジェクトを破棄（Destroy）
+	// Unregister() 中で m_renderableObjects や m_entities を操作するため、
+	// その後 Destroy() で同じリストを操作するとメモリ破壊やクラッシュ
+	for (ISceneEntity* entity : sceneData)
+		entity->Destroy();
+
+	// GameObject の破棄は Scene が一括で処理する
+	// - GameObject は ShadowRenderer などで使われるため、描画中に削除されると危険！
+	// - 安全のため、事前に Unregister してから delete する必要があるのっ！
+	// - だから Scene::DestroyAllMarkedGameObjects() で一括破棄を行うよ～！
+	m_scene.DestroyAllMarkedGameObjects();
+
+	sceneData.clear();
+
+	m_currentScene = SceneID::NONE;
+}
+
+void Ground::LoadScene(SceneID sceneID)
+{
+	if (m_currentScene == sceneID)
+		return;
+
+	UnloadCurrentScene(); // 現在のシーンを破棄
+
+	auto it = m_sceneLoadMap.find(TO_UINT64(sceneID));
+	if (it != m_sceneLoadMap.end())
+	{
+		SceneLoadFunc func = it->value;
+		(this->*func)(); // 登録されたロード関数を呼び出す
+		m_currentScene = sceneID;
+	}
+}
+
+void Ground::InitSceneLoadMap(void)
+{
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_2)] = &Ground::LoadScene2;
+}
+
+void Ground::LoadScene1(void)
+{
+	ParticleEffectParams params;
+	params.type = EffectType::Smoke;
+	params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
+	params.scale = 250.0f;
+	params.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
+	params.spawnRateMin = 2.0f;
+	params.spawnRateMax = 5.0f;
+	params.lifeMin = 3.0f;
+	params.lifeMax = 6.0f;
+	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
+	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(params);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(effect);
+
+	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
+	GameObjectConfig bonfireConfig{};
+	bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
+	bonfireConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
+	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE);
+	bonfireConfig.position = XMFLOAT3(12582.0f, -2051.0f, -19485.0f);
+	bonfireConfig.drawWorldAABB = true;
+	bonfireGO->Instantiate(bonfireConfig);
+	m_staticGOs.push_back(bonfireGO);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
+
+	if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
+	{
+		m_modelLoadMap[bonfireConfig.modelPath] = 0;
+		m_totalModelLoadCnt++;
+	}
+}
+
+void Ground::LoadScene2(void)
+{
+	FireBallEffectParams fireparams;
+	fireparams.type = EffectType::FireBall;
+	fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);
+	fireparams.scale = 43.0f;
+	fireparams.lifeMin = 1.0f;
+	fireparams.lifeMax = 1.0f;
+	fireparams.spawnRateMin = 0.0f;
+	fireparams.spawnRateMax = 10.0f;
+	fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
+	fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
+	fireparams.tilesX = FIREBALL_ANIM_TILE_X;
+	fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
+	fireparams.coneAngleDegree = 25.0f;
+	fireparams.coneRadius = 0.6f;
+	fireparams.coneLength = 5.0f;
+	fireparams.frameLerpCurve = 1.0f;
+	fireparams.rotationSpeed = 0.0f;
+	fireparams.startSpeedMin = 2.0f;
+	fireparams.startSpeedMax = 3.0f;
+	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
+}
+
+void Ground::GenerateEnvironmentObj(void*)
+{
+	InstanceParams instanceParams;
+	instanceParams.type = EnvironmentObjectType::Bush_2;
+	instanceParams.transformArray.push_back(InstanceTransformInfo(
+		12882.0f,
+		-18385.0f,
+		0.5 * XM_PI,
+		0.3f
+	));
+
+	instanceParams.transformArray.push_back(InstanceTransformInfo(
+		12482.0f,
+		-17385.0f,
+		0.5,
+		0.3f
+	));
+
+	// 環境オブジェクト管理クラスのインスタンス生成
+	m_environment = new Environment();
+	const char* environmentModelPath = Environment::GetModelPathByType(instanceParams.type);
+
+	// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
+	if (Model::GetModel(environmentModelPath))
+	{
+		m_environment->GenerateInstanceByParams(
+			instanceParams,
+			m_fieldGO->GetSkinnedMeshModel(),
+			m_fieldGO->GetBoundingBoxWorld());
+	}
+	else // モデルがロードされていない場合は非同期でロードしてから実行
+	{
+		// 遅延用コンテキスト構築
+		auto* ctx = new GenerateInstanceContext{
+			m_environment,
+			instanceParams,
+			m_fieldGO,
+			environmentModelPath
+		};
+		DeferredTaskOptions options{};
+		options.async = false; // 非同期実行
+		options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
+
+		RawDeferredTask::Add(
+			ctx,
+			[](void* ptr)
+			{
+				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				if (!fieldGO) return;
+				// 環境オブジェクトのインスタンスを生成
+				ctx->environment->GenerateInstanceByParams(
+					ctx->instanceParams,
+					fieldGO->GetSkinnedMeshModel(),
+					ctx->fieldGO->GetBoundingBoxWorld()
+				);
+			},
+			[](void* ptr)
+			{
+				// モデルのロード要求を発行（非同期ロードを開始）
+				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				Model* instanceModel = Model::StoreModel(ctx->modelPath);
+				return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
+			},
+			options
+		);
+	}
+	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
 }
 
 void Ground::RenderImGui(void)
 {
 	if (ImGui::Checkbox("Draw Scene Objct Bounding Box", &m_drawBoundingBox)) 
 	{
-		UINT size = m_skinnedMeshGroundGO.getSize();
+		UINT size = m_staticGOs.getSize();
 		for (UINT i = 0; i < size; i++)
 		{
-			if (m_skinnedMeshGroundGO[i]->GetUse() == false) continue;
-			m_groundGO[i]->GetModel()->SetDrawBoundingBox(m_drawBoundingBox);
+			if (m_staticGOs[i]->GetUse() == false) continue;
+			m_staticGOs[i]->GetModel()->SetDrawBoundingBox(m_drawBoundingBox);
+		}
+
+		size = m_persistentStaticGOs.getSize();
+		for (UINT i = 0; i < size; i++)
+		{
+			if (m_persistentStaticGOs[i]->GetUse() == false) continue;
+			m_persistentStaticGOs[i]->GetModel()->SetDrawBoundingBox(m_drawBoundingBox);
+		}
+
+		size = m_skinnedGOs.getSize();
+		for (UINT i = 0; i < size; i++)
+		{
+			if (m_skinnedGOs[i]->GetUse() == false) continue;
+			m_skinnedGOs[i]->GetSkinnedMeshModel()->SetDrawBoundingBox(m_drawBoundingBox);
+		}
+		
+		size = m_persistentSkinnedGOs.getSize();
+		for (UINT i = 0; i < size; i++)
+		{
+			if (m_persistentSkinnedGOs[i]->GetUse() == false) continue;
+			m_persistentSkinnedGOs[i]->GetSkinnedMeshModel()->SetDrawBoundingBox(m_drawBoundingBox);
 		}
 	}
 
-	m_environment->SetDrawBoundingBox(m_drawBoundingBox);
+	if(m_environment)
+		m_environment->SetDrawBoundingBox(m_drawBoundingBox);
 }
 

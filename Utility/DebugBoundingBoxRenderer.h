@@ -36,15 +36,16 @@ public:
     ~DebugBoundingBoxRenderer();
 
 	void Initialize(char* name = nullptr);
+    void Shutdown(void);
 	void DrawBox(const BOUNDING_BOX& box, const XMMATRIX& viewProj, const XMFLOAT4& color);
 
     virtual void RenderImGui(void) override;
     virtual const char* GetPanelName(void) const override { return m_boxName; };
 
 private:
-    ID3D11Buffer* m_vertexBuffer;
-    ID3D11Buffer* m_indexBuffer;
-    ID3D11Buffer* m_constantBuffer;
+    ID3D11Buffer* m_vertexBuffer = nullptr;
+    ID3D11Buffer* m_indexBuffer = nullptr;
+    ID3D11Buffer* m_constantBuffer = nullptr;
 
     XMFLOAT3 m_center = {};
     XMFLOAT3 m_size = {};
@@ -52,8 +53,8 @@ private:
 
     ShaderSet debugShaderSet;
 
-    ID3D11Device* m_device;
-    ID3D11DeviceContext* m_context;
+    ID3D11Device* m_device = nullptr;
+    ID3D11DeviceContext* m_context = nullptr;
 
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
