@@ -272,7 +272,7 @@ void Lumine::Draw(void)
 	}
 	else
 	{
-		RenderProgressBuffer defaultRenderProgress;
+		RenderProgressCBuffer defaultRenderProgress;
 		defaultRenderProgress.isRandomFade = false;
 		defaultRenderProgress.progress = 1.0f;
 

@@ -80,6 +80,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/ParticleBillboardSimple.hlsl", "VS",
         "Shaders/ParticleBillboardSimple.hlsl", "PS",
         "Shaders/ParticleBillboardSimple.hlsl", "GS", false);
+    RegisterShaderSource(ParticleShaderGroup::WaterFluid, VertexLayoutID::ParticleSimple,
+        "Shaders/WaterFluid.hlsl", "VS",
+        "Shaders/WaterFluid.hlsl", "PS",
+        "Shaders/WaterFluid.hlsl", "GS", false);
     RegisterShaderSource(ShaderSetID::UI, VertexLayoutID::UI,
         "Shaders/UI.hlsl", "VS",
         "Shaders/UI.hlsl", "PS");
@@ -106,6 +110,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/ParticleBillboardFlipbook.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::FlipbookAnimated, ComputePassType::Emit,
         "Shaders/ParticleBillboardFlipbook.hlsl", "EmitCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Update,
+        "Shaders/WaterFluid.hlsl", "UpdateCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Emit,
+        "Shaders/WaterFluid.hlsl", "EmitCS");
 }
 
 void ShaderManager::RegisterShaderReloadEntry(const char* path, const char* entry, const char* target, void** outputShaderPtr, 

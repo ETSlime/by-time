@@ -46,7 +46,8 @@ cbuffer ViewBuffer : register(SLOT_CB_VIEW_MATRIX)
     matrix g_View;
 }
 
-cbuffer CBFireBall : register(SLOT_CB_EFFECT_PARTICLE)
+// 火球パーティクル用の定数バッファ
+cbuffer FireBallCB : register(SLOT_CB_EFFECT_PARTICLE)
 {
     uint g_TilesX;
     uint g_TilesY;
@@ -362,68 +363,6 @@ void GS(point GS_INPUT input[1], inout TriangleStream<GS_OUTPUT> stream)
             stream.RestartStrip();
         }
     }
-    
-    
-    //BillboardFlipbookParticle p = g_ParticlesSRV[input[0].ParticleID];
-    
-    //if (p.lifeRemaining <= 0.001f || p.life <= 0.001f)
-    //    return;
-
-    //float3 pos = p.position;
-    //float size = p.size;
-
-    //// ビルボード展開（Viewの1列目と2列目から）
-    //float3 right = normalize(float3(g_View._11, g_View._21, g_View._31));
-    //float3 up = normalize(float3(g_View._12, g_View._22, g_View._32));
-    
-    //// 回転角取得（パーティクル毎）
-    //float angle = p.rotation;
-    //float cosA = cos(angle);
-    //float sinA = sin(angle);
-    
-    //// 回転後の軸ベクトル
-    //float3 rightRot = cosA * right + sinA * up;
-    //float3 upRot = -sinA * right + cosA * up;
-
-    //// 左上 → 右上 → 右下 → 左下 順に展開
-    //float3 corners[4] =
-    //{
-    //    pos + (-rightRot + upRot) * size,
-    //    pos + (rightRot + upRot) * size,
-    //    pos + (rightRot - upRot) * size,
-    //    pos + (-rightRot - upRot) * size
-    //};
-
-    //float2 texcoords[4] =
-    //{
-    //    float2(0.0f, 0.0f),
-    //    float2(1.0f, 0.0f),
-    //    float2(1.0f, 1.0f),
-    //    float2(0.0f, 1.0f)
-    //};
-
-    //int triangleIndices[6] =
-    //{
-    //    0, 1, 2, // 第1三角形
-    //    2, 3, 0 // 第2三角形
-    //};
-    
-    //for (int i = 0; i < 6; ++i)
-    //{
-    //    int idx = triangleIndices[i];
-    //    GS_OUTPUT o = (GS_OUTPUT) 0;
-    //    float4 worldPos = mul(float4(corners[idx], 1.0f), g_World);
-    //    o.PosH = mul(worldPos, g_ViewProj);
-    //    o.TexCoordA = texcoords[idx];
-    //    o.Color = p.color;
-    //    stream.Append(o);
-
-    //    // 3個ごとにRestartStrip()
-    //    if ((i + 1) % 3 == 0)
-    //    {
-    //        stream.RestartStrip();
-    //    }
-    //}
 }
 
 //=============================================================================
@@ -438,15 +377,4 @@ float4 PS(GS_OUTPUT input) : SV_Target
     texCol *= input.Color;
 
     return texCol;
-    
-        // ノイズテクスチャをサンプリング
-    //float noise = g_DiffuseTex.Sample(g_Sampler, input.TexCoordA).r;
-
-    //// ノイズを強調して破れた感じを出す
-    //noise = saturate((noise - 0.4f) * 3.0f);
-
-    //float4 finalColor = input.Color;
-    //finalColor.a *= noise; // αにノイズ適用
-    
-    //return finalColor;
 }

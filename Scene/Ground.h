@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 地形および環境オブジェクト管理[Ground.h]
@@ -5,11 +6,11 @@
 // フィールド・町・環境オブジェクトの描画と更新を管理する
 // 
 //=============================================================================
-#pragma once
-#include "Scene/GameObject.h"
 #include "Utility/SimpleArray.h"
 #include "Scene/Environment.h"
-#include "Town.h"
+#include "Scene/Town.h"
+#include "Scene/GameObject.h"
+#include "Effects/WaterFluidParticleRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -89,6 +90,7 @@ private:
 
 	Town* m_town = nullptr;
 	Environment* m_environment = nullptr;
+	WaterFluidParticleRenderer* m_waterFluid = nullptr;
 
 	SceneID m_currentScene = SceneID::NONE;
 	Scene& m_scene = Scene::get_instance();

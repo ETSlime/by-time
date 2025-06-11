@@ -113,6 +113,12 @@ void Ground::Update(void)
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 
+	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
+	{
+		if (m_waterFluid)
+			m_waterFluid->EmitWater(35.0f, 1.0f);
+	}
+
 	if (m_town)
 		m_town->Update();
 
@@ -224,8 +230,35 @@ void Ground::LoadScene1(void)
 	params.lifeMin = 3.0f;
 	params.lifeMax = 6.0f;
 	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
-	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(params);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(effect);
+	IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
+
+	WaterFluidParams waterParams;
+	waterParams.type = EffectType::WaterFluid;
+	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
+	waterParams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f); // 初期生成位置
+	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
+	waterParams.numParticles = 10000; // 最大粒子数
+	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 1.0f); // 水色
+	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
+
+	// エミット制御（あまり使わないが、baseクラス必須）
+	waterParams.spawnRateMin = 0;
+	waterParams.spawnRateMax = 0;
+	waterParams.lifeMin = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+
+	// 水の物理パラメータ
+	waterParams.supportRadius = 2.0f;       // サポート半径（粒子影響範囲）
+	waterParams.restDensity = 1.0f;       // 静止密度（流体の基準密度）
+	waterParams.particleMass = 1.0f;       // 粒子質量
+	waterParams.stiffness = 0.2f;       // 拘束強度（大きいと固くなる）
+	waterParams.friction = 0.01f;      // 速度減衰（地面との摩擦的な）
+
+	IEffectRenderer* waterFluid = EffectSystem::get_instance().SpawnParticleEffect(waterParams);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
+	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
+
 
 	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
 	GameObjectConfig bonfireConfig{};

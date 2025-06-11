@@ -122,6 +122,7 @@ bool ShaderLoader::LoadComputerShaderSet(ID3D11Device* device, ComputeShaderSet&
 bool ShaderLoader::CompileShaderFromFileLegacy(const char* fileName, const char* entryPoint, const char* target, ID3DBlob** blobOut)
 {
     DWORD shaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+
 #if defined( _DEBUG )
     shaderFlags |= D3DCOMPILE_DEBUG;
 #endif
@@ -147,6 +148,8 @@ bool ShaderLoader::CompileShaderFromFileLegacy(const char* fileName, const char*
         }
         return false;
     }
+
+    assert(SUCCEEDED(hr));
 
     return true;
 }
@@ -201,6 +204,8 @@ bool ShaderLoader::CompileShaderFromFile(const char* fileName, const char* entry
     char* error = nullptr;
     if (!SUCCEEDED(hr))
         error = (char*)pErrorBlob->GetBufferPointer();
+
+    assert(SUCCEEDED(hr));
 
     delete[] buffer;
     return SUCCEEDED(hr);

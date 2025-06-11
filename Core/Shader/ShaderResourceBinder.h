@@ -35,6 +35,7 @@
 #define SLOT_CB_SKYBOX              9  
 #define SLOT_CB_DEBUG_BOUNDING_BOX  9  
 #define SLOT_CB_LIGHT_MODE          10 
+#define SLOT_CB_EFFECT_EMIT         10
 #define SLOT_CB_BONE_MATRIX_ARRAY   11 
 #define SLOT_CB_INSTANCED_DATA      12
 #define SLOT_CB_RENDER_PROGRESS     13

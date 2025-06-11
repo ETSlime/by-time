@@ -192,6 +192,7 @@ void Player::Update(void)
 		}
 
 	}
+
 	HandlePlayerMove(transform);
 
 	if (m_attributes.isHit1 || m_attributes.hitTimer > 0)

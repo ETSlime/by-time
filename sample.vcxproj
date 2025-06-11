@@ -154,10 +154,12 @@
     <ClInclude Include="Core\CursorManager.h" />
     <ClInclude Include="Core\GameSystem.h" />
     <ClInclude Include="Core\Graphics\CascadedShadowMap.h" />
+    <ClInclude Include="Core\Graphics\ConstantBufferStructs.h" />
     <ClInclude Include="Core\Graphics\Renderer.h" />
     <ClInclude Include="Core\Graphics\ShadowMapRenderer.h" />
     <ClInclude Include="Core\Graphics\ShadowMeshCollector.h" />
     <ClInclude Include="Core\Graphics\ShadowMeshCollector.hpp" />
+    <ClInclude Include="Core\Graphics\VertexStructs.h" />
     <ClInclude Include="Core\Light.h" />
     <ClInclude Include="Core\LightManager.h" />
     <ClInclude Include="Core\Shader\ShaderLoader.h" />
@@ -175,6 +177,7 @@
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SmokeEffectRenderer.h" />
     <ClInclude Include="Effects\SwordTrail.h" />
+    <ClInclude Include="Effects\WaterFluidParticleRenderer.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="Model\FBXLoader.h" />
     <ClInclude Include="Model\Model.h" />
@@ -246,6 +249,7 @@
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SmokeEffectRenderer.cpp" />
     <ClCompile Include="Effects\SwordTrail.cpp" />
+    <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model\FBXLoader.cpp" />
     <ClCompile Include="Model\Model.cpp" />

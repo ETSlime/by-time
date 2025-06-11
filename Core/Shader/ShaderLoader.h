@@ -43,6 +43,7 @@ enum class ParticleShaderGroup : uint64_t
     BillboardFlipbook,
     BillboardSoftParticle,
     BillboardFlipbookSoft,
+    WaterFluid,
     Count,
 };
 
@@ -52,6 +53,7 @@ enum class ParticleComputeGroup : uint64_t
     BasicBillboard,          // BillboardSimple
     FlipbookAnimated,        // BillboardFlipbook
     FlipbookWithSoft,        // BillboardFlipbookSoft
+    WaterFluid,
 };
 
 // コンピュートパスの種類を管理する列挙型

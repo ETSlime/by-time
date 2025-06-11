@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // パーティクル内部構造体定義 [ParticleStructs.h]
@@ -6,7 +7,6 @@
 // Billboard系パーティクル用（通常 / Flipbook）に対応っ！ぷにぷに
 //
 //=============================================================================
-#pragma once
 #include "Effects/IEffectRenderer.h"
 
 //*********************************************************
@@ -41,4 +41,23 @@ struct BillboardFlipbookParticle
     XMFLOAT4 endColor;
     float frameIndex;               // アニメーションの現在フレーム（float、小数対応）
     float frameSpeed;               // 1秒あたり再生速度（補間対応用
+};
+
+// 水体シミュレーション用の粒子構造体
+// Position Based Fluids (PBF) に基づいて、物理的な水挙動を表現する
+struct WaterFluidParticle
+{
+    XMFLOAT3 position;             // 現在位置
+    float    density;              // 密度（周囲の粒子から算出）
+
+    XMFLOAT3 velocity;             // 速度
+    float    lambda;               // 拘束条件解（位置補正のための係数）
+
+    XMFLOAT3 predictedPosition;    // 予測位置（次の位置、拘束前）
+    float    lifeRemaining;        // 寿命（将来拡張用、今は1で固定でも可）
+
+    XMFLOAT4 color;                // デバッグ用カラー（密度に応じた可視化など）
+
+    float size;                    // サイズ
+	XMFLOAT3 padding;              // パディング（16バイト境界調整用）
 };

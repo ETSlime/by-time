@@ -322,7 +322,6 @@ void ParticleEffectRendererBase::DrawParticles(void)
 void ParticleEffectRendererBase::DispatchEmitParticlesCS(void)
 {
 #ifdef _DEBUG
-
     ID3D11InfoQueue* infoQueue;
     if (SUCCEEDED(m_device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&infoQueue)))
     {
@@ -527,12 +526,12 @@ bool ParticleEffectRendererBase::LoadShaders(void)
 
 bool ParticleEffectRendererBase::CreateBillboardSimpleBuffer(ParticleEffectRendererBase* self)
 {
-    HRESULT hr = S_OK;
-
+	// 初期パーティクル配列を生成（すべてゼロ寿命）
     SimpleArray<BillboardSimpleParticle> initData(self->m_maxParticles);
+
     for (UINT i = 0; i < self->m_maxParticles; ++i)
     {
-        initData[i].position = self->m_position;
+        initData[i].position = XMFLOAT3(0.0f, 0.0f, 0.0f);
         initData[i].velocity = XMFLOAT3(0.0f, 0.3f + (i % 10) * 0.05f, 0.0f);
         initData[i].size = 0.5f * self->m_scale;
         initData[i].life = 0.0f; // 初期ライフは0
@@ -543,51 +542,17 @@ bool ParticleEffectRendererBase::CreateBillboardSimpleBuffer(ParticleEffectRende
         initData[i].endColor = self->m_endColor;
     }
 
-    // バッファ作成
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.ByteWidth = sizeof(BillboardSimpleParticle) * self->m_maxParticles;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bufferDesc.StructureByteStride = sizeof(BillboardSimpleParticle);
-
-    D3D11_SUBRESOURCE_DATA subData = {};
-    subData.pSysMem = initData.data();
-
-    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBuffer);
-    if (FAILED(hr))
-        return false;
-
-    // SRV作成
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.ElementWidth = self->m_maxParticles;
-    hr = self->m_device->CreateShaderResourceView(self->m_particleBuffer, &srvDesc, &self->m_particleSRV);
-    if (FAILED(hr))
-        return false;
-
-    // UAV作成
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = self->m_maxParticles;
-    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBuffer, &uavDesc, &self->m_particleUAV);
-    if (FAILED(hr))
-        return false;
-
-    return true;
+    return CreateParticleBuffer(self, initData);
 }
 
 bool ParticleEffectRendererBase::CreateBillboardFlipbookBuffer(ParticleEffectRendererBase* self)
 {
-    HRESULT hr = S_OK;
-
     // 初期パーティクル配列を生成（すべてゼロ寿命）
     SimpleArray<BillboardFlipbookParticle> initData(self->m_maxParticles);
+
     for (UINT i = 0; i < self->m_maxParticles; ++i)
     {
-        initData[i].position = self->m_position;
+        initData[i].position = XMFLOAT3(0.0f, 0.0f, 0.0f);
         initData[i].velocity = XMFLOAT3(0, 0, 0);
         initData[i].life = 0.0f; // 初期ライフは0
         initData[i].lifeRemaining = 0.0f; // 残りライフ
@@ -600,51 +565,45 @@ bool ParticleEffectRendererBase::CreateBillboardFlipbookBuffer(ParticleEffectRen
         initData[i].frameSpeed = 0.0f;
     }
 
-    // 構造化バッファの設定
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.ByteWidth = sizeof(BillboardFlipbookParticle) * self->m_maxParticles;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bufferDesc.StructureByteStride = sizeof(BillboardFlipbookParticle);
-
-    D3D11_SUBRESOURCE_DATA subData = {};
-    subData.pSysMem = initData.data();
-
-    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBuffer);
-    if (FAILED(hr))
-        return false;
-
-    // SRV（Shader Resource View）の作成
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.ElementWidth = self->m_maxParticles;
-
-    hr = self->m_device->CreateShaderResourceView(self->m_particleBuffer, &srvDesc, &self->m_particleSRV);
-    if (FAILED(hr)) return false;
-
-    // UAV（Unordered Access View）の作成
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = self->m_maxParticles;
-
-    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBuffer, &uavDesc, &self->m_particleUAV);
-    if (FAILED(hr))
-        return false;
-
-    return true;
+    return CreateParticleBuffer(self, initData);
 }
 
-void ParticleEffectRendererBase::RegisterarticleBufferFactories()
+bool ParticleEffectRendererBase::CreateWaterFluidBuffer(ParticleEffectRendererBase* self)
+{
+    // 初期パーティクルデータ（全て密度0、水面に静止）
+    SimpleArray<WaterFluidParticle> initData(self->m_maxParticles);
+
+    for (UINT i = 0; i < self->m_maxParticles; ++i)
+    {
+        WaterFluidParticle& p = initData[i];
+
+        p.position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.predictedPosition = p.position;
+
+        p.density = 0.0f;
+        p.lambda = 0.0f;
+        p.lifeRemaining = 0.0f;
+        p.size = 1.0f;
+
+        // デバッグ用カラー（青っぽく）
+        p.color = self->m_startColor;
+		p.padding = XMFLOAT3(0.0f, 0.0f, 0.0f); // パディング用のダミー値
+    }
+
+    return CreateParticleBuffer(self, initData);
+}
+
+void ParticleEffectRendererBase::RegisterarticleBufferFactories(void)
 {
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
 
+	// 各パーティクルバッファのファクトリ関数を登録
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardSimple)] = &CreateBillboardSimpleBuffer;
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardFlipbook)] = &CreateBillboardFlipbookBuffer;
+    s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::WaterFluid)] = &CreateWaterFluidBuffer;
 }
 
 void ParticleEffectRendererBase::UpdateParticleUpdateCB(void)
@@ -703,7 +662,6 @@ void ParticleEffectRendererBase::UpdateDrawArgsInstanceCount(void)
         offsetof(DrawArgs, InstanceCount), 
         m_aliveListUAV);
 
-
 #ifdef _DEBUG
     m_context->CopyResource(m_drawArgsStaging, m_drawArgsBuffer);
 
@@ -715,10 +673,9 @@ void ParticleEffectRendererBase::UpdateDrawArgsInstanceCount(void)
     m_context->Unmap(m_drawArgsStaging, 0);
 #endif // DEBUG
 
-
 }
 
-ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectType type)
+ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectType type) const
 {
     switch (type)
     {
@@ -727,12 +684,16 @@ ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectTy
 
     case EffectType::FireBall:
         return ParticleShaderGroup::BillboardFlipbook;
+
+    case EffectType::WaterFluid:
+		return ParticleShaderGroup::WaterFluid;
+
     default:
         return ParticleShaderGroup::None;
     }
 }
 
-ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(EffectType type)
+ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(EffectType type) const
 {
     switch (type)
     {
@@ -741,6 +702,10 @@ ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(Effect
 
     case EffectType::FireBall:
         return ParticleComputeGroup::FlipbookAnimated;
+
+	case EffectType::WaterFluid:
+		return ParticleComputeGroup::WaterFluid;
+
     default:
         return ParticleComputeGroup::None;
     }

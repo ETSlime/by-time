@@ -281,6 +281,15 @@
     <ClInclude Include="Collision\VoxelGrid.h">
       <Filter>Collision</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\WaterFluidParticleRenderer.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\VertexStructs.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Graphics\ConstantBufferStructs.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -457,6 +466,9 @@
     </ClCompile>
     <ClCompile Include="Collision\VoxelGrid.cpp">
       <Filter>Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp">
+      <Filter>Effects</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

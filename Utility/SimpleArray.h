@@ -245,6 +245,7 @@ public:
     T* begin() { return array; }
     T* end() { return array + size; }
     T* data() { return array; }
+	const T* data() const { return array; }
 
     const T* begin() const { return array; }
     const T* end() const { return array + size; }

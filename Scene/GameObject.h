@@ -135,13 +135,13 @@ struct ModelInstance
 	Attributes			attributes;
 	Collider			collider;
 
-	BOOL			isSelected = false;
-	BOOL			isCursorIn = false;
-	int				editorIdx = -1;
+	BOOL				isSelected = false;
+	BOOL				isCursorIn = false;
+	int					editorIdx = -1;
 
-	bool			drawWorldAABB = false;
-	ModelType		modelType = ModelType::Static;
-	RenderProgressBuffer renderProgress;
+	bool					drawWorldAABB = false;
+	ModelType				modelType = ModelType::Static;
+	RenderProgressCBuffer	renderProgress;
 
 	// インスタンス化されたモデルかどうか
 	InstanceModelAttribute instanceAttribute;
@@ -174,7 +174,7 @@ struct SkinnedMeshModelInstance
 
 	bool			drawWorldAABB = false;
 	ModelType		modelType = ModelType::SkinnedMesh;
-	RenderProgressBuffer renderProgress;
+	RenderProgressCBuffer renderProgress;
 };
 
 struct GameObjectConfig 

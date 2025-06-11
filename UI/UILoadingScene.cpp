@@ -1,7 +1,10 @@
 //=============================================================================
 //
-//  [UILoadingScene.cpp]
+// 読み込みシーン用 UI 管理クラス [UILoadingScene.cpp]
 // Author : 
+// これはゲーム中の「ローディング画面」を管理する UIElement の子クラスだよ～っ
+// 黒背景フェード + アニメーション + プログレスバーで、
+// 見た目も快適さも可愛さも全部守ってくれる守護精霊ちゃんなのっ
 //
 //=============================================================================
 #include "UI/UILoadingScene.h"
@@ -9,11 +12,11 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define LOADING_ANIM_TILE_X       1
-#define LOADING_ANIM_TILE_Y       1
-#define LOADING_ANIM_SPD          0.1f
-#define LOADING_SMOOTH_SPD      2.0f
-#define LOADING_FAST_SPD        4.0f
+#define LOADING_ANIM_TILE_X         1
+#define LOADING_ANIM_TILE_Y         1
+#define LOADING_ANIM_SPD            0.1f
+#define LOADING_SMOOTH_SPD          2.0f
+#define LOADING_FAST_SPD            4.0f
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {

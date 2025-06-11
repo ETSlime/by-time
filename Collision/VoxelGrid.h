@@ -1,8 +1,16 @@
 #pragma once
 //=============================================================================
 //
-//  [VoxelGrid.h]
+// 空間加速構造体ちゃん [VoxelGrid.h]
 // Author : 
+// ボクセルベースの空間分割によって、三角形メッシュを3Dグリッドに整理し、
+// 高速なクエリ（衝突判定・視界探索・地形サンプリングなど）を可能にする
+// 
+// 主な機能：
+//   - モートンコード（Morton Encoding）による高速ハッシュ
+//   - スレッドセーフ対応（SpinLockでガード）
+//   - 三角形の一括登録／動的追加
+//   - 指定半径内の高速検索クエリ(Query)
 //
 //=============================================================================
 #include "Utility/HashMap.h"
@@ -59,7 +67,7 @@ class VoxelGrid
 public:
     VoxelGrid(bool threadSafe = true) :m_threadSafe(threadSafe) {}
 
-    ~VoxelGrid();
+    ~VoxelGrid(void);
 
     // ボクセルグリッドの初期化
     void Initialize(float voxelSize = 100.0f);

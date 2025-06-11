@@ -14,10 +14,11 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_EFFECT_NUM 512 // 最大エフェークト数
-#define MAX_FIRE_EFFECT_NUM 256 // 最大ファイヤーフェークト数
-#define MAX_SMOKE_EFFECT_NUM 128 // 最大スモークフェークト数
-#define MAX_SOFTBODY_EFFECT_NUM 64 // 最大ソフトボディフェークト数
+#define MAX_EFFECT_NUM                  256     // 最大エフェークト数
+#define MAX_BILLBOARD_SIMPLE_NUM        64      // 最大ビルボードシンプルエフェクト数
+#define MAX_BILLBOARD_FLIPBOOK_NUM      64      // 最大ビルボードフリップブック数
+#define MAX_WATER_FLUID_NUM             64      // 最大水面フルイドエフェクト数
+#define MAX_SOFTBODY_EFFECT_NUM         64      // 最大ソフトボディフェークト数
 
 //*********************************************************
 // 構造体
@@ -32,13 +33,15 @@ struct ParticleEffectParams
     float spawnRateMin = 5.0f;
     float spawnRateMax = 15.0f;
     XMFLOAT3 acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
-    UINT numParticles = MAX_PARTICLES;
+    UINT numParticles = 512;
+    XMFLOAT4 color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     XMFLOAT4 startColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
     XMFLOAT4 endColor = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
 
     virtual ~ParticleEffectParams() = default; // RTTI、dynamic_cast のため
 };
 
+// 火炎エフェクト専用パラメータ構造体
 struct FireBallEffectParams : public ParticleEffectParams
 {
     UINT tilesX = 7;
@@ -51,6 +54,16 @@ struct FireBallEffectParams : public ParticleEffectParams
 
 	float startSpeedMin = 0.0f;
 	float startSpeedMax = 0.0f;
+};
+
+// 水体流体エフェクト専用パラメータ構造体
+struct WaterFluidParams : public ParticleEffectParams
+{
+    float supportRadius = 0.3f;     // 近傍半径（PBF）
+    float restDensity = 1.0f;       // 静止時の密度
+    float particleMass = 1.0f;      // 粒子質量
+    float stiffness = 0.1f;         // 圧力（硬さ）
+    float friction = 0.05f;         // 地形との摩擦
 };
 
 class EffectSystem : public SingletonBase<EffectSystem>
@@ -77,10 +90,9 @@ public:
 private:
 
     SimpleArray<IEffectRenderer*> m_allEffects;       // 全特效リスト
-    SimpleArray<IEffectRenderer*> m_billboardSimpleEffects;
-    SimpleArray<IEffectRenderer*> m_billboardFlipbookEffects;
-    SimpleArray<IEffectRenderer*> m_fireEffects;      // ファイヤー
-    SimpleArray<IEffectRenderer*> m_smokeEffects;     // スモーク
+	SimpleArray<IEffectRenderer*> m_billboardSimpleEffects; // ビルボードシンプルエフェクト
+	SimpleArray<IEffectRenderer*> m_billboardFlipbookEffects; // ビルボードフリップブックエフェクト
+	SimpleArray<IEffectRenderer*> m_waterFluidEffects; // 水面フルイドエフェクト
     SimpleArray<IEffectRenderer*> m_softBodyEffects;  // ソフトボディ
     SimpleArray<IEffectRenderer*> m_toRemove;     // 削除が必要なエフェクトを一時的に保管するリスト
 
