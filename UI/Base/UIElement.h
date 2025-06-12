@@ -46,12 +46,20 @@ public:
     void SetZOrder(int z) { m_zOrder = z; }
     int  GetZOrder(void) const { return m_zOrder; }
 
-    bool IsMouseOver(float mouseX, float mouseY) const { return false; }
+//追記・変更点
+    //bool IsMouseOver(float mouseX, float mouseY) const { return false; }
+    bool IsMouseOver(float mouseX, float mouseY) const
+    {
+        return (mouseX >= m_position.x && mouseX <= m_position.x + m_size.x &&
+            mouseY >= m_position.y && mouseY <= m_position.y + m_size.y);
+    }
+//追記・変更点
 
     virtual bool NeedsOverlay() const { return HasCustomOverlay(); }
     virtual bool HasCustomOverlay(void) const { return m_customOverlay; }
     virtual void DrawCustomOverlay(void) const {}
 
+    virtual void OnMouseClick(float x, float y) {}
 protected:
     XMFLOAT2 m_position = { 0, 0 };     // 左上座標（または中心でもOK）
     XMFLOAT2 m_size{ 100, 100 };     // サイズ（幅×高さ）

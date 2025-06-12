@@ -191,6 +191,7 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
     <ClInclude Include="UI\Base\ScreenFader.h" />
+    <ClInclude Include="UI\Base\SeekBarUI.h" />
     <ClInclude Include="UI\Base\UIAnimatedSprite.h" />
     <ClInclude Include="UI\Base\UIElement.h" />
     <ClInclude Include="UI\Base\UIManager.h" />
@@ -260,6 +261,7 @@
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
     <ClCompile Include="UI\Base\ScreenFader.cpp" />
+    <ClCompile Include="UI\Base\SeekBarUI.cpp" />
     <ClCompile Include="UI\Base\UIAnimatedSprite.cpp" />
     <ClCompile Include="UI\Base\UIManager.cpp" />
     <ClCompile Include="UI\Base\UIOverlayRenderer.cpp" />

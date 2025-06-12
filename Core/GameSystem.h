@@ -25,6 +25,9 @@
 #include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
 
+//追記・変更点
+#include "UI/Base/SeekBarUI.h"
+//
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -176,4 +179,8 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
+
+//追記・変更点
+    SeekBarUI* m_seekBarUI = nullptr;
+//
 };

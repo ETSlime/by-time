@@ -125,6 +125,16 @@ void GameSystem::InitTitle(void)
 void GameSystem::InitGame(void)
 {
     ResumeGame();
+
+//追記・変更点
+    if (m_seekBarUI == nullptr)
+    {
+        m_seekBarUI = new SeekBarUI();
+        m_UIManager.AddElement(m_seekBarUI);
+    }
+
+    m_seekBarUI->UpdatePosition(SCREEN_WIDTH, SCREEN_HEIGHT);
+//
 }
 
 void GameSystem::InitResult(void)

@@ -278,6 +278,9 @@
     <ClInclude Include="UI\Base\ScreenFader.h">
       <Filter>UI\Base</Filter>
     </ClInclude>
+    <ClInclude Include="UI\Base\SeekBarUI.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -448,6 +451,9 @@
     </ClCompile>
     <ClCompile Include="Scene\Scene.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Base\SeekBarUI.cpp">
+      <Filter>UI\Base</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

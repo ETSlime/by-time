@@ -119,3 +119,20 @@ void UIManager::Clear(void)
 
     m_elements.clear();
 }
+//追記・変更点
+void UIManager::OnMouseClick(float x, float y)
+{
+    // モーダルがあればモーダルのみ処理
+    if (m_modal)
+    {
+        m_modal->OnMouseClick(x, y);
+        return;
+    }
+
+    // 通常UI全体にクリック通知
+    for (auto& e : m_elements)
+    {
+        e->OnMouseClick(x, y);
+    }
+}
+//

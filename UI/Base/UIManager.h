@@ -46,6 +46,10 @@ public:
     ID3D11Buffer* GetSpriteVertexBuffer(void) const { return m_spriteVB; }
     ScreenFader& GetFader(void) { return m_screenFader; }
 
+//追記・変更点
+    void OnMouseClick(float x, float y);
+//
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     UIElement* m_modal; // モーダルUIの保持
