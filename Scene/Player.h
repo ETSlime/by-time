@@ -12,6 +12,7 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/Mitachurl.h"
+#include "Scene/Item.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 
@@ -56,6 +57,8 @@ public:
 
 	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
+
+	void PickItem(Item* obj);
 
 private:
 

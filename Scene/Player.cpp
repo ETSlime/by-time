@@ -293,6 +293,13 @@ void Player::InitializePlayerStatus(void)
 	Update();
 }
 
+void Player::PickItem(Item* obj)
+{
+	// TODO ちゃんと色々なアイテムが手に入れるように、直す
+	m_attributes.hasWeapon = true;
+
+}
+
 void Player::UpdateActionQueue(void)
 {
 	m_playerAttr.actionQueueClearTime++;

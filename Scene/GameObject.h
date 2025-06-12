@@ -94,6 +94,8 @@ struct Attributes
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
 
+	bool			hasWeapon = false;
+
 	void Initialize(void)
 	{
 		*this = {};

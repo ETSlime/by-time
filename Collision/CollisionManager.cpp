@@ -300,6 +300,18 @@ void CollisionManager::Update()
                         }
                     }
                 }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ITEM)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
+                {
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
+                    auto colliderOwner = static_cast<Player*>(playerCol->owner);
+
+                    const Collider* itemCol = dynamicCol->tag == ColliderTag::ITEM ? dynamicCol : dynamicCol2;
+                    auto itemColOwner = static_cast<Item*>(itemCol->owner);
+
+                    colliderOwner->PickItem(itemColOwner);
+
+                }
                 else
                 {
                     isObstacle = true;
