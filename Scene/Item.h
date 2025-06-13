@@ -21,7 +21,7 @@ struct ItemAttributes
 };
 
 
-class Item : public GameObject<SkinnedMeshModelInstance> {
+class Item : public GameObject<ModelInstance> {
 
 public:
 
@@ -34,6 +34,9 @@ public:
 	void Update(void) override;
 	void Draw(void) override;
 
+	void Use(void);
+
+	void SetActive(bool enable);
 
 
 protected:

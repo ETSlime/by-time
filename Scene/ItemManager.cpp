@@ -1,14 +1,10 @@
 #include "ItemManager.h"
 #include "Scene/Item/Sword.h"
+#include "Scene/Ground.h"
 
 void ItemManager::Init(void)
 {
-	Transform trans;
-	trans.pos = XMFLOAT3(12989.0f, -2110.0f, -19485.0f);
-	trans.scl = SWORD_SIZE;
 
-
-	SpawnItem(ItemType::Weapon, trans);
 }
 
 void ItemManager::InitializeItemStatus(void)
@@ -18,7 +14,7 @@ void ItemManager::InitializeItemStatus(void)
 	while (cur != nullptr)
 	{
 		cur->data->Initialize();
-		cur->data->SetDrawWorldAABB(true);
+		//cur->data->SetDrawWorldAABB(true);
 		cur = cur->next;
 	}
 }
@@ -28,7 +24,7 @@ void ItemManager::Draw(void)
 	// TODO もっと綺麗にドロウしましょう
 	// カリング無効
 	m_renderer.SetCullingMode(CULL_MODE_NONE);
-
+	
 	Node<Item*>* cur = m_itemList.getHead();
 	while (cur != nullptr)
 	{
@@ -36,7 +32,7 @@ void ItemManager::Draw(void)
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);
 
-		if (!cur->data->GetItemAttributes().used)
+		if (!cur->data->GetItemAttributes().used && cur->data->GetAttributes().use)
 			cur->data->Draw();
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
@@ -90,7 +86,7 @@ void ItemManager::Update(void)
 
 }
 
-void ItemManager::SpawnItem(ItemType itemType, Transform trans)
+Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 {
 
 	Item* item;
@@ -100,7 +96,7 @@ void ItemManager::SpawnItem(ItemType itemType, Transform trans)
 		item = new Sword(trans);
 		break;
 	default:
-		return;
+		return nullptr;
 	}
 
 	if (!itemLoadMap.contains(TO_UINT64(itemType)))
@@ -111,5 +107,21 @@ void ItemManager::SpawnItem(ItemType itemType, Transform trans)
 
 	//item->SetDrawWorldAABB(m_drawBoundingBox);
 	m_itemList.push_back(item);
+
+	return item;
+}
+
+void ItemManager::RenderImGui(void)
+{
+
+	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
+	{
+		Node<Item*>* cur = m_itemList.getHead();
+		while (cur != nullptr)
+		{
+			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
+			cur = cur->next;
+		}
+	}
 
 }

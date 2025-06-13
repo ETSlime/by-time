@@ -10,6 +10,8 @@
 #include "Utility/SimpleArray.h"
 #include "Scene/Environment.h"
 #include "Town.h"
+#include "Scene/Item/Sword.h"
+#include "Effects/Skybox.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`
@@ -46,7 +48,7 @@ typedef void (Ground::* SceneLoadFunc)();
 class Ground :public IDebugUI
 {
 public:
-	Ground();
+	Ground(Skybox* skybox = nullptr);
 	~Ground();
 	void Update(void);
 	void Draw(void);
@@ -114,6 +116,9 @@ private:
 			HashUInt64(),
 			EqualUInt64()
 		);
+
+	Item* m_sceneSword = nullptr;
+	Skybox* m_skybox = nullptr;
 };
 
 template<typename T>

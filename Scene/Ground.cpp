@@ -14,6 +14,7 @@
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
 #include "Effects/FireBallEffectRenderer.h"
+#include "Scene/ItemManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -29,7 +30,7 @@
 //=============================================================================
 // ‰Šú‰»ˆ—
 //=============================================================================
-Ground::Ground()
+Ground::Ground(Skybox* skybox)
 {
 #ifdef _DEBUG
 	DebugProc::get_instance().Register(this);
@@ -94,6 +95,8 @@ Ground::Ground()
 		&Ground::DeferredIsFieldReady,
 		options
 	);
+
+	m_skybox = skybox;
 }
 
 //=============================================================================
@@ -214,6 +217,12 @@ void Ground::InitSceneLoadMap(void)
 
 void Ground::LoadScene1(void)
 {
+	if(m_sceneSword != nullptr)
+		m_sceneSword->SetActive(false);
+
+	if (m_skybox != nullptr)
+		m_skybox->SetCurrentTime(DAY_TIME);
+
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;
 	params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
@@ -247,6 +256,25 @@ void Ground::LoadScene1(void)
 
 void Ground::LoadScene2(void)
 {
+	if (m_sceneSword == nullptr) {
+
+		Transform trans;
+		trans.pos = XMFLOAT3(13289.0f, -1900.0f, -19485.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.scl = SWORD_SIZE;
+	
+		m_sceneSword = ItemManager::get_instance().SpawnItem(ItemType::Weapon, trans);
+
+		m_sceneSword->Initialize();
+
+	}
+
+	m_sceneSword->SetActive(true);
+
+	if (m_skybox != nullptr) 
+		m_skybox->SetCurrentTime(NIGHT_TIME);
+	
+
 	FireBallEffectParams fireparams;
 	fireparams.type = EffectType::FireBall;
 	fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);

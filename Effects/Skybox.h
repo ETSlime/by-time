@@ -10,6 +10,9 @@
 #pragma once
 #include "Core/Graphics/Renderer.h"
 
+#define DAY_TIME 0.0f
+#define NIGHT_TIME 3000.0f
+
 //*****************************************************************************
 // ç\ë¢ëÃíËã`
 //*****************************************************************************
@@ -30,13 +33,15 @@ struct SkyBoxBuffer
 class Skybox 
 {
 public:
-    Skybox();
+    Skybox(float timeSpeed = 1);
     Skybox::~Skybox();
 
     void Update(void);
     void Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix);
+    void SetCurrentTime(float time);
 
     static float GetCurrentDaytime(void) { return s_blendFactor; }
+    
 
 private:
 
@@ -63,4 +68,6 @@ private:
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
+
+    float m_timeSpeed = 1;
 };

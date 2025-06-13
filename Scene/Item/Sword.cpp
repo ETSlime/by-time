@@ -1,15 +1,20 @@
 #include "Sword.h"
+#include "Scene/Ground.h"
 
 Sword::Sword(Transform transform) :Item(ItemType::Weapon, transform)
 {
-	SkinnedGameObjectConfig config;
-	config.modelPath = "data/MODEL/item/Key";
-	config.modelName = "key.fbx";
-	config.modelType = SkinnedModelType::Weapon;
-	config.drawWorldAABB = false;
+
+	GameObjectConfig config;
+	config.modelPath = "data/MODEL/Item/Key/Key.obj";
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	config.colliderTag = ColliderTag::ITEM;
+	config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
+	config.modelType = ModelType::Default;
+	config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 	Instantiate(config);
+
+	instance.collider.enable = false;
+
 }
 
 Sword::~Sword()

@@ -225,9 +225,9 @@ void GameSystem::StartAsyncResourceLoading(void)
     {
         m_player = new Player(); // プレイヤーの初期化
 
-        m_ground = new Ground(); // 地面の初期化
+        m_skybox = new Skybox(0.0f); // Skyboxの初期化
 
-        m_skybox = new Skybox(); // Skyboxの初期化
+        m_ground = new Ground(m_skybox); // 地面の初期化
 
         m_enemyManager.Init(m_player); // エネミーの初期化
 
@@ -474,13 +474,12 @@ void GameSystem::DrawGame(void)
     m_lightManager.SetLightEnable(TRUE);
 
     m_ground->Draw(); // 地面の描画
-
+    m_itemManager.Draw();
     
     m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
     m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
     m_player->Draw(); // プレイヤーの描画
     m_enemyManager.Draw(); // エネミーの描画
-    m_itemManager.Draw();
     m_ground->Draw(); // 地面の描画
 
     m_renderer.SetRenderInstance(); // インスタンスの描画を設定

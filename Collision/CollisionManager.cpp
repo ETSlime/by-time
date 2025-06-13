@@ -304,13 +304,15 @@ void CollisionManager::Update()
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
                 {
                     const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
-                    auto colliderOwner = static_cast<Player*>(playerCol->owner);
+                    auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(playerCol->owner);
 
                     const Collider* itemCol = dynamicCol->tag == ColliderTag::ITEM ? dynamicCol : dynamicCol2;
                     auto itemColOwner = static_cast<Item*>(itemCol->owner);
 
-                    colliderOwner->PickItem(itemColOwner);
+                    //colliderOwner->PickItem(itemColOwner);
+                    colliderOwner->EnableWeapon(true);
 
+                    itemColOwner->Use();
                 }
                 else
                 {

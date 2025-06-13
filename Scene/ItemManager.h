@@ -11,7 +11,7 @@
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"
 
-class ItemManager: public SingletonBase<ItemManager>  {
+class ItemManager: public SingletonBase<ItemManager>, public IDebugUI {
 
 public:
 	void Init(void);
@@ -19,7 +19,7 @@ public:
 	void Draw(void);
 	void Update(void);
 
-	void SpawnItem(ItemType itemType, Transform trans);
+	Item* SpawnItem(ItemType itemType, Transform trans);
 
 	int GetTotalItemLoadCnt(void) const { return m_totalItemLoadCnt; }
 	int GetItemLoadedCnt(void) const { return m_currentItemLoadCnt; }
@@ -36,8 +36,13 @@ private:
 	int m_totalItemLoadCnt = 0;
 	int m_currentItemLoadCnt = 0;
 
+	bool m_drawBoundingBox = true;
+
 	DoubleLinkedList<Item*> m_itemList;
 
 	Renderer& m_renderer = Renderer::get_instance();
+
+	virtual void RenderImGui(void) override;
+
 
 };

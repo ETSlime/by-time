@@ -120,16 +120,20 @@ void Player::Update(void)
 
 	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
-		PlayerAction action;
-		action.actionType = ActionEnum::ATTACK;
-		action.liveTime = 0;
-		m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
-		m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+		if (m_attributes.hasWeapon) {
 
-		// キューのオーバーフローを防止
-		if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
-		{
-			m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			PlayerAction action;
+			action.actionType = ActionEnum::ATTACK;
+			action.liveTime = 0;
+			m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
+			m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+
+			// キューのオーバーフローを防止
+			if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
+			{
+				m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			}
+
 		}
 	}
 
@@ -296,7 +300,11 @@ void Player::InitializePlayerStatus(void)
 void Player::PickItem(Item* obj)
 {
 	// TODO ちゃんと色々なアイテムが手に入れるように、直す
-	m_attributes.hasWeapon = true;
+	// 現在、下のコードがダメだ　動かない　直せ
+	if(obj->GetItemAttributes().itemType == ItemType::Weapon)
+		m_hasWeapon = true;
+
+	obj->Use();
 
 }
 

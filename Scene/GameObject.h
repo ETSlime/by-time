@@ -93,7 +93,6 @@ struct Attributes
 	bool			attackWindow2 = false;
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
-
 	bool			hasWeapon = false;
 
 	void Initialize(void)
@@ -360,6 +359,7 @@ public:
 	inline bool GetIsHit2(void) { return instance.attributes.isHit2; }
 	inline int	GetHitTimer(void) { return instance.attributes.hitTimer; }
 	inline void SetHitTimer(float hitTimer) { instance.attributes.hitTimer = hitTimer; }
+	inline void EnableWeapon(bool enable) { instance.attributes.hasWeapon = enable; }
 	//inline void SetRenderProgress(float progress) { instance.attributes.renderProgress.progress = progress; }
 	//inline void SetSwitchCharEffect(bool effectON) { instance.attributes.charSwitchEffect = effectOn; }
 	virtual AnimStateMachine* GetStateMachine() { return nullptr; }

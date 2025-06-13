@@ -2,7 +2,7 @@
 
 #include "Scene/Item.h"
 
-#define SWORD_SIZE XMFLOAT3(90.f, 90.f, 90.f)
+#define SWORD_SIZE XMFLOAT3(7.f, 7.f, 7.f)
 
 class Sword : public Item {
 

@@ -21,7 +21,6 @@ void Item::Initialize(void)
 	instance.transform.rot = m_itemAttributes.initTrans.rot;
 	instance.transform.scl = m_itemAttributes.initTrans.scl;
 
-	instance.collider.enable = true;
 	instance.castShadow = false; // ‰e‚ð—Ž‚Æ‚·
 }
 
@@ -30,11 +29,27 @@ void Item::Draw(void)
 	GameObject::Draw();
 }
 
+void Item::Use(void)
+{
+	instance.collider.enable = false;
+	m_itemAttributes.used = true;
+}
+
+void Item::SetActive(bool enable)
+{
+	instance.collider.enable = enable;
+	instance.attributes.use = enable;
+}
+
 void Item::Update(void)
 {
 	if (!instance.load)
 	{
 		GameObject::Update();
+
+		if(instance.load)
+			instance.collider.enable = true;
+
 		return;
 	}
 
@@ -43,7 +58,7 @@ void Item::Update(void)
 
 		GameObject::Update();
 
-		//instance.transform.rot.y = 200 * timer.GetScaledDeltaTime();
+		instance.transform.rot.y = 10 * timer.GetScaledDeltaTime();
 
 	}
 

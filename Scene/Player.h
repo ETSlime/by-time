@@ -90,4 +90,6 @@ private:
 
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
+
+	bool m_hasWeapon = false;
 };
