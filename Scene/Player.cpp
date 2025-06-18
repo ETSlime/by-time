@@ -64,6 +64,17 @@ Player::~Player()
 
 void Player::Update(void)
 {
+	if (!m_playerGO->GetInstance()->load)
+	{
+		m_playerGO->Update();
+		return;
+	}
+
+	if (m_currentModelLoadCnt < m_totalModelLoadCnt && lumine->LoadFinished())
+	{
+		m_currentModelLoadCnt++;
+	}
+
 	UpdateActionQueue();
 
 	m_attributes = m_playerGO->GetAttributes();
@@ -109,16 +120,20 @@ void Player::Update(void)
 
 	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
-		PlayerAction action;
-		action.actionType = ActionEnum::ATTACK;
-		action.liveTime = 0;
-		m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
-		m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+		if (m_attributes.hasWeapon) {
 
-		// キューのオーバーフローを防止
-		if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
-		{
-			m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			PlayerAction action;
+			action.actionType = ActionEnum::ATTACK;
+			action.liveTime = 0;
+			m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
+			m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+
+			// キューのオーバーフローを防止
+			if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
+			{
+				m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			}
+
 		}
 	}
 
@@ -267,6 +282,30 @@ void Player::RenderImGui(void)
 Transform Player::GetTransform(void) const
 {
 	return m_playerGO->GetTransform();
+}
+
+void Player::InitializePlayerStatus(void)
+{
+	if (lumine)
+	{
+		Transform transform;
+		transform.pos = PLAYER_INIT_POS;
+		lumine->SetTransform(transform);
+		lumine->InitializeStatus();
+	}
+
+	Update();
+}
+
+void Player::PickItem(Item* obj)
+{
+	// TODO ちゃんと色々なアイテムが手に入れるように、直す
+	// 現在、下のコードがダメだ　動かない　直せ
+	if(obj->GetItemAttributes().itemType == ItemType::Weapon)
+		m_hasWeapon = true;
+
+	obj->Use();
+
 }
 
 void Player::UpdateActionQueue(void)

@@ -35,12 +35,15 @@ static char* nightTextures[6] =
     "data/TEXTURE/SkyBox/LS nigth 02_out_5.png",
 };
 
-Skybox::Skybox() 
+Skybox::Skybox(float timeSpeed) 
 	: m_device(Renderer::get_instance().GetDevice()), 
     m_context(Renderer::get_instance().GetDeviceContext())
 {
     m_dayToNight = true;
     m_timeOfDay = 0.0f;
+
+    m_timeSpeed = timeSpeed;
+
     Initialize();
 }
 
@@ -99,7 +102,7 @@ void Skybox::Update(void)
 {
     if (m_dayToNight)
     {
-        m_timeOfDay++;
+        m_timeOfDay += m_timeSpeed;
         if (m_timeOfDay >= CYCLE_DURATION)
         {
             m_timeOfDay = CYCLE_DURATION;
@@ -108,7 +111,7 @@ void Skybox::Update(void)
     }
     else
     {
-        m_timeOfDay--;
+        m_timeOfDay -= m_timeSpeed;
         if (m_timeOfDay <= 0.0f)
         {
             m_timeOfDay = 0.0f;
@@ -206,8 +209,8 @@ float Skybox::AdjustBlendFactor(float time)
 
 void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
 {
-    Renderer::get_instance().ResetRenderTarget();
-    Renderer::get_instance().SetCullingMode(CULL_MODE_NONE);
+    m_renderer.ResetRenderTarget();
+    m_renderer.SetCullingMode(CULL_MODE_NONE);
 
     UINT stride = sizeof(SkyBoxVertex);
     UINT offset = 0;
@@ -238,6 +241,11 @@ void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
 
     m_context->OMSetDepthStencilState(m_depthStencilState, 0);
     m_context->Draw(36, 0);
-    Renderer::get_instance().SetDepthEnable(TRUE);
-    Renderer::get_instance().SetCullingMode(CULL_MODE_BACK);
+    m_renderer.SetDepthEnable(TRUE);
+    m_renderer.SetCullingMode(CULL_MODE_BACK);
+}
+
+void Skybox::SetCurrentTime(float time)
+{
+    m_timeOfDay = time;
 }

@@ -100,6 +100,39 @@ public:
         }
     }
 
+    // 移動コンストラクタ
+    HashMap(HashMap&& other) noexcept
+        : buckets(other.buckets),
+        size(other.size),
+        hashFunc(std::move(other.hashFunc)),
+        equalsFunc(std::move(other.equalsFunc))
+    {
+        other.buckets = nullptr;
+        other.size = 0;
+    }
+
+    // 移動代入演算子
+    HashMap& operator=(HashMap&& other) noexcept
+    {
+        if (this != &other)
+        {
+            // 既存データの破棄
+            this->clear();
+            delete[] this->buckets;
+
+            // リソースの移動
+            this->buckets = other.buckets;
+            this->size = other.size;
+            this->hashFunc = std::move(other.hashFunc);
+            this->equalsFunc = std::move(other.equalsFunc);
+
+            // other を初期状態に戻す
+            other.buckets = nullptr;
+            other.size = 0;
+        }
+        return *this;
+    }
+
 
     ~HashMap()
     {
@@ -147,6 +180,17 @@ public:
     void insert(const Key& key, const Value& value)
     {
         unsigned int index = hashFunc(key) % size;
+        Node* current = buckets[index];
+        while (current != nullptr)
+        {
+            if (equalsFunc(current->data.key, key))
+            {
+                current->data.value = value;
+                return;
+            }
+            current = current->next;
+        }
+
         Node* newNode = new Node(key, value);
         newNode->next = buckets[index];
         buckets[index] = newNode;
@@ -200,6 +244,16 @@ public:
             current = current->next;
         }
         return 0;
+    }
+
+    bool empty() const
+    {
+        for (int i = 0; i < size; ++i)
+        {
+            if (buckets[i] != nullptr)
+                return false;
+        }
+        return true;
     }
 
     bool contains(const Key& key) const 
@@ -278,8 +332,11 @@ public:
         throw std::out_of_range("Key not found in HashMap");
     }
 
+
     class Iterator
     {
+        friend class HashMap;
+
     private:
         Node** buckets;
         Node* current;
@@ -334,6 +391,14 @@ public:
             return *this;
         }
 
+        Iterator operator++(int)
+        {
+            Iterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+
+
         Data& operator*() const
         {
             return current->data;
@@ -367,6 +432,45 @@ public:
             }
             current = current->next;
         }
+        return end();
+    }
+
+    Iterator erase(const Iterator& it)
+    {
+        // 無効なイテレーターだったら end() を返して即終了
+        if (it.current == nullptr) return end();
+
+        Key key = it->key;
+
+        // キーからハッシュ値を計算して対応するバケットインデックスを取得する
+        unsigned int index = hashFunc(key) % size;
+
+        // remove() を使ってノードを削除
+        remove(key);
+
+        // バケットの中を探索して、削除されたキーとは違う最初のノードを探す
+        Node* nextNode = buckets[index];
+        while (nextNode != nullptr)
+        {
+            if (!equalsFunc(nextNode->data.key, key))
+            {
+                // 次の有効なノードを持つイテレーターを返す
+                return Iterator(buckets, size, index, nextNode);
+            }
+            nextNode = nextNode->next;
+        }
+
+        // 現在のバケットに次がなければ、次のバケットを探す
+        for (int i = index + 1; i < size; ++i)
+        {
+            if (buckets[i] != nullptr)
+            {
+                // 最初に見つけた非空バケットの先頭ノードから再開
+                return Iterator(buckets, size, i, buckets[i]);
+            }
+        }
+
+        // すべて見終わったら end() を返す
         return end();
     }
 };

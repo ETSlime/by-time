@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // エネミーたちのまとめ役ちゃん [EnemyManager.h]
@@ -6,8 +7,6 @@
 // ダブルリンクリストで敵ちゃんたちをしっかり整列させてるお姉さんタイプかも…？
 //
 //=============================================================================
-#pragma once
-
 #include "Scene/Enemy.h"
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"
@@ -27,6 +26,10 @@ public:
 
 	// 敵キャラの生成
 	void SpawnEnemy(EnemyType enemType, Transform trans, EnemyState initState); 
+	void InitializeEnemyStatus(void);
+
+	int GetTotalEnemyLoadCnt(void) const { return m_totalEnemyLoadCnt; }
+	int GetEnemyLoadedCnt(void) const { return m_currentEnemyLoadCnt; }
 
 	const DoubleLinkedList<Enemy*>* GetEnemy() { return &m_enemyList; }
 
@@ -35,8 +38,18 @@ private:
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Enemy Manager"; };
 
+	int m_totalEnemyLoadCnt = 0;
+	int m_currentEnemyLoadCnt = 0;
+
 	DoubleLinkedList<Enemy*> m_enemyList;
 	Renderer& m_renderer = Renderer::get_instance();
 	const Player* m_player;
 	bool m_drawBoundingBox = true;
+
+	HashMap<uint64_t, int, HashUInt64, EqualUInt64> enemyLoadMap =
+		HashMap<uint64_t, int, HashUInt64, EqualUInt64>(
+			static_cast<int>(EnemyType::Max),
+			HashUInt64(),
+			EqualUInt64()
+		);
 };

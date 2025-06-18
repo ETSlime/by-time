@@ -9,20 +9,27 @@
 #include "Effects/SwordTrail.h"
 #include "Utility/InputManager.h"
 
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
+
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
 public:
 	Lumine();
 	~Lumine();
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
-	void LoadWeapon(char* modelPath, char* modelName);
+
+	void InitializeStatus(void);
+
+	// アニメーションやスクリプトなど、モデルに依存する処理をここで設定する
+	virtual void PostInit(void) override;
+	virtual void InitializeAnimation(void) override;
 
 	void Update(void) override;
 	void Draw(void) override;
 	void DrawEffect(void) override;
 
-	void SetupAnimStateMachine(void);
-	void InitAnimInfo(void) override;
+	bool LoadFinished(void) { return this->GetLoad() && m_weapon.GetLoad(); }
 
 	AnimStateMachine* GetStateMachine(void) override;
 
@@ -55,6 +62,14 @@ public:
 	virtual void OnJumpAnimationEnd(void) override;
 
 private:
+	struct InitContext
+	{
+		Lumine* owner;
+	};
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void LoadWeapon(char* modelPath, char* modelName);
+	void SetupAnimStateMachine(void);
+	void InitAnimInfo(void) override;
 
 	void FaceToNearestEnemy(void);
 	void UpdateWeapon(void);

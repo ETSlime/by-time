@@ -11,6 +11,7 @@
 #include "AI/AnimStateMachine.h"
 #include "Collision/OctreeNode.h"
 #include "Core/Timer.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -87,11 +88,11 @@ struct BoneTransformData
 	}
 };
 
-struct ModelData
+struct MeshData
 {
-	ModelData()
+	MeshData()
 	{
-		mesh = new MeshData();
+		mesh = new ModelMeshData();
 		shapeCnt = 0;
 		limbCnt = 0;
 		VertexArray = nullptr;
@@ -114,7 +115,7 @@ struct ModelData
 
 	}
 
-	~ModelData()
+	~MeshData()
 	{
 		SAFE_DELETE(mesh);
 		SAFE_DELETE(VertexArray);
@@ -130,9 +131,9 @@ struct ModelData
 
 	}
 
-	MeshData*				mesh;
-	SimpleArray<MeshData>	shapes;
-	SimpleArray<Subset> Subsets;
+	ModelMeshData*				mesh;
+	SimpleArray<ModelMeshData>	shapes;
+	SimpleArray<Subset>			Subsets;
 
 	int shapeCnt;
 	int limbCnt;
@@ -160,6 +161,8 @@ struct ModelData
 	ID3D11Buffer* VertexBuffer;
 	ID3D11Buffer* IndexBuffer;
 
+	char* diffuseTextureName = nullptr;
+	char* emissiveTextureName = nullptr;
 	ID3D11ShaderResourceView* diffuseTexture;
 	ID3D11ShaderResourceView* emissiveTexture;
 };
@@ -172,6 +175,112 @@ struct SkinnedMeshPart
 	UINT IndexNum = 0;
 };
 
+struct SkinnedMeshModelData
+{
+
+	char* modelPath = nullptr;
+	char* modelName = nullptr;
+
+	UINT currentRootNodeID = 0;
+	UINT weaponTransformIdx = 0;
+	UINT MeshDataCnt = 0;
+	UINT ModelCount = 0;
+	UINT numBones = 0;
+	AnimationClip* currentAnimClip = nullptr;
+	SkinnedModelType modelType = SkinnedModelType::Default;
+	BoneTransformData boneTransformData{};
+
+	ModelProperty globalModelProperty{};
+	ModelProperty modelProperty{};
+	CULL_MODE cullMode = CULL_MODE_NONE;
+	BindPose bindPose;
+	FbxMaterial globalMaterial;
+
+	BOUNDING_BOX boundingBox;
+
+	HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64> fbxNodes =
+		HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64>(
+			MAX_NODE_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+
+	HashMap<uint64_t, MeshData*, HashUInt64, EqualUInt64> meshDataMap =
+		HashMap<uint64_t, MeshData*, HashUInt64, EqualUInt64>(
+			MAX_MESH_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+	HashMap<int, AnimationClip, HashUInt64, EqualUInt64> animationClips =
+		HashMap<int, AnimationClip, HashUInt64, EqualUInt64>(
+			MAX_ANIM_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+	HashMap<int, uint64_t, HashUInt64, EqualUInt64> deformerHashMap =
+		HashMap<int, uint64_t, HashUInt64, EqualUInt64>(
+			MAX_NODE_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+	HashMap<uint64_t, int, HashUInt64, EqualUInt64> deformerIdxHashMap =
+		HashMap<uint64_t, int, HashUInt64, EqualUInt64>(
+			MAX_NODE_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+	HashMap<uint64_t, uint64_t, HashUInt64, EqualUInt64> deformerToLimb =
+		HashMap<uint64_t, uint64_t, HashUInt64, EqualUInt64>(
+			MAX_NODE_NUM,
+			HashUInt64(),
+			EqualUInt64()
+		);
+
+	// 移動コンストラクタ
+	SkinnedMeshModelData(SkinnedMeshModelData&& other) noexcept
+		: modelPath(other.modelPath),
+		modelName(other.modelName),
+		currentRootNodeID(other.currentRootNodeID),
+		weaponTransformIdx(other.weaponTransformIdx),
+		MeshDataCnt(other.MeshDataCnt),
+		ModelCount(other.ModelCount),
+		numBones(other.numBones),
+		currentAnimClip(other.currentAnimClip),
+		modelType(other.modelType),
+		boundingBox(other.boundingBox),
+		boneTransformData(std::move(other.boneTransformData)),
+		globalModelProperty(std::move(other.globalModelProperty)),
+		modelProperty(std::move(other.modelProperty)),
+		cullMode(other.cullMode),
+		bindPose(std::move(other.bindPose)),
+		globalMaterial(std::move(other.globalMaterial)),
+		fbxNodes(std::move(other.fbxNodes)),
+		meshDataMap(std::move(other.meshDataMap)),
+		animationClips(std::move(other.animationClips)),
+		deformerHashMap(std::move(other.deformerHashMap)),
+		deformerIdxHashMap(std::move(other.deformerIdxHashMap)),
+		deformerToLimb(std::move(other.deformerToLimb))
+	{
+		// 所有権を奪ったため、元のポインタを null に
+		other.modelPath = nullptr;
+		other.modelName = nullptr;
+		other.currentAnimClip = nullptr;
+	}
+
+
+
+	SkinnedMeshModelData() = default;
+	SkinnedMeshModelData(const SkinnedMeshModelData&) = default;
+	SkinnedMeshModelData& operator=(const SkinnedMeshModelData&) = default;
+	SkinnedMeshModelData& operator=(SkinnedMeshModelData&&) noexcept = default;
+	~SkinnedMeshModelData() = default;
+};
+
 class SkinnedMeshModel
 {
 public:
@@ -180,9 +289,15 @@ public:
 	void DrawModel();
 	void UpdateBoneTransform(SimpleArray<XMFLOAT4X4>* boneTransforms);
 
-	SkinnedMeshModel();
+	SkinnedMeshModel() = default;
+	SkinnedMeshModel(SkinnedMeshModelData&& modelData);
+	SkinnedMeshModel& operator=(const SkinnedMeshModel&) = delete;
+	SkinnedMeshModel(const SkinnedMeshModel&) = delete;
 	~SkinnedMeshModel();
 
+	SkinnedMeshModel* SkinnedMeshModel::Clone() const;
+
+	void SetOverallDiffuseTexture(void);
 	void SetBodyDiffuseTexture(char* texturePath);
 	void SetBodyLightMapTexture(char* texturePath);
 	void SetBodyNormalMapTexture(char* texturePath);
@@ -192,6 +307,7 @@ public:
 	void SetFaceLightMapTexture(char* texturePath);
 
 	void LoadTownTexture(void);
+	bool AreAllTexturesLoaded(void) const;
 
 	void GetBoneTransformByAnim(FbxNode* currentClipArmatureNode, uint64_t currentClipTime, 
 		SimpleArray<XMFLOAT4X4>* boneFinalTransform, AnimationInfo& animInfo);
@@ -199,17 +315,21 @@ public:
 	void SetBoundingBoxLocationOffset(XMFLOAT3 offset, int boneIdx = 0);
 	void SetBoundingBoxSize(XMFLOAT3 size, int boneIdx = 0);
 	void SetDrawBoundingBox(bool draw) { drawBoundingBox = draw; }
-	void BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool alwaysFaceUp = false);
-	void BuildTrianglesByBoundingBox(BOUNDING_BOX bb);
+	void BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceUp = false);
+	void BuildBoundingBoxTriangles(BOUNDING_BOX bb);
 	bool BuildOctree(void);
-	UINT GetNumBones(void) { return numBones; }
-	BOUNDING_BOX GetBoundingBox(void) const { return boundingBox; }
+	UINT GetNumBones(void) { return m_modelData.numBones; }
+	BOUNDING_BOX GetBoundingBox(void) const { return m_modelData.boundingBox; }
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 
+	bool Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
+	bool Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+
 	void SetCurrentAnim(AnimationClip* currAnimClp, float startTime = 0);
-	AnimClipName GetCurrentAnim(void) { return currentAnimClip->name; }
+	AnimClipName GetCurrentAnim(void) { return m_modelData.currentAnimClip->name; }
 	AnimationClip* GetAnimationClip(AnimClipName clipName);
 	void PlayCurrentAnim(float playSpeed = 1.0f);
+	void ResetCurrentAnim(void);
 
 	XMMATRIX GetWeaponTransformMtx(void);
 	XMMATRIX GetBodyTransformMtx(void);
@@ -217,32 +337,35 @@ public:
 	const XMMATRIX* GetFinalBoneMatrices(void);
 
 	const SimpleArray<SkinnedMeshPart>& GetMeshParts() const;
-	SkinnedModelType GetModelType(void) const { return modelType; }
+	SkinnedModelType GetModelType(void) const { return m_modelData.modelType; }
 
-	static SkinnedMeshModel* StoreModel(char* modelPath, char* modelName, char* modelFullPath, 
+	void CreateGPUResources(void);
+	SkinnedMeshModelData* GetModelData(void) { return &m_modelData; }
+
+	static SkinnedMeshModel* StoreModel(const char* modelPath, const char* modelName, const char* modelFullPath, 
 		SkinnedModelType modelType, AnimClipName clipName);
-	static SkinnedMeshModelPool* GetModel(char* modelFullPath);
+	static SkinnedMeshModelPool* GetModel(const char* modelFullPath);
 	static void RemoveModel(char* modelPath);
 
 
 private:
 
-	static HashMap<char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
+	static HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
 
 	void UpdateLimbGlobalTransform(FbxNode* node, FbxNode* deformNode, int& curIdx, int prevIdx, uint64_t time, BoneTransformData* boneTransformData, AnimationInfo& animInfo);
-	void GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, ModelData* modelData);
+	void GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, MeshData* meshData);
 	XMFLOAT3 GetAnimationValue(FbxNode** ppAnimationCurve, XMFLOAT3 defaultValue, uint64_t time, AnimationInfo& animInfo);
 	float GetAnimationCurveValue(FbxNode** ppAnimationCurveNode, uint64_t time, float defaultValue, AnimationInfo& animInfo);
-	void CalculateDrawParameters(ModelData* modelData, float startPercentage, float endPercentage, int& IndexNum, int& StartIndexLocation);
+	void CalculateDrawParameters(MeshData* meshData, float startPercentage, float endPercentage, int& IndexNum, int& StartIndexLocation);
 
-	void DrawSigewinne(ModelData* modelData);
-	void DrawKlee(ModelData* modelData);
-	void DrawLumine(ModelData* modelData);
-	void DrawField(ModelData* modelData);
-	void DrawChurch(ModelData* modelData);
-	void DrawTownLoD(ModelData* modelData, int LoD);
+	void DrawSigewinne(MeshData* meshData);
+	void DrawKlee(MeshData* meshData);
+	void DrawLumine(MeshData* meshData);
+	void DrawField(MeshData* meshData);
+	void DrawChurch(MeshData* meshData);
+	void DrawTownLoD(MeshData* meshData, int LoD);
 
-	void DrawBoundingBox(ModelData* modelData);
+	void DrawBoundingBox(MeshData* meshData);
 	void CreateBoundingBoxVertex(SKINNED_MESH_BOUNDING_BOX* boundingBox) const;
 
 	void BuildMeshParts(void);
@@ -250,29 +373,17 @@ private:
 	char modelPath[MODEL_PATH_LENGTH];
 	char modelName[MODEL_NAME_LENGTH];
 
-	UINT ModelCount;
-	UINT MeshDataCnt = 0;
-	UINT currentRootNodeID;
-	UINT numBones;
-	SkinnedModelType modelType;
 	bool drawBoundingBox = false;
-	BoneTransformData boneTransformData;
-	UINT weaponTransformIdx;
 
-	AnimationClip* currentAnimClip;
-	FbxNode* armatureNode;
-
-	ModelProperty modelProperty;
-	ModelProperty globalModelProperty;
-	FbxMaterial globalMaterial;
-	CULL_MODE cullMode;
-
-	BOUNDING_BOX boundingBox;
-	BindPose bindPose;
+	FbxNode* armatureNode = nullptr;
 
 	XMMATRIX m_transposedBoneMatrices[BONE_MAX];
-
 	mutable SimpleArray<SkinnedMeshPart> m_meshParts;
+
+	SkinnedMeshModelData m_modelData;
+	bool m_GPUResource = false; // GPUリソースを生成したかどうか
+	int m_pendingTextureCount = 0;
+	int m_completedTextureCount = 0;
 
 	ID3D11ShaderResourceView* bodyDiffuseTexture = nullptr;
 	ID3D11ShaderResourceView* bodyLightMapTexture = nullptr;
@@ -320,46 +431,4 @@ private:
 	ID3D11ShaderResourceView* Indoor_MdProps_Church_Item01_Diffuse = nullptr;
 	ID3D11ShaderResourceView* Indoor_Mdprops_Church_Lights01_Diffuse = nullptr;
 	ID3D11ShaderResourceView* Indoor_MdBuild_WindowEffect04_NoStream = nullptr;
-
-	HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64> fbxNodes = 
-		HashMap<uint64_t, FbxNode*, HashUInt64, EqualUInt64>(
-		MAX_NODE_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
-
-	HashMap<uint64_t, ModelData*, HashUInt64, EqualUInt64> meshDataMap = 
-		HashMap<uint64_t, ModelData*, HashUInt64, EqualUInt64>(
-		MAX_MESH_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
-
-	HashMap<int, AnimationClip, HashUInt64, EqualUInt64> animationClips = 
-		HashMap<int, AnimationClip, HashUInt64, EqualUInt64>(
-		MAX_ANIM_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
-
-	HashMap<int, uint64_t, HashUInt64, EqualUInt64> deformerHashMap = 
-		HashMap<int, uint64_t, HashUInt64, EqualUInt64>(
-		MAX_NODE_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
-
-	HashMap<uint64_t, int, HashUInt64, EqualUInt64> deformerIdxHashMap = 
-		HashMap<uint64_t, int, HashUInt64, EqualUInt64>(
-		MAX_NODE_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
-
-	HashMap<uint64_t, uint64_t, HashUInt64, EqualUInt64> deformerToLimb = 
-		HashMap<uint64_t, uint64_t, HashUInt64, EqualUInt64>(
-		MAX_NODE_NUM,
-		HashUInt64(),
-		EqualUInt64()
-	);
 };

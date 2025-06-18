@@ -295,7 +295,7 @@ struct SKINNED_VERTEX_3D_TEMP
 	//SimpleArray<int>	BoneIndices;
 };
 
-struct MeshData
+struct ModelMeshData
 {
 	SimpleArray<SKINNED_VERTEX_3D> Vertices;
 	SimpleArray<SKINNED_VERTEX_3D_TEMP> VerticesTemp;
@@ -402,46 +402,46 @@ struct FbxMaterial
 };
 
 class SkinnedMeshModel;
-struct ModelData;
+struct MeshData;
+struct SkinnedMeshModelData;
 
 class FBXLoader : public SingletonBase<FBXLoader>
 {
 public:
 	FBXLoader() {};
-	bool LoadModel(ID3D11Device* device, TextureMgr& texMgr, SkinnedMeshModel& model, 
-		const char* modelPath, const char* modelName, const char* texturePath, AnimClipName name = AnimClipName::ANIM_NONE, SkinnedModelType modelType = SkinnedModelType::Default);
+	bool LoadModel(SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, const char* texturePath, 
+		AnimClipName name = AnimClipName::ANIM_NONE, SkinnedModelType modelType = SkinnedModelType::Default);
 
-	bool LoadAnimation(ID3D11Device* device, SkinnedMeshModel& model,
-		const char* modelPath, const char* modelName, AnimClipName name);
+	bool LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName name);
 
 private:
-	bool ParseObjectDefinitions(FILE* file, SkinnedMeshModel& model);
-	bool ParseObjectProperties(FILE* file, SkinnedMeshModel& model, bool loadAnimation = false);
-	bool ParseGeometry(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node);
-	bool ParseModel(FILE* file, SkinnedMeshModel& model, FbxNode* node);
-	bool ParseMaterial(FILE* file, SkinnedMeshModel& model, FbxNode* node);
+	bool ParseObjectDefinitions(FILE* file, SkinnedMeshModelData* model);
+	bool ParseObjectProperties(FILE* file, SkinnedMeshModelData* model, bool loadAnimation = false);
+	bool ParseGeometry(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node);
+	bool ParseModel(FILE* file, SkinnedMeshModelData* model, FbxNode* node);
+	bool ParseMaterial(FILE* file, SkinnedMeshModelData* model, FbxNode* node);
 	bool ParseDeformer(FILE* file, FbxNode* node);
 	bool ParseMaterialProperty(FILE* file, FbxMaterial& globalMaterial);
 	bool ParseModelProperty(FILE* file, ModelProperty& modelProperty, FbxNode* node);
-	bool ParseVertexData(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node, MeshData* &meshData);
-	bool ParseIndexData(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node, MeshData* &meshData);
-	bool ParseNormal(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node, MeshData* &meshData);
-	bool ParseNormalData(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, 
-		MappingInformationType mappingInformationType, ReferenceInformationType referenceInformationType, FbxNode* node, MeshData* &meshData, SimpleArray<float>& normals);
-	bool ParseNormalIndexData(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node, MeshData*& meshData, SimpleArray<float>& normals);
-	bool ParseUV(FILE* file, SkinnedMeshModel& model, GeometryType geometryType, FbxNode* node, MeshData* &meshData);
-	bool ParseTexture(FILE* file, SkinnedMeshModel& model, FbxNode* node);
-	bool ParseObjectConnections(FILE* file, SkinnedMeshModel& model);
-	bool ParseBindPose(FILE* file, SkinnedMeshModel& model, FbxNode* node);
-	bool ParseAnimationStackCurve(FILE* file, SkinnedMeshModel& model);
+	bool ParseVertexData(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node, ModelMeshData* &modelMeshData);
+	bool ParseIndexData(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node, ModelMeshData* &modelMeshData);
+	bool ParseNormal(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node, ModelMeshData* &modelMeshData);
+	bool ParseNormalData(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, 
+		MappingInformationType mappingInformationType, ReferenceInformationType referenceInformationType, FbxNode* node, ModelMeshData* &modelMeshData, SimpleArray<float>& normals);
+	bool ParseNormalIndexData(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node, ModelMeshData* &modelMeshData, SimpleArray<float>& normals);
+	bool ParseUV(FILE* file, SkinnedMeshModelData* model, GeometryType geometryType, FbxNode* node, ModelMeshData* &modelMeshData);
+	bool ParseTexture(FILE* file, SkinnedMeshModelData* model, FbxNode* node);
+	bool ParseObjectConnections(FILE* file, SkinnedMeshModelData* model);
+	bool ParseBindPose(FILE* file, SkinnedMeshModelData* model, FbxNode* node);
+	bool ParseAnimationStackCurve(FILE* file, SkinnedMeshModelData* model);
 	bool ParseAnimationCurve(FILE* file, FbxNode* node);
 	bool CreateFbxNode(char* buffer, FbxNode* fbxNode);
 	void SkipNode(FILE* file);
 
-	void HandleDeformer(FbxNode* node, ModelData* data, SkinnedMeshModel& model, int boneCnt, int prevIdx);
-	void HandleMeshNode(FbxNode* node, SkinnedMeshModel& model);
+	void HandleDeformer(FbxNode* node, MeshData* data, SkinnedMeshModelData* model, int boneCnt, int prevIdx);
+	void HandleMeshNode(FbxNode* node, SkinnedMeshModelData* model);
 
-	void BuildLimbHierarchy(FbxNode* armatureNode, ModelData* modelData, int curIdx, int prevIdx);
+	void BuildLimbHierarchy(FbxNode* armatureNode, MeshData* modelData, int curIdx, int prevIdx);
 
 	FbxNode* GetGeometryNodeByLimbNode(FbxNode* limbNode);
 	FbxNode* GetModelArmatureNodeByDeformer(FbxNode* deformerNode);

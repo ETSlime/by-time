@@ -4,7 +4,7 @@
 // Author : 
 //
 //=============================================================================
-#include "UISpriteRenderer.h"
+#include "UI/Base/UISpriteRenderer.h"
 
 void UISpriteRenderer::SetSpriteCenter(ID3D11Buffer* buf, float X, float Y, float Width, float Height,
     float U, float V, float UW, float VH)
@@ -34,8 +34,10 @@ void UISpriteRenderer::SetSpriteCenter(ID3D11Buffer* buf, float X, float Y, floa
 void UISpriteRenderer::SetSpriteLeftTop(ID3D11Buffer* buf, float X, float Y, float Width, float Height,
     float U, float V, float UW, float VH)
 {
+    HRESULT hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE msr;
-    Renderer::get_instance().GetDeviceContext()->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    hr = Renderer::get_instance().GetDeviceContext()->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    assert(SUCCEEDED(hr));
 
     UIVertex* vertex = reinterpret_cast<UIVertex*>(msr.pData);
 

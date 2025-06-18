@@ -4,9 +4,9 @@
 // Author : 
 //
 //=============================================================================
-#include <stdio.h>
 #include "Utility/Debugproc.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
+#include "Core/GameSystem.h"
 
 void DebugProc::Init(HWND hwnd)
 {
@@ -120,6 +120,13 @@ void DebugProc::Register(IDebugUI* ui)
 	m_debugUIs.push_back(ui);
 }
 
+void DebugProc::Unregister(IDebugUI* ui)
+{
+	int index = m_debugUIs.find_index(ui);
+	if (index != -1)
+		m_debugUIs.erase(index);
+}
+
 void DebugProc::BeginFrame(void)
 {
 	ImGui_ImplDX11_NewFrame();
@@ -142,7 +149,9 @@ void DebugProc::Draw(void)
 	{
 		if (ui->GetPanelName() && ImGui::CollapsingHeader(ui->GetPanelName()))
 			ui->RenderImGui();
-		ui->RenderDebugInfo();
+
+		if (GameSystem::get_instance().GetMode() == GameMode::GAME)
+			ui->RenderDebugInfo();
 	}
 
 	for (int i = 0; i < m_lineCount; ++i)

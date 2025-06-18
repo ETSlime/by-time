@@ -299,7 +299,7 @@ struct RenderProgressBuffer
 {
 	float progress = 0.0f;
 	int isRandomFade = true;
-	XMFLOAT2 padding;
+	XMFLOAT2 padding{};
 };
 
 struct InstanceData
@@ -390,6 +390,9 @@ public:
 
 	RenderMode GetRenderMode(void);
 	void SetRenderMode(RenderMode mode);
+
+	ID3D11DepthStencilState* GetDepthWriteState(void) const { return m_DepthStateEnable; }
+	ID3D11DepthStencilState* GetDepthDisabledState(void) const { return m_DepthStateDisable; }
 
 	void BindViewBuffer(ShaderStage stage);
 

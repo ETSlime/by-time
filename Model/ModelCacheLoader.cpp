@@ -7,7 +7,7 @@
 #include "Model/ModelCacheLoader.h"
 #include "Model/Model.h"
 
-bool ModelCacheLoader::LoadFromCache(const char* cachePath, MODEL_DATA* modelData)
+bool ModelCacheLoader::LoadFromCache(const char* cachePath, StaticModelData* modelData)
 {
     char binPath[MAX_PATH];
     ConvertToBinPath(cachePath, binPath, MAX_PATH);
@@ -55,7 +55,7 @@ bool ModelCacheLoader::LoadFromCache(const char* cachePath, MODEL_DATA* modelDat
     return true;
 }
 
-bool ModelCacheLoader::SaveToCache(const char* cachePath, const MODEL_DATA* modelData)
+bool ModelCacheLoader::SaveToCache(const char* cachePath, const StaticModelData* modelData)
 {
     char binPath[MAX_PATH];
     ConvertToBinPath(cachePath, binPath, MAX_PATH);

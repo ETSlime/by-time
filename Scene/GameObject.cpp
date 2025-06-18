@@ -27,36 +27,153 @@ GameObject<SkinnedMeshModelInstance>::~GameObject()
 	Scene::get_instance().UnregisterGameObject(this);
 }
 
+
 template <>
-void GameObject<SkinnedMeshModelInstance>::Instantiate(char* modelPath, char* modelName, 
-	SkinnedModelType modelType, AnimClipName clipName)
+void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectConfig& config)
 {
-	char* modelFullPath = new char[MODEL_NAME_LENGTH] {};
+	if (instance.load) return; // 既にロード済みなら何もしない
 
-	strcat(modelFullPath, modelPath);
-
-	size_t modelPathLength = strlen(modelPath);
-	if (modelPathLength > 0 && modelPath[modelPathLength - 1] != '/' && modelPath[modelPathLength - 1] != '\\')
+	if (!instance.modelFullPath)
 	{
-		strcat(modelFullPath, "/");
+		char* modelFulllPath = new char[MODEL_NAME_LENGTH + MODEL_PATH_LENGTH] {};
+		strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, config.modelPath);
+
+		size_t modelPathLength = strlen(config.modelPath);
+		if (modelPathLength > 0 && config.modelPath[modelPathLength - 1] != '/' && config.modelPath[modelPathLength - 1] != '\\')
+			strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, "/");
+
+		strcat_s(modelFulllPath, MODEL_NAME_LENGTH + MODEL_PATH_LENGTH, config.modelName);
+		instance.modelFullPath = modelFulllPath;
+
+		instance.modelPath = const_cast<char*>(config.modelPath);
+		instance.modelName = const_cast<char*>(config.modelName);
 	}
 
-	strcat(modelFullPath, modelName);
+	if (!instance.pModel)
+		instance.pModel = SkinnedMeshModel::StoreModel(config.modelPath, config.modelName,
+			instance.modelFullPath, config.modelType, config.animClipName);
 
-	instance.modelFullPath = modelFullPath;
-	instance.modelPath = modelPath;
-	instance.modelName = modelName;
-	instance.pModel = SkinnedMeshModel::StoreModel(modelPath, modelName, modelFullPath, modelType, clipName);
-	if (instance.pModel)
+
+	// モデルのビルドタスクを登録
+	if (!instance.modelBuildTaskRegistered)
 	{
-		instance.load = true;
-		instance.use = true;
+		m_skinnedConfig = config; // コンフィグを保存
+		SetCollisionType(m_skinnedConfig.collisionType);
+		SetScale(m_skinnedConfig.scale);
+		SetPosition(m_skinnedConfig.position);
+		SetRotation(m_skinnedConfig.rotation);
+		SetCastShadow(m_skinnedConfig.castShadow);
+		SetDrawWorldAABB(m_skinnedConfig.drawWorldAABB);
+
+		instance.modelBuildTaskRegistered = true;
+
+		DeferredTaskOptions options{};
+		options.async = false; // postInit は同期で実行
+		options.debugName = "GameObject_InstantiateSkinnedGameObject_PostInit"; // デバッグ用の名前
+		auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ this }; // コンテキストを作成して渡す
+
+		RawDeferredTask::Add(
+			ctx, // コンテキストを渡す
+			[](void* ptr) // タスクの実行関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+				SkinnedMeshModel* model = ctx->owner->instance.pModel;
+				model->SetOverallDiffuseTexture();
+				ctx->owner->PostInit();
+			},
+			[](void* ptr) // タスクの条件関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+				// モデルがロードされているかチェック
+				return ctx->owner->DeferredCanRunModelReady();
+			},
+			options
+		);
+
+		// 非同期で実行するかどうかを決定
+		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
+		options.debugName = "GameObject_InstantiateSkinnedGameObject_Collision";
+		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				ctx, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					const XMMATRIX& worldMatrix = ctx->owner->GetWorldMatrix();
+					SkinnedMeshModel* model = ctx->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					// モデルがロードされているかチェック
+					return ctx->owner->GetCollider().isInitialized;
+				},
+				options
+			);
+		}
+		else if (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX)
+		{
+			RawDeferredTask::Add(
+				ctx, // コンテキストを渡す
+				[](void* ptr) // タスクの実行関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
+					SkinnedMeshModel* model = ctx->owner->instance.pModel;
+					// モデルの三角形をビルド
+					model->Deffered_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+				},
+				[](void* ptr) // タスクの条件関数
+				{
+					// コンテキストを取得
+					auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+					// モデルがロードされているかチェック
+					return ctx->owner->GetCollider().isInitialized;
+				},
+				options
+			);
+		}
+		else if (instance.collisionType == ObjectCollisionType::COLLIDER_BOUNDING_BOX)
+		{
+			instance.collider.tag = m_skinnedConfig.colliderTag;
+			instance.collider.owner = this;
+			if (m_skinnedConfig.colliderTag != ColliderTag::PLAYER_ATTACK &&
+				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
+				instance.collider.enable = true;
+			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+		}
+	}
+
+	instance.use = true; // モデルを使用するフラグを立てる
+
+	if (instance.pModel && instance.postInit && instance.pModel->AreAllTexturesLoaded())
+	{
+		instance.load = true; // モデルがロードされたらロードフラグを立てる
+		Scene::get_instance().RegisterGameObject(this); // renderableObjectsに登録
+	}
+	else
+	{
+		instance.load = false; // モデルがロードできなかった場合はロードフラグを下げる
 	}
 }
 
 template<>
 void GameObject<SkinnedMeshModelInstance>::Update()
 {
+	if (!instance.load)
+	{
+		Instantiate(m_skinnedConfig);
+		if (!instance.load) return; // モデルがロードされていない場合は何もしない
+	}
+
 	// ワールド行列の構築
 	XMMATRIX mtxWorld = XMMatrixIdentity();
 	mtxWorld = XMMatrixMultiply(mtxWorld, XMMatrixScaling(instance.transform.scl.x, instance.transform.scl.y, instance.transform.scl.z)); // スケーリング
@@ -98,6 +215,5 @@ void GameObject<SkinnedMeshModelInstance>::Update()
 	}
 
 	// AABBをコライダーに格納（ワールド空間）
-	XMStoreFloat3(&instance.collider.aabb.minPoint, worldMin);
-	XMStoreFloat3(&instance.collider.aabb.maxPoint, worldMax);
+	instance.collider.UpdateBoundingBox(worldMin, worldMax);
 }

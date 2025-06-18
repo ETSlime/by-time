@@ -1,8 +1,15 @@
+//=============================================================================
+//
+// [SkinnedMeshModel.h]
+// Author : 
+// 
+//=============================================================================
 #include "Model/SkinnedMeshModel.h"
 #include "Utility/InputManager.h"
 #include "Utility/Debugproc.h"
 #include "AI/AnimStateMachine.h"
 #include "Collision/CollisionManager.h"
+#include "Core/Async/AsyncModelLoader.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -12,60 +19,91 @@
 //*****************************************************************************
 // グローバル変数
 //*****************************************************************************
-HashMap<char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> SkinnedMeshModel::modelHashMap(
+HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> SkinnedMeshModel::modelHashMap(
     MAX_MODEL_NUM,
     CharPtrHash(),
     CharPtrEquals()
 );
 
-int ModelData::modelCnt = 0;
-
-static FBXLoader& fbxLoader = FBXLoader::get_instance();
-static TextureMgr& mTexMgr = TextureMgr::get_instance();
+int MeshData::modelCnt = 0;
 static Timer& t = Timer::get_instance();
+
+SkinnedMeshModel::SkinnedMeshModel(SkinnedMeshModelData&& modelData)
+{
+    // 所有権移譲：以降 SkinnedMeshModel が責任を持つ
+    m_modelData = std::move(modelData);
+}
+
+SkinnedMeshModel::~SkinnedMeshModel()
+{
+    SafeRelease(&bodyDiffuseTexture);
+    SafeRelease(&bodyLightMapTexture);
+    SafeRelease(&bodyNormalMapTexture);
+    SafeRelease(&hairDiffuseTexture);
+    SafeRelease(&hairLightMapTexture);
+    SafeRelease(&faceDiffuseTexture);
+    SafeRelease(&faceLightMapTexture);
+
+    for (auto& it : m_modelData.fbxNodes)
+    {
+        SAFE_DELETE(it.value);
+    }
+
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        SAFE_DELETE(it.value);
+    }
+}
+
+SkinnedMeshModel* SkinnedMeshModel::Clone() const
+{
+    SkinnedMeshModel* newModel = new SkinnedMeshModel();
+    newModel->m_modelData = this->m_modelData;
+    return newModel;
+}
 
 void SkinnedMeshModel::UpdateBoneTransform(SimpleArray<XMFLOAT4X4>* boneTransforms)
 {
 
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
+        MeshData* meshData = it.value;
 
         if (boneTransforms)
         {
-            boneTransformData.mBoneFinalTransforms.clear();
+            m_modelData.boneTransformData.mBoneFinalTransforms.clear();
 
 
 
             int numBone = boneTransforms->getSize();
             for (int i = 0; i < numBone; i++)
             {
-                boneTransformData.mBoneFinalTransforms.push_back((*boneTransforms)[i]);
+                m_modelData.boneTransformData.mBoneFinalTransforms.push_back((*boneTransforms)[i]);
             }
         }
         else
         {
-            ModelData* modelData = it.value;
-            FbxNode* armatureNode = modelData->armatureNode;
+            MeshData* meshData = it.value;
+            FbxNode* armatureNode = meshData->armatureNode;
 
 
             if (armatureNode)
             {
-                boneTransformData.mModelGlobalScl.clear();
-                boneTransformData.mModelGlobalRot.clear();
-                boneTransformData.mModelTranslate.clear();
+                m_modelData.boneTransformData.mModelGlobalScl.clear();
+                m_modelData.boneTransformData.mModelGlobalRot.clear();
+                m_modelData.boneTransformData.mModelTranslate.clear();
 
-                boneTransformData.mModelGlobalTrans.clear();
-                boneTransformData.mModelLocalTrans.clear();
-                boneTransformData.mBoneFinalTransforms.clear();
+                m_modelData.boneTransformData.mModelGlobalTrans.clear();
+                m_modelData.boneTransformData.mModelLocalTrans.clear();
+                m_modelData.boneTransformData.mBoneFinalTransforms.clear();
 
-                boneTransformData.limbHashMap.clear();
+                m_modelData.boneTransformData.limbHashMap.clear();
 
                 int curIdx = 0;
                 int prevIdx = -1;
 
-                UpdateLimbGlobalTransform(currentAnimClip->armatureNode, armatureNode, curIdx, prevIdx, currentAnimClip->currentTime, &boneTransformData, currentAnimClip->animInfo);
-                GetBoneTransform(boneTransformData.mBoneFinalTransforms, modelData);
+                UpdateLimbGlobalTransform(m_modelData.currentAnimClip->armatureNode, armatureNode, curIdx, prevIdx, m_modelData.currentAnimClip->currentTime, &m_modelData.boneTransformData, m_modelData.currentAnimClip->animInfo);
+                GetBoneTransform(m_modelData.boneTransformData.mBoneFinalTransforms, meshData);
             }
         }
     }
@@ -74,18 +112,18 @@ void SkinnedMeshModel::UpdateBoneTransform(SimpleArray<XMFLOAT4X4>* boneTransfor
 void SkinnedMeshModel::DrawModel()
 {
 
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
-        FbxNode* armatureNode = modelData->armatureNode;
+        MeshData* meshData = it.value;
+        FbxNode* armatureNode = meshData->armatureNode;
 
         if (armatureNode)
         {
             XMMATRIX	boneMatrices[BONE_MAX];
-            int size = boneTransformData.mBoneFinalTransforms.getSize();
+            int size = m_modelData.boneTransformData.mBoneFinalTransforms.getSize();
             for (int i = 0; i < size; i++)
             {
-                boneMatrices[i] = XMMatrixTranspose(XMLoadFloat4x4(&boneTransformData.mBoneFinalTransforms[i]));
+                boneMatrices[i] = XMMatrixTranspose(XMLoadFloat4x4(&m_modelData.boneTransformData.mBoneFinalTransforms[i]));
                 //XMMATRIX dbg = boneMatrices[i];
                 //dbg = boneMatrices[i];
             }
@@ -101,10 +139,10 @@ void SkinnedMeshModel::DrawModel()
         // 頂点バッファ設定
         UINT stride = sizeof(SKINNED_VERTEX_3D);
         UINT offset = 0;
-        Renderer::get_instance().GetDeviceContext()->IASetVertexBuffers(0, 1, &modelData->VertexBuffer, &stride, &offset);
+        Renderer::get_instance().GetDeviceContext()->IASetVertexBuffers(0, 1, &meshData->VertexBuffer, &stride, &offset);
 
         // インデックスバッファ設定
-        Renderer::get_instance().GetDeviceContext()->IASetIndexBuffer(modelData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+        Renderer::get_instance().GetDeviceContext()->IASetIndexBuffer(meshData->IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
         // プリミティブトポロジ設定
         Renderer::get_instance().GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -112,61 +150,60 @@ void SkinnedMeshModel::DrawModel()
         MATERIAL material;
         ZeroMemory(&material, sizeof(material));
         material.Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-        if (modelData->diffuseTexture)
+        if (meshData->diffuseTexture)
             material.noTexSampling = FALSE;
         else
             material.noTexSampling = TRUE;
-        if (modelType == SkinnedModelType::Town_LOD0 ||
-            modelType == SkinnedModelType::Town_LOD1 ||
-            modelType == SkinnedModelType::Town_LOD2)
+        if (m_modelData.modelType == SkinnedModelType::Town_LOD0 ||
+            m_modelData.modelType == SkinnedModelType::Town_LOD1 ||
+            m_modelData.modelType == SkinnedModelType::Town_LOD2)
             material.noTexSampling = FALSE;
 
         Renderer::get_instance().SetMaterial(material);
 
         Renderer::get_instance().SetCullingMode(CULL_MODE_NONE);
 
-        switch (modelType)
+        switch (m_modelData.modelType)
         {
         case SkinnedModelType::Sigewinne:
-            DrawSigewinne(modelData);
+            DrawSigewinne(meshData);
             break;
         case SkinnedModelType::Klee:
-            DrawKlee(modelData);
+            DrawKlee(meshData);
             break;
         case SkinnedModelType::Lumine:
-            DrawLumine(modelData);
+            DrawLumine(meshData);
             break;
         case SkinnedModelType::Field:
-            DrawField(modelData);
+            DrawField(meshData);
             break;
         case SkinnedModelType::Town_LOD0:
             //Renderer::get_instance().SetFillMode(D3D11_FILL_WIREFRAME);
-            DrawTownLoD(modelData, 0);
+            DrawTownLoD(meshData, 0);
             //Renderer::get_instance().SetFillMode(D3D11_FILL_SOLID);
             break;
         case SkinnedModelType::Town_LOD1:
             //Renderer::get_instance().SetFillMode(D3D11_FILL_WIREFRAME);
-            DrawTownLoD(modelData, 1);
+            DrawTownLoD(meshData, 1);
             //Renderer::get_instance().SetFillMode(D3D11_FILL_SOLID);
             break;
         case SkinnedModelType::Town_LOD2:
             //Renderer::get_instance().SetFillMode(D3D11_FILL_WIREFRAME);
-            DrawTownLoD(modelData, 2);
+            DrawTownLoD(meshData, 2);
             //Renderer::get_instance().SetFillMode(D3D11_FILL_SOLID);
             break;
         case SkinnedModelType::Church:
-            DrawChurch(modelData);
+            DrawChurch(meshData);
             break;
-        case SkinnedModelType::Weapon:
         default:
-            Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &modelData->diffuseTexture);
-            Renderer::get_instance().GetDeviceContext()->DrawIndexed(modelData->IndexNum, 0, 0);
+            Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
+            Renderer::get_instance().GetDeviceContext()->DrawIndexed(meshData->IndexNum, 0, 0);
             break;
         }
 
 #ifdef _DEBUG
         //if (drawBoundingBox)
-        //    DrawBoundingBox(modelData);
+        //    DrawBoundingBox(meshData);
 #endif
 
         // カリング設定を戻す
@@ -174,39 +211,132 @@ void SkinnedMeshModel::DrawModel()
     }
 }
 
+void SkinnedMeshModel::SetOverallDiffuseTexture(void)
+{
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        MeshData* meshData = it.value;
+        if (meshData->diffuseTextureName)
+        {
+            m_pendingTextureCount++;
+            TextureMgr::get_instance().RequestTextureAsync(
+                meshData->diffuseTextureName,
+                &meshData->diffuseTexture,
+                [](bool success, void* param)
+                {
+                    SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+                    model->m_completedTextureCount++;
+                },
+                this
+            );
+
+        }
+    }
+}
+
 void SkinnedMeshModel::SetBodyDiffuseTexture(char* texturePath)
 {
-    bodyDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetBodyLightMapTexture(char* texturePath)
 {
-    bodyLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetBodyNormalMapTexture(char* texturePath)
 {
-    bodyNormalMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &bodyNormalMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetHairDiffuseTexture(char* texturePath)
 {
-    hairDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &hairDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetHairLightMapTexture(char* texturePath)
 {
-    hairLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &hairLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetFaceDiffuseTexture(char* texturePath)
 {
-    faceDiffuseTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &faceDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::SetFaceLightMapTexture(char* texturePath)
 {
-    faceLightMapTexture = TextureMgr::get_instance().CreateTexture(texturePath);
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &faceLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
 }
 
 void SkinnedMeshModel::LoadTownTexture(void)
@@ -253,43 +383,48 @@ void SkinnedMeshModel::LoadTownTexture(void)
     Indoor_MdBuild_WindowEffect04_NoStream = TextureMgr::get_instance().CreateTexture("data/MODEL/Environment/Church/Indoor_MdBuild_WindowEffect04_NoStream.png");
 }
 
+bool SkinnedMeshModel::AreAllTexturesLoaded(void) const
+{
+    return m_completedTextureCount >= m_pendingTextureCount;
+}
+
 void SkinnedMeshModel::GetBoneTransformByAnim(FbxNode* currentClipArmatureNode, uint64_t currentClipTime, 
     SimpleArray<XMFLOAT4X4>* boneFinalTransform, AnimationInfo& animInfo)
 {
     (*boneFinalTransform).clear();
     
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
-        FbxNode* armatureNode = modelData->armatureNode;
+        MeshData* meshData = it.value;
+        FbxNode* armatureNode = meshData->armatureNode;
 
 
         if (armatureNode)
         {
-            boneTransformData.mModelGlobalScl.clear();
-            boneTransformData.mModelGlobalRot.clear();
-            boneTransformData.mModelTranslate.clear();
+            m_modelData.boneTransformData.mModelGlobalScl.clear();
+            m_modelData.boneTransformData.mModelGlobalRot.clear();
+            m_modelData.boneTransformData.mModelTranslate.clear();
 
-            boneTransformData.mModelGlobalTrans.clear();
-            boneTransformData.mModelLocalTrans.clear();
+            m_modelData.boneTransformData.mModelGlobalTrans.clear();
+            m_modelData.boneTransformData.mModelLocalTrans.clear();
 
-            boneTransformData.limbHashMap.clear();
+            m_modelData.boneTransformData.limbHashMap.clear();
 
             int curIdx = 0;
             int prevIdx = -1;
 
-            UpdateLimbGlobalTransform(currentClipArmatureNode, armatureNode, curIdx, prevIdx, currentClipTime, &boneTransformData, animInfo);
-            GetBoneTransform(*boneFinalTransform, modelData);
+            UpdateLimbGlobalTransform(currentClipArmatureNode, armatureNode, curIdx, prevIdx, currentClipTime, &m_modelData.boneTransformData, animInfo);
+            GetBoneTransform(*boneFinalTransform, meshData);
         }
     }
 }
 
 void SkinnedMeshModel::SetBoundingBoxLocationOffset(XMFLOAT3 offset, int boneIdx)
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
-        int numBoundigBoxes = modelData->boundingBoxes.getSize();
+        MeshData* meshData = it.value;
+        int numBoundigBoxes = meshData->boundingBoxes.getSize();
         if (boneIdx >= numBoundigBoxes)
             return;
 
@@ -297,9 +432,9 @@ void SkinnedMeshModel::SetBoundingBoxLocationOffset(XMFLOAT3 offset, int boneIdx
         for (int i = 0; i < numBoundigBoxes; i++)
         {
             XMFLOAT3 size = XMFLOAT3(
-                (modelData->boundingBoxes[i]->baseMaxPoint.x - modelData->boundingBoxes[i]->baseMinPoint.x),
-                (modelData->boundingBoxes[i]->baseMaxPoint.y - modelData->boundingBoxes[i]->baseMinPoint.y),
-                (modelData->boundingBoxes[i]->baseMaxPoint.z - modelData->boundingBoxes[i]->baseMinPoint.z)
+                (meshData->boundingBoxes[i]->baseMaxPoint.x - meshData->boundingBoxes[i]->baseMinPoint.x),
+                (meshData->boundingBoxes[i]->baseMaxPoint.y - meshData->boundingBoxes[i]->baseMinPoint.y),
+                (meshData->boundingBoxes[i]->baseMaxPoint.z - meshData->boundingBoxes[i]->baseMinPoint.z)
             );
 
             XMFLOAT3 offsetVal = XMFLOAT3(
@@ -309,34 +444,34 @@ void SkinnedMeshModel::SetBoundingBoxLocationOffset(XMFLOAT3 offset, int boneIdx
             );
 
             XMFLOAT3 newMaxPoint = XMFLOAT3(
-                modelData->boundingBoxes[i]->baseMaxPoint.x + offsetVal.x,
-                modelData->boundingBoxes[i]->baseMaxPoint.y + offsetVal.y,
-                modelData->boundingBoxes[i]->baseMaxPoint.z + offsetVal.z
+                meshData->boundingBoxes[i]->baseMaxPoint.x + offsetVal.x,
+                meshData->boundingBoxes[i]->baseMaxPoint.y + offsetVal.y,
+                meshData->boundingBoxes[i]->baseMaxPoint.z + offsetVal.z
             );
 
 
             XMFLOAT3 newMinPoint = XMFLOAT3(
-                modelData->boundingBoxes[i]->baseMinPoint.x + offsetVal.x,
-                modelData->boundingBoxes[i]->baseMinPoint.y + offsetVal.y,
-                modelData->boundingBoxes[i]->baseMinPoint.z + offsetVal.z
+                meshData->boundingBoxes[i]->baseMinPoint.x + offsetVal.x,
+                meshData->boundingBoxes[i]->baseMinPoint.y + offsetVal.y,
+                meshData->boundingBoxes[i]->baseMinPoint.z + offsetVal.z
             );
 
-            modelData->boundingBoxes[i]->maxPoint = newMaxPoint;
-            modelData->boundingBoxes[i]->minPoint = newMinPoint;
-            modelData->boundingBoxes[i]->baseMaxPoint = newMaxPoint;
-            modelData->boundingBoxes[i]->baseMinPoint = newMinPoint;
+            meshData->boundingBoxes[i]->maxPoint = newMaxPoint;
+            meshData->boundingBoxes[i]->minPoint = newMinPoint;
+            meshData->boundingBoxes[i]->baseMaxPoint = newMaxPoint;
+            meshData->boundingBoxes[i]->baseMinPoint = newMinPoint;
 
-            CreateBoundingBoxVertex(modelData->boundingBoxes[i]);
+            CreateBoundingBoxVertex(meshData->boundingBoxes[i]);
         }
     }
 }
 
 void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
-        int numBoundigBoxes = modelData->boundingBoxes.getSize();
+        MeshData* meshData = it.value;
+        int numBoundigBoxes = meshData->boundingBoxes.getSize();
         if (boneIdx >= numBoundigBoxes)
             return;
 
@@ -344,9 +479,9 @@ void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
         for (int i = 0; i < numBoundigBoxes; i++)
         {
             XMFLOAT3 oldSize = XMFLOAT3(
-                (modelData->boundingBoxes[i]->baseMaxPoint.x - modelData->boundingBoxes[i]->baseMinPoint.x),
-                (modelData->boundingBoxes[i]->baseMaxPoint.y - modelData->boundingBoxes[i]->baseMinPoint.y),
-                (modelData->boundingBoxes[i]->baseMaxPoint.z - modelData->boundingBoxes[i]->baseMinPoint.z));
+                (meshData->boundingBoxes[i]->baseMaxPoint.x - meshData->boundingBoxes[i]->baseMinPoint.x),
+                (meshData->boundingBoxes[i]->baseMaxPoint.y - meshData->boundingBoxes[i]->baseMinPoint.y),
+                (meshData->boundingBoxes[i]->baseMaxPoint.z - meshData->boundingBoxes[i]->baseMinPoint.z));
 
             XMFLOAT3 newSize = XMFLOAT3(
                 oldSize.x * size.x,
@@ -354,86 +489,45 @@ void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
                 oldSize.z * size.z);
 
             XMFLOAT3 newMaxPoint = XMFLOAT3(
-                modelData->boundingBoxes[i]->baseMaxPoint.x + (newSize.x - oldSize.x) / 2,
-                modelData->boundingBoxes[i]->baseMaxPoint.y + (newSize.y - oldSize.y) / 2,
-                modelData->boundingBoxes[i]->baseMaxPoint.z + (newSize.z - oldSize.z) / 2);
+                meshData->boundingBoxes[i]->baseMaxPoint.x + (newSize.x - oldSize.x) / 2,
+                meshData->boundingBoxes[i]->baseMaxPoint.y + (newSize.y - oldSize.y) / 2,
+                meshData->boundingBoxes[i]->baseMaxPoint.z + (newSize.z - oldSize.z) / 2);
 
             XMFLOAT3 newMinPoint = XMFLOAT3(
-                modelData->boundingBoxes[i]->baseMinPoint.x - (newSize.x - oldSize.x) / 2,
-                modelData->boundingBoxes[i]->baseMinPoint.y - (newSize.y - oldSize.y) / 2,
-                modelData->boundingBoxes[i]->baseMinPoint.z - (newSize.z - oldSize.z) / 2);
+                meshData->boundingBoxes[i]->baseMinPoint.x - (newSize.x - oldSize.x) / 2,
+                meshData->boundingBoxes[i]->baseMinPoint.y - (newSize.y - oldSize.y) / 2,
+                meshData->boundingBoxes[i]->baseMinPoint.z - (newSize.z - oldSize.z) / 2);
 
-            modelData->boundingBoxes[i]->maxPoint = newMaxPoint;
-            modelData->boundingBoxes[i]->minPoint = newMinPoint;
-            modelData->boundingBoxes[i]->baseMaxPoint = newMaxPoint;
-            modelData->boundingBoxes[i]->baseMinPoint = newMinPoint;
+            meshData->boundingBoxes[i]->maxPoint = newMaxPoint;
+            meshData->boundingBoxes[i]->minPoint = newMinPoint;
+            meshData->boundingBoxes[i]->baseMaxPoint = newMaxPoint;
+            meshData->boundingBoxes[i]->baseMinPoint = newMinPoint;
 
-            CreateBoundingBoxVertex(modelData->boundingBoxes[i]);
+            CreateBoundingBoxVertex(meshData->boundingBoxes[i]);
 
-            boundingBox.maxPoint = newMaxPoint;
-            boundingBox.minPoint = newMinPoint;
+            m_modelData.boundingBox.maxPoint = newMaxPoint;
+            m_modelData.boundingBox.minPoint = newMinPoint;
         }
     }
 }
 
-void SkinnedMeshModel::BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool alwaysFaceUp)
+void SkinnedMeshModel::BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceUp)
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
-        
-        //XMFLOAT3 worldPos1, worldPos2;
-
-        //XMVECTOR localAABBMax = XMVectorSet(
-        //    modelData->boundingBoxes[0]->baseMaxPoint.x,
-        //    modelData->boundingBoxes[0]->baseMaxPoint.y,
-        //    modelData->boundingBoxes[0]->baseMaxPoint.z,
-        //    1.0f
-        //);
-
-        //XMVECTOR localAABBMin = XMVectorSet(
-        //    modelData->boundingBoxes[0]->baseMinPoint.x,
-        //    modelData->boundingBoxes[0]->baseMinPoint.y,
-        //    modelData->boundingBoxes[0]->baseMinPoint.z,
-        //    1.0f
-        //);
+        MeshData* meshData = it.value;
 
         XMMATRIX boneTransform = GetBoneFinalTransform();
-
-        //XMVECTOR skinnedAABBMax = XMVector3Transform(localAABBMax, boneTransform);
-        //XMVECTOR skinnedAABBMin = XMVector3Transform(localAABBMin, boneTransform);
-
-        //XMVECTOR worldPosMax = XMVector3Transform(skinnedAABBMax, worldMatrix);
-        //XMVECTOR worldPosMin = XMVector3Transform(skinnedAABBMin, worldMatrix);
-
-
-        //XMStoreFloat3(&worldPos1, worldPosMax);
-        //XMStoreFloat3(&worldPos2, worldPosMin);
-
-        //boundingBox.maxPoint = XMFLOAT3(
-        //    max(worldPos1.x, worldPos2.x),
-        //    max(worldPos1.y, worldPos2.y),
-        //    max(worldPos1.z, worldPos2.z)
-        //);
-
-        //boundingBox.minPoint = XMFLOAT3(
-        //    min(worldPos1.x, worldPos2.x),
-        //    min(worldPos1.y, worldPos2.y),
-        //    min(worldPos1.z, worldPos2.z)
-        //);
-
-        
-
-        int vertexNum = modelData->VertexNum;
+        int vertexNum = meshData->VertexNum;
         SimpleArray<XMFLOAT3> triangleVertices(3);
         for (int i = 0; i < vertexNum; i++)
         {
             XMFLOAT3 worldPos;
 
             XMVECTOR localPosVec = XMVectorSet(
-                modelData->VertexArray[i].Position.x,
-                modelData->VertexArray[i].Position.y,
-                modelData->VertexArray[i].Position.z, 
+                meshData->VertexArray[i].Position.x,
+                meshData->VertexArray[i].Position.y,
+                meshData->VertexArray[i].Position.z, 
                 1.0f
             );
 
@@ -453,7 +547,7 @@ void SkinnedMeshModel::BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool al
                 );
 
 
-                modelData->triangles.push_back(triangle);
+                meshData->triangles.push_back(triangle);
                 triangleVertices.clear();
 
             }
@@ -462,11 +556,11 @@ void SkinnedMeshModel::BuildTrianglesByWorldMatrix(XMMATRIX worldMatrix, bool al
     }
 }
 
-void SkinnedMeshModel::BuildTrianglesByBoundingBox(BOUNDING_BOX box)
+void SkinnedMeshModel::BuildBoundingBoxTriangles(BOUNDING_BOX box)
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
+        MeshData* meshData = it.value;
 
         // AABB の 8 つの頂点を定義
         XMFLOAT3 v0 = XMFLOAT3(box.minPoint.x, box.minPoint.y, box.minPoint.z);
@@ -489,50 +583,50 @@ void SkinnedMeshModel::BuildTrianglesByBoundingBox(BOUNDING_BOX box)
         // 各面を 2 つの三角形で作成（法線を追加）
 
         // -X 面
-        modelData->triangles.push_back(new Triangle(v3, v7, v5, normalXMinus)); // 三角形 1
-        modelData->triangles.push_back(new Triangle(v3, v5, v1, normalXMinus)); // 三角形 2
+        meshData->triangles.push_back(new Triangle(v3, v7, v5, normalXMinus)); // 三角形 1
+        meshData->triangles.push_back(new Triangle(v3, v5, v1, normalXMinus)); // 三角形 2
 
         // +X 面
-        modelData->triangles.push_back(new Triangle(v2, v0, v4, normalXPlus)); // 三角形 3
-        modelData->triangles.push_back(new Triangle(v2, v4, v6, normalXPlus)); // 三角形 4
+        meshData->triangles.push_back(new Triangle(v2, v0, v4, normalXPlus)); // 三角形 3
+        meshData->triangles.push_back(new Triangle(v2, v4, v6, normalXPlus)); // 三角形 4
 
         // -Y 面
-        modelData->triangles.push_back(new Triangle(v2, v6, v7, normalYPlus)); // 三角形 5
-        modelData->triangles.push_back(new Triangle(v2, v7, v3, normalYPlus)); // 三角形 6
+        meshData->triangles.push_back(new Triangle(v2, v6, v7, normalYPlus)); // 三角形 5
+        meshData->triangles.push_back(new Triangle(v2, v7, v3, normalYPlus)); // 三角形 6
 
         // +Y 面
-        modelData->triangles.push_back(new Triangle(v0, v1, v5, normalYMinus)); // 三角形 7
-        modelData->triangles.push_back(new Triangle(v0, v5, v4, normalYMinus)); // 三角形 8
+        meshData->triangles.push_back(new Triangle(v0, v1, v5, normalYMinus)); // 三角形 7
+        meshData->triangles.push_back(new Triangle(v0, v5, v4, normalYMinus)); // 三角形 8
 
         // -Z 面
-        modelData->triangles.push_back(new Triangle(v7, v6, v4, normalZMinus)); // 三角形 9
-        modelData->triangles.push_back(new Triangle(v7, v4, v5, normalZMinus)); // 三角形 10
+        meshData->triangles.push_back(new Triangle(v7, v6, v4, normalZMinus)); // 三角形 9
+        meshData->triangles.push_back(new Triangle(v7, v4, v5, normalZMinus)); // 三角形 10
 
         // +Z 面
-        modelData->triangles.push_back(new Triangle(v3, v2, v0, normalZPlus)); // 三角形 11
-        modelData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
+        meshData->triangles.push_back(new Triangle(v3, v2, v0, normalZPlus)); // 三角形 11
+        meshData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
     }
 }
 
 bool SkinnedMeshModel::BuildOctree(void)
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
+        MeshData* meshData = it.value;
 
-        if (!modelData->triangles.getSize())
+        if (!meshData->triangles.getSize())
             return false;
 
-        if (!modelData->boundingBoxes.getSize())
+        if (!meshData->boundingBoxes.getSize())
             return false;
 
         if (CollisionManager::get_instance().staticOctree == nullptr)
-            CollisionManager::get_instance().staticOctree = new OctreeNode(boundingBox);
+            CollisionManager::get_instance().staticOctree = new OctreeNode(m_modelData.boundingBox);
 
-        int numTriangles = modelData->triangles.getSize();
+        int numTriangles = meshData->triangles.getSize();
         for (int i = 0; i < numTriangles; i++)
         {
-            if (!CollisionManager::get_instance().staticOctree->insert(modelData->triangles[i]))
+            if (!CollisionManager::get_instance().staticOctree->insert(meshData->triangles[i]))
                 return false;
         }
     }
@@ -542,28 +636,50 @@ bool SkinnedMeshModel::BuildOctree(void)
 
 const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
 {
-    for (auto& it : meshDataMap)
+    for (auto& it : m_modelData.meshDataMap)
     {
-        ModelData* modelData = it.value;
+        MeshData* meshData = it.value;
 
-        return &modelData->triangles;
+        return &meshData->triangles;
     }
 
     return nullptr;
+}
+
+bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+{
+    SetDrawBoundingBox(drawBoundingBox);
+
+    bool success = false;
+    BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+    success = BuildOctree();
+
+    return success;
+}
+
+bool SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+{
+    SetDrawBoundingBox(drawBoundingBox);
+
+    bool success = false;
+    BuildBoundingBoxTriangles(box);
+    success = BuildOctree();
+
+    return success;
 }
 
 void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip, float startTime)
 {
     if (currAnimClip)
     {
-        this->currentAnimClip = currAnimClip;
-        this->currentAnimClip->currentTime = static_cast<uint64_t>(currAnimClip->stopTime * startTime);
+        this->m_modelData.currentAnimClip = currAnimClip;
+        this->m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(currAnimClip->stopTime * startTime);
     }
 }
 
 AnimationClip* SkinnedMeshModel::GetAnimationClip(AnimClipName clipName)
 {
-    AnimationClip* animClip = animationClips.search(clipName);
+    AnimationClip* animClip = m_modelData.animationClips.search(clipName);
     if (animClip)
         return animClip;
 
@@ -572,14 +688,19 @@ AnimationClip* SkinnedMeshModel::GetAnimationClip(AnimClipName clipName)
 
 void SkinnedMeshModel::PlayCurrentAnim(float playSpeed)
 {
-    currentAnimClip->currentTime += static_cast<uint64_t>(ANIM_SPD * playSpeed * t.GetScaledDeltaTime());
+    m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(ANIM_SPD * playSpeed * t.GetScaledDeltaTime());
+}
+
+void SkinnedMeshModel::ResetCurrentAnim(void)
+{
+    m_modelData.currentAnimClip->currentTime = 0;
 }
 
 XMMATRIX SkinnedMeshModel::GetWeaponTransformMtx(void)
 {
-    if (boneTransformData.mBoneFinalTransforms.getSize() > weaponTransformIdx)
+    if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.weaponTransformIdx)
     {
-        XMFLOAT4X4 transform =  boneTransformData.mBoneFinalTransforms[weaponTransformIdx];
+        XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.weaponTransformIdx];
 
         return XMLoadFloat4x4(&transform);
     }
@@ -589,9 +710,9 @@ XMMATRIX SkinnedMeshModel::GetWeaponTransformMtx(void)
 
 XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
 {
-    if (boneTransformData.mBoneFinalTransforms.getSize() > 1)
+    if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > 1)
     {
-        XMFLOAT4X4 transform = boneTransformData.mBoneFinalTransforms[1];
+        XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[1];
 
         return XMLoadFloat4x4(&transform);
     }
@@ -601,9 +722,9 @@ XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
 
 XMMATRIX SkinnedMeshModel::GetBoneFinalTransform(UINT boneIdx)
 {
-    if (boneTransformData.mBoneFinalTransforms.getSize() > boneIdx )
+    if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > boneIdx )
     {
-        XMFLOAT4X4 transform = boneTransformData.mBoneFinalTransforms[boneIdx];
+        XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[boneIdx];
 
         return XMLoadFloat4x4(&transform);
     }
@@ -613,55 +734,15 @@ XMMATRIX SkinnedMeshModel::GetBoneFinalTransform(UINT boneIdx)
 
 const XMMATRIX* SkinnedMeshModel::GetFinalBoneMatrices(void)
 {
-    UINT size = boneTransformData.mBoneFinalTransforms.getSize();
+    UINT size = m_modelData.boneTransformData.mBoneFinalTransforms.getSize();
     if (size == 0) return nullptr;
 
     for (UINT i = 0; i < size; i++) 
     {
         m_transposedBoneMatrices[i] =
-            XMMatrixTranspose(XMLoadFloat4x4(&boneTransformData.mBoneFinalTransforms[i]));
+            XMMatrixTranspose(XMLoadFloat4x4(&m_modelData.boneTransformData.mBoneFinalTransforms[i]));
     }
     return m_transposedBoneMatrices;
-}
-
-SkinnedMeshModel::SkinnedMeshModel()
-{
-    armatureNode = nullptr;
-    currentRootNodeID = 0;
-    weaponTransformIdx = 0;
-
-    armatureNode = nullptr;
-
-    bodyDiffuseTexture = nullptr;
-    bodyLightMapTexture = nullptr;
-    bodyNormalMapTexture = nullptr;
-    hairDiffuseTexture = nullptr;
-    hairLightMapTexture = nullptr;
-    faceDiffuseTexture = nullptr;
-    faceLightMapTexture = nullptr;
-
-    drawBoundingBox = true;
-}
-
-SkinnedMeshModel::~SkinnedMeshModel()
-{
-    SafeRelease(&bodyDiffuseTexture);
-    SafeRelease(&bodyLightMapTexture);
-    SafeRelease(&bodyNormalMapTexture);
-    SafeRelease(&hairDiffuseTexture);
-    SafeRelease(&hairLightMapTexture);
-    SafeRelease(&faceDiffuseTexture);
-    SafeRelease(&faceLightMapTexture);
-
-    for (auto& it : fbxNodes)
-    {
-        SAFE_DELETE(it.value);
-    }
-
-    for (auto& it : meshDataMap)
-    {
-        SAFE_DELETE(it.value);
-    }
 }
 
 XMMATRIX CreateRotationMatrix(float pitch, float yaw, float roll)
@@ -690,35 +771,108 @@ XMMATRIX CreateRotationMatrix(float pitch, float yaw, float roll)
     return XMMatrixTranspose(Rz * Ry * Rx);
 }
 
-SkinnedMeshModel* SkinnedMeshModel::StoreModel(char* modelPath, char* modelName, char* modelFullPath, 
+void SkinnedMeshModel::CreateGPUResources()
+{
+    // 二重初期化チェック
+    if (m_GPUResource)
+        return;
+
+    HRESULT hr = S_OK;
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        MeshData* meshData = it.value;
+
+        // 頂点バッファ生成
+        D3D11_BUFFER_DESC bd;
+        ZeroMemory(&bd, sizeof(bd));
+        bd.Usage = D3D11_USAGE_DYNAMIC;
+        bd.ByteWidth = sizeof(SKINNED_VERTEX_3D) * meshData->VertexNum;
+        bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        D3D11_SUBRESOURCE_DATA sd;
+        ZeroMemory(&sd, sizeof(sd));
+        sd.pSysMem = meshData->VertexArray;
+
+        hr = Renderer::get_instance().GetDevice()->CreateBuffer(&bd, &sd, &meshData->VertexBuffer);
+        assert(SUCCEEDED(hr));
+
+#ifdef _DEBUG
+        bd.ByteWidth = sizeof(SKINNED_VERTEX_3D) * 24;
+        for (UINT i = 0; i < meshData->boundingBoxes.getSize(); i++)
+        {
+            SKINNED_MESH_BOUNDING_BOX* boundingBox = meshData->boundingBoxes[i];
+            hr = Renderer::get_instance().GetDevice()->CreateBuffer(&bd, NULL, &boundingBox->BBVertexBuffer);
+            assert(SUCCEEDED(hr));
+
+            CreateBoundingBoxVertex(boundingBox);
+        }
+#endif // DEBUG
+
+        m_modelData.boundingBox.maxPoint = meshData->boundingBoxes[0]->maxPoint;
+        m_modelData.boundingBox.minPoint = meshData->boundingBoxes[0]->minPoint;
+
+        // インデックスバッファ生成
+        ZeroMemory(&bd, sizeof(bd));
+        bd.Usage = D3D11_USAGE_DEFAULT;
+        bd.ByteWidth = sizeof(unsigned int) * meshData->IndexNum;
+        bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        bd.CPUAccessFlags = 0;
+
+        ZeroMemory(&sd, sizeof(sd));
+        sd.pSysMem = meshData->IndexArray;
+
+        Renderer::get_instance().GetDevice()->CreateBuffer(&bd, &sd, &meshData->IndexBuffer);
+    }
+
+    if (!m_GPUResource)
+        m_GPUResource = true;
+}
+
+SkinnedMeshModel* SkinnedMeshModel::StoreModel(const char* modelPath, const char* modelName, const char* modelFullPath,
     SkinnedModelType modelType, AnimClipName clipName)
 {
     SkinnedMeshModelPool* modelPool = GetModel(modelFullPath);
-    if (modelPool == nullptr)
+
+    // 既にロードされている場合は、カウントを増やしてポインタを返す
+    if (modelPool)
     {
+        modelPool->count++;
+        SkinnedMeshModel* model = modelPool->pModel->Clone();
+        return model;
+    }
+
+    // モデルが AsyncModelLoader によってロード済みか？
+    AsyncModelLoader& loader = AsyncModelLoader::get_instance();
+
+    // モデルがロード済みかチェック
+    if (loader.IsLoaded<ModelLoadTask<SkinnedMeshModelData>>(modelFullPath))
+    {
+        // CreateModelIfReady() で GPU リソースを作成
+        SkinnedMeshModel* model = loader.CreateSkinnedMeshModelIfReady(modelFullPath);
+
+        // 安全チェック：まれにロードフラグありでもモデル構築失敗するケース
+        if (!model)
+            return nullptr; // ロード済みと見せかけて失敗していたケース（異常）
+
+
+        // モデルプールへ登録
         modelPool = new SkinnedMeshModelPool;
-        modelPool->pModel = new SkinnedMeshModel();
-        bool loadSuccess;
-        loadSuccess = fbxLoader.LoadModel(Renderer::get_instance().GetDevice(), mTexMgr,
-            *modelPool->pModel, modelPath, modelName,
-            nullptr, clipName, modelType);
-        if (!loadSuccess)
-            return nullptr;
+        modelPool->pModel = model;
         modelPool->count = 1;
         modelHashMap.insert(modelFullPath, *modelPool);
 
-        return modelPool->pModel;
-    }
-    else
-    {
-        modelPool->count++;
-        SkinnedMeshModel* model = new SkinnedMeshModel();
-        *model = *modelPool->pModel;
         return model;
     }
+
+    // 未ロード → ロード要求を保留リストに登録（次のフレームで処理）
+    loader.RequestLoadIfNotQueued(modelPath, modelName, modelFullPath, modelType);
+
+    // 今はリソースがないので null
+    return nullptr;
 }
 
-SkinnedMeshModelPool* SkinnedMeshModel::GetModel(char* modelFullPath)
+SkinnedMeshModelPool* SkinnedMeshModel::GetModel(const char* modelFullPath)
 {
     return modelHashMap.search(modelFullPath);
 }
@@ -753,15 +907,15 @@ void SkinnedMeshModel::UpdateLimbGlobalTransform(FbxNode* node, FbxNode* deformN
         LimbNodeAnimation* limbNodeAnimation = static_cast<LimbNodeAnimation*>(node->limbNodeAnimation);
         if (limbNodeAnimation)
         {
-            FbxNode** animationCurveNodeScl = fbxNodes.search(limbNodeAnimation->LclScl);
+            FbxNode** animationCurveNodeScl = m_modelData.fbxNodes.search(limbNodeAnimation->LclScl);
             XMFLOAT3 animationValueScl = GetAnimationValue(animationCurveNodeScl, modelProperty->Scaling, time, animInfo);
             mtxLocalScl = XMMatrixScaling(animationValueScl.x, animationValueScl.y, animationValueScl.z);
 
-            FbxNode** animationCurveNodeRot = fbxNodes.search(limbNodeAnimation->LclRot);
+            FbxNode** animationCurveNodeRot = m_modelData.fbxNodes.search(limbNodeAnimation->LclRot);
             XMFLOAT3 animationValueRot = GetAnimationValue(animationCurveNodeRot, modelProperty->Rotation, time, animInfo);
             mtxLocalRot = CreateRotationMatrix(XMConvertToRadians(animationValueRot.x), XMConvertToRadians(animationValueRot.y), XMConvertToRadians(animationValueRot.z));
 
-            FbxNode** animationCurveNodeTranslation = fbxNodes.search(limbNodeAnimation->LclTranslation);
+            FbxNode** animationCurveNodeTranslation = m_modelData.fbxNodes.search(limbNodeAnimation->LclTranslation);
             XMFLOAT3 animationValueTranslation = GetAnimationValue(animationCurveNodeTranslation, modelProperty->Translation, time, animInfo);
             mtxLocalTranslate = XMMatrixTranslation(animationValueTranslation.x, animationValueTranslation.y, animationValueTranslation.z);
 
@@ -848,9 +1002,9 @@ void SkinnedMeshModel::UpdateLimbGlobalTransform(FbxNode* node, FbxNode* deformN
     }
 }
 
-void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, ModelData* modelData)
+void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, MeshData* meshData)
 {
-    int numBones = modelData->mBoneHierarchy.getSize();
+    int numBones = meshData->mBoneHierarchy.getSize();
 
     if (numBones > 0)
     {
@@ -858,11 +1012,11 @@ void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransf
             boneFinalTransform.resize(numBones);
 
         SimpleArray<XMFLOAT4X4> toRootTransforms(numBones);
-        toRootTransforms[0] = modelData->mBoneToParentTransforms[0];
+        toRootTransforms[0] = meshData->mBoneToParentTransforms[0];
         for (int i = 1; i < numBones; i++)
         {
-            XMMATRIX toParent = XMLoadFloat4x4(&modelData->mBoneToParentTransforms[i]);
-            int parentIndex = modelData->mBoneHierarchy[i];
+            XMMATRIX toParent = XMLoadFloat4x4(&meshData->mBoneToParentTransforms[i]);
+            int parentIndex = meshData->mBoneHierarchy[i];
             XMMATRIX parentToRoot;
             if (parentIndex == -1)
                 parentToRoot = XMMatrixIdentity();
@@ -881,19 +1035,19 @@ void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransf
             uint64_t* pDeformerID = nullptr;
             uint64_t* pLimbID = nullptr;
 
-            pDeformerID = deformerHashMap.search(i);
+            pDeformerID = m_modelData.deformerHashMap.search(i);
             if (pDeformerID == nullptr) continue;
 
-            pDeformerIdx = deformerIdxHashMap.search(*pDeformerID);
+            pDeformerIdx = m_modelData.deformerIdxHashMap.search(*pDeformerID);
             if (pDeformerIdx)
                 deformerIdx = *pDeformerIdx;
 
-            pLimbID = deformerToLimb.search(*pDeformerID);
+            pLimbID = m_modelData.deformerToLimb.search(*pDeformerID);
             if (pLimbID == nullptr)
                 limbIdx = i;
             else
             {
-                pLimbIdx = boneTransformData.limbHashMap.search(*pLimbID);
+                pLimbIdx = m_modelData.boneTransformData.limbHashMap.search(*pLimbID);
                 if (pLimbIdx == nullptr) continue;
                 limbIdx = *pLimbIdx;
             }
@@ -902,17 +1056,17 @@ void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransf
 
             XMMATRIX mtxInverseRootTransform;
 
-            XMMATRIX mtxGlobalTrans = XMLoadFloat4x4(&boneTransformData.mModelGlobalTrans[limbIdx]);
-            XMMATRIX mtxLocalTrans = XMLoadFloat4x4(&boneTransformData.mModelLocalTrans[limbIdx]);
+            XMMATRIX mtxGlobalTrans = XMLoadFloat4x4(&m_modelData.boneTransformData.mModelGlobalTrans[limbIdx]);
+            XMMATRIX mtxLocalTrans = XMLoadFloat4x4(&m_modelData.boneTransformData.mModelLocalTrans[limbIdx]);
 
-            XMMATRIX offset = XMLoadFloat4x4(&modelData->mBoneOffsets[deformerIdx]);
+            XMMATRIX offset = XMLoadFloat4x4(&meshData->mBoneOffsets[deformerIdx]);
             XMMATRIX toRoot = XMLoadFloat4x4(&toRootTransforms[deformerIdx]);
             XMMATRIX mtxTrans = XMMatrixIdentity();
 
 
             XMFLOAT4X4* pBindPose = nullptr;
             if (pLimbID)
-                pBindPose = bindPose.mtxBindPoses.search(*pLimbID);
+                pBindPose = m_modelData.bindPose.mtxBindPoses.search(*pLimbID);
             XMMATRIX bindPose, inverseBindPose;
             if (pBindPose == nullptr)
             {
@@ -1035,9 +1189,9 @@ XMFLOAT3 SkinnedMeshModel::GetAnimationValue(FbxNode** ppAnimationCurve, XMFLOAT
 		AnimationCurveNode* animationCurveNode = static_cast<AnimationCurveNode*>((*ppAnimationCurve)->nodeData);
 		if (animationCurveNode)
 		{
-			FbxNode** animationCurveX = fbxNodes.search(animationCurveNode->dX);
-			FbxNode** animationCurveY = fbxNodes.search(animationCurveNode->dY);
-			FbxNode** animationCurveZ = fbxNodes.search(animationCurveNode->dZ);
+			FbxNode** animationCurveX = m_modelData.fbxNodes.search(animationCurveNode->dX);
+			FbxNode** animationCurveY = m_modelData.fbxNodes.search(animationCurveNode->dY);
+			FbxNode** animationCurveZ = m_modelData.fbxNodes.search(animationCurveNode->dZ);
 			animationValue.x = GetAnimationCurveValue(animationCurveX, time, defaultValue.x, animInfo);
 			animationValue.y = GetAnimationCurveValue(animationCurveY, time, defaultValue.y, animInfo);
 			animationValue.z = GetAnimationCurveValue(animationCurveZ, time, defaultValue.z, animInfo);
@@ -1110,19 +1264,19 @@ float SkinnedMeshModel::GetAnimationCurveValue(FbxNode** ppAnimationCurveNode, u
 		return defaultValue;
 }
 
-void SkinnedMeshModel::CalculateDrawParameters(ModelData* modelData, float startPercentage, float endPercentage, int& IndexNum, int& StartIndexLocation)
+void SkinnedMeshModel::CalculateDrawParameters(MeshData* meshData, float startPercentage, float endPercentage, int& IndexNum, int& StartIndexLocation)
 {
 
-    StartIndexLocation = static_cast<int>(floor(startPercentage * modelData->IndexNum));
+    StartIndexLocation = static_cast<int>(floor(startPercentage * meshData->IndexNum));
     StartIndexLocation = (StartIndexLocation / 3) * 3;
 
-    int EndIndexLocation = static_cast<int>(ceil(endPercentage * modelData->IndexNum));
+    int EndIndexLocation = static_cast<int>(ceil(endPercentage * meshData->IndexNum));
     EndIndexLocation = (EndIndexLocation / 3) * 3;
 
     IndexNum = EndIndexLocation - StartIndexLocation;
 }
 
-void SkinnedMeshModel::DrawSigewinne(ModelData* modelData)
+void SkinnedMeshModel::DrawSigewinne(MeshData* meshData)
 {
     // ポリゴン描画
     int IndexNum, StartIndexLocation;
@@ -1130,41 +1284,41 @@ void SkinnedMeshModel::DrawSigewinne(ModelData* modelData)
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, faceDiffuseTexture);
     if (faceLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, faceLightMapTexture);
-    CalculateDrawParameters(modelData, 0, 0.001894f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0, 0.001894f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, bodyDiffuseTexture);
     if (bodyLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, bodyDiffuseTexture);
-    CalculateDrawParameters(modelData, 0.001894f, 0.00715f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.001894f, 0.00715f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, faceDiffuseTexture);
     if (faceLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, faceLightMapTexture);
-    CalculateDrawParameters(modelData, 0.00715f, 0.047f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.00715f, 0.047f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, hairDiffuseTexture);
     if (hairLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, hairLightMapTexture);
-    CalculateDrawParameters(modelData, 0.047f, 0.44f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.047f, 0.44f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, bodyDiffuseTexture);
     if (bodyLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, bodyDiffuseTexture);
-    CalculateDrawParameters(modelData, 0.44f, 0.916f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.44f, 0.916f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, faceDiffuseTexture);
     if (faceLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, faceLightMapTexture);
-    CalculateDrawParameters(modelData, 0.916f, 0.996f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.916f, 0.996f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }
 
-void SkinnedMeshModel::DrawKlee(ModelData* modelData)
+void SkinnedMeshModel::DrawKlee(MeshData* meshData)
 {
     // ポリゴン描画
     int IndexNum, StartIndexLocation;
@@ -1172,23 +1326,23 @@ void SkinnedMeshModel::DrawKlee(ModelData* modelData)
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, hairDiffuseTexture);
     if (hairLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, hairLightMapTexture);
-    CalculateDrawParameters(modelData, 0, 0.149f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0, 0.149f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, bodyDiffuseTexture);
     if (bodyLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, bodyDiffuseTexture);
-    CalculateDrawParameters(modelData, 0.149f, 0.854f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.149f, 0.854f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, faceDiffuseTexture);
     if (faceLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, faceLightMapTexture);
-    CalculateDrawParameters(modelData, 0.8628f, 0.9966f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.8628f, 0.9966f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }
 
-void SkinnedMeshModel::DrawLumine(ModelData* modelData)
+void SkinnedMeshModel::DrawLumine(MeshData* meshData)
 {
     // ポリゴン描画
     int IndexNum, StartIndexLocation;
@@ -1196,344 +1350,344 @@ void SkinnedMeshModel::DrawLumine(ModelData* modelData)
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, hairDiffuseTexture);
     if (hairLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, hairLightMapTexture);
-    CalculateDrawParameters(modelData, 0, 0.1323f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0, 0.1323f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, bodyDiffuseTexture);
     if (bodyLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, bodyDiffuseTexture);
-    CalculateDrawParameters(modelData, 0.1323f, 0.847f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.1323f, 0.847f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, faceDiffuseTexture);
     if (faceLightMapTexture)
         ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_LIGHT, faceLightMapTexture);
-    CalculateDrawParameters(modelData, 0.847f, 1.0f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.847f, 1.0f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }
 
-void SkinnedMeshModel::DrawField(ModelData* modelData)
+void SkinnedMeshModel::DrawField(MeshData* meshData)
 {
-    Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &modelData->diffuseTexture);
-    Renderer::get_instance().GetDeviceContext()->DrawIndexed(modelData->IndexNum, 0, 0);
+    Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
+    Renderer::get_instance().GetDeviceContext()->DrawIndexed(meshData->IndexNum, 0, 0);
 }
 
-void SkinnedMeshModel::DrawChurch(ModelData* modelData)
+void SkinnedMeshModel::DrawChurch(MeshData* meshData)
 {
     int IndexNum, StartIndexLocation;
 
     Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Indoor_Mdprops_Church_Lights01_Diffuse);
-    CalculateDrawParameters(modelData, 0, 0.262f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0, 0.262f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Flag_Diffuse);
-    CalculateDrawParameters(modelData, 0.262f, 0.33f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.262f, 0.33f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
     Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Indoor_MdProps_Church_Item01_Diffuse);
-    CalculateDrawParameters(modelData, 0.33f, 0.42f, IndexNum, StartIndexLocation);
+    CalculateDrawParameters(meshData, 0.33f, 0.42f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }
 
-void SkinnedMeshModel::DrawTownLoD(ModelData* modelData, int LoD)
+void SkinnedMeshModel::DrawTownLoD(MeshData* meshData, int LoD)
 {
     int IndexNum, StartIndexLocation;
 
     if (LoD == 0)
     {
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Wall09_Diffuse);
-        CalculateDrawParameters(modelData, 0, 0.25f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0, 0.25f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.25f, 0.79f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.25f, 0.79f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof05_Diffuse);
-        CalculateDrawParameters(modelData, 0.79f, 0.81f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.79f, 0.81f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.81f, 0.84f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.81f, 0.84f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window50_Diffuse);
-        CalculateDrawParameters(modelData, 0.84f, 0.92f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.84f, 0.92f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
     }
     else if (LoD == 1)
     {
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof05_Diffuse);
-        CalculateDrawParameters(modelData, 0, 0.006f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0, 0.006f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.006f, 0.105f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.006f, 0.105f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.105f, 0.115f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.105f, 0.115f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.115f, 0.123f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.115f, 0.123f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.123f, 0.126f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.123f, 0.126f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Wall09_Diffuse);
-        CalculateDrawParameters(modelData, 0.126f, 0.13f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.126f, 0.13f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Wall07_Diffuse);
-        CalculateDrawParameters(modelData, 0.13f, 0.1305f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.13f, 0.1305f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof05_Diffuse);
-        CalculateDrawParameters(modelData, 0.1305f, 0.1365f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.1305f, 0.1365f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.1365f, 0.2355f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.1365f, 0.2355f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.2355f, 0.2455f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2355f, 0.2455f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.2455f, 0.2535f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2455f, 0.2535f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.2535f, 0.2565f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2535f, 0.2565f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Wall09_Diffuse);
-        CalculateDrawParameters(modelData, 0.2565f, 0.2616f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2565f, 0.2616f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof05_Diffuse);
-        CalculateDrawParameters(modelData, 0.2616f, 0.2665f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2616f, 0.2665f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.2665f, 0.3655f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.2665f, 0.3655f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.3655f, 0.3755f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.3655f, 0.3755f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.3755f, 0.3835f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.3755f, 0.3835f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.3835f, 0.3865f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.3835f, 0.3865f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Wall09_Diffuse);
-        CalculateDrawParameters(modelData, 0.3865f, 0.391f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.3865f, 0.391f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.391f, 0.39385f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.391f, 0.39385f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof04_Diffuse);
-        CalculateDrawParameters(modelData, 0.39385f, 0.39626f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.39385f, 0.39626f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.39626f, 0.471f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.39626f, 0.471f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.471f, 0.483f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.471f, 0.483f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.483f, 0.4874f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.483f, 0.4874f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.4874f, 0.4895f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.4874f, 0.4895f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof04_Diffuse);
-        CalculateDrawParameters(modelData, 0.4895f, 0.49191f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.4895f, 0.49191f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.49191f, 0.56665f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.49191f, 0.56665f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.56665f, 0.57865f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.56665f, 0.57865f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.57865f, 0.58378f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.57865f, 0.58378f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.58378f, 0.6708f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.58378f, 0.6708f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.6708f, 0.672f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.6708f, 0.672f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.672f, 0.6752f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.672f, 0.6752f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.6752f, 0.677f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.6752f, 0.677f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.677f, 0.67754f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.677f, 0.67754f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof04_Diffuse);
-        CalculateDrawParameters(modelData, 0.67754f, 0.67882f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.67754f, 0.67882f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Wall07_Diffuse);
-        CalculateDrawParameters(modelData, 0.67882f, 0.682f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.67882f, 0.682f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.682f, 0.6878f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.682f, 0.6878f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Wood_Pillar_02_T2_Diffuse);
-        CalculateDrawParameters(modelData, 0.6878f, 0.77482f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.6878f, 0.77482f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.77482f, 0.7761f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.77482f, 0.7761f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.7761f, 0.7793f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.7761f, 0.7793f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_ManorWall01_Diffuse);
-        CalculateDrawParameters(modelData, 0.7793f, 0.7811f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.7793f, 0.7811f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_Mdbuild_Edge01_Diffuse);
-        CalculateDrawParameters(modelData, 0.7811f, 0.78164f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.7811f, 0.78164f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Roof04_Diffuse);
-        CalculateDrawParameters(modelData, 0.78164f, 0.78292f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.78164f, 0.78292f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_House_Wall07_Diffuse);
-        CalculateDrawParameters(modelData, 0.78292f, 0.7861f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.78292f, 0.7861f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Window_A_Diffuse);
-        CalculateDrawParameters(modelData, 0.7861f, 0.7919f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.7861f, 0.7919f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_Column01_Diffuse);
-        CalculateDrawParameters(modelData, 0.7919f, 0.8339f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.7919f, 0.8339f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_CyTree02_Leaf_Diffuse);
-        CalculateDrawParameters(modelData, 0.8339f, 0.843f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.8339f, 0.843f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Tree04_Bark_Diffuse);
-        CalculateDrawParameters(modelData, 0.843f, 0.845f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.843f, 0.845f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_CyTree02_Leaf_Diffuse);
-        CalculateDrawParameters(modelData, 0.845f, 0.86f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.845f, 0.86f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Tree04_Bark_Diffuse);
-        CalculateDrawParameters(modelData, 0.86f, 0.865f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.86f, 0.865f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_CyTree02_Leaf_Diffuse);
-        CalculateDrawParameters(modelData, 0.865f, 0.878f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.865f, 0.878f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_Tree04_Bark_Diffuse);
-        CalculateDrawParameters(modelData, 0.878f, 0.885f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.878f, 0.885f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Stages_CyTree02_Leaf_Diffuse);
-        CalculateDrawParameters(modelData, 0.885f, 1.0f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.885f, 1.0f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
     }
     else if (LoD == 2)
     {
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_All_Diffuse);
-        CalculateDrawParameters(modelData, 0, 0.265f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0, 0.265f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdCity_Plot05_Diffuse);
-        CalculateDrawParameters(modelData, 0.265f, 0.277f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.265f, 0.277f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdCity_Plot04_Diffuse);
-        CalculateDrawParameters(modelData, 0.277f, 0.29f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.277f, 0.29f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdCity_Plot03_Diffuse);
-        CalculateDrawParameters(modelData, 0.29f, 0.29576f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.29f, 0.29576f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdCity_Plot02_Diffuse);
-        CalculateDrawParameters(modelData, 0.29576f, 0.479485f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.29576f, 0.479485f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_All_Diffuse);
-        CalculateDrawParameters(modelData, 0.479485f, 0.564f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.479485f, 0.564f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdProps_Gadget02_Diffuse);
-        CalculateDrawParameters(modelData, 0.59f, 0.60255f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.59f, 0.60255f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdBuild_All_Diffuse);
-        CalculateDrawParameters(modelData, 0.60255f, 0.986f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.60255f, 0.986f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 
         Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &Area_MdCity_Plot09_Diffuse);
-        CalculateDrawParameters(modelData, 0.986f, 1.0f, IndexNum, StartIndexLocation);
+        CalculateDrawParameters(meshData, 0.986f, 1.0f, IndexNum, StartIndexLocation);
         Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
     }
 }
 
 
-void SkinnedMeshModel::DrawBoundingBox(ModelData* modelData)
+void SkinnedMeshModel::DrawBoundingBox(MeshData* meshData)
 {
     Renderer::get_instance().SetFillMode(D3D11_FILL_WIREFRAME);
 
-    int numBoundingBox = modelData->boundingBoxes.getSize();
+    int numBoundingBox = meshData->boundingBoxes.getSize();
     for (int i = 0; i < numBoundingBox; i++)
     {
 
         // 頂点バッファ設定
         UINT stride = sizeof(SKINNED_VERTEX_3D);
         UINT offset = 0;
-        Renderer::get_instance().GetDeviceContext()->IASetVertexBuffers(0, 1, &modelData->boundingBoxes[i]->BBVertexBuffer, &stride, &offset);
+        Renderer::get_instance().GetDeviceContext()->IASetVertexBuffers(0, 1, &meshData->boundingBoxes[i]->BBVertexBuffer, &stride, &offset);
 
         // プリミティブトポロジ設定
         Renderer::get_instance().GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -1552,8 +1706,10 @@ void SkinnedMeshModel::DrawBoundingBox(ModelData* modelData)
 
 void SkinnedMeshModel::CreateBoundingBoxVertex(SKINNED_MESH_BOUNDING_BOX* boundingBox) const
 {
+    HRESULT hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE msr;
-    Renderer::get_instance().GetDeviceContext()->Map(boundingBox->BBVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    hr = Renderer::get_instance().GetDeviceContext()->Map(boundingBox->BBVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    assert(SUCCEEDED(hr));
 
     SKINNED_VERTEX_3D* vertex = (SKINNED_VERTEX_3D*)msr.pData;
    
@@ -1682,7 +1838,7 @@ void SkinnedMeshModel::CreateBoundingBoxVertex(SKINNED_MESH_BOUNDING_BOX* boundi
 void SkinnedMeshModel::BuildMeshParts(void)
 {
     m_meshParts.clear();
-    for (const auto& it : meshDataMap)
+    for (const auto& it : m_modelData.meshDataMap)
     {
         SkinnedMeshPart part = {};
         part.VertexBuffer = it.value->VertexBuffer;

@@ -12,6 +12,7 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/Mitachurl.h"
+#include "Scene/Item.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 
@@ -52,6 +53,13 @@ public:
 	void DrawEffect(void);
 	Transform GetTransform(void) const;
 
+	void InitializePlayerStatus(void);
+
+	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
+	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
+
+	void PickItem(Item* obj);
+
 private:
 
 	void UpdateActionQueue(void);
@@ -70,6 +78,8 @@ private:
 	Mitachurl* mitachurl;
 
 	bool m_drawBoundingBox = true;
+	int m_currentModelLoadCnt = 0;
+	int m_totalModelLoadCnt = 1;
 
 	GameObject<SkinnedMeshModelInstance>* m_playerGO;
 
@@ -80,4 +90,6 @@ private:
 
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
+
+	bool m_hasWeapon = false;
 };

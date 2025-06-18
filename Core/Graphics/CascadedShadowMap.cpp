@@ -249,7 +249,7 @@ void CascadedShadowMap::CollectFromScene(int cascadeIndex, const SimpleArray<IGa
 
     for (auto* obj : objects)
     {
-        if (!obj->GetUse() || !obj->GetCastShadow()) continue;
+        if (!obj->GetLoad() || !obj->GetUse() || !obj->GetCastShadow()) continue;
 
 		if (obj->GetModelType() == ModelType::Instanced)
 		{
@@ -258,7 +258,11 @@ void CascadedShadowMap::CollectFromScene(int cascadeIndex, const SimpleArray<IGa
 			if (!instancedObj) continue; // dynamic_cast失敗時はスキップ
 
             InstanceModelAttribute& attribute = instancedObj->GetInstancedAttribute();
+			if (!attribute.initialized) continue; // 初期化されていない場合はスキップ
+
+			// インスタンスの可視性を確認
 			CullVisibleInstancesForShadow(attribute, cascadeIndex);
+			// 可視インスタンスが存在する場合、カウントを更新
             m_cascadeObjectCount[cascadeIndex] += attribute.visibleInstanceDataArray->getSize();
 		}
         else
@@ -268,7 +272,7 @@ void CascadedShadowMap::CollectFromScene(int cascadeIndex, const SimpleArray<IGa
             if (!IsAABBInsideLightFrustum(worldAABB, cascadeIndex))
                 continue;
 
-            m_cascadeObjectCount[cascadeIndex]++;
+			m_cascadeObjectCount[cascadeIndex]++; // 可視オブジェクトのカウントを更新
         }
 
         obj->CollectShadowMesh(m_perCascadeCollector[cascadeIndex]);
@@ -347,6 +351,13 @@ void CascadedShadowMap::BeginCascadeRender(int lightIndex, int cascadeIndex)
 #else
     m_context->OMSetRenderTargets(0, nullptr, m_dsvs[lightIndex][cascadeIndex]);
 #endif // _DEBUG
+
+    // ★注意★ 
+    // OMSetRenderTargets を呼び出すと、以前に設定された DepthStencilState が無効化される。
+    // そのため、RenderTarget / DepthStencilView を再設定した直後には、
+    // 必ず OMSetDepthStencilState を使って明示的に深度ステンシルステートを再設定する必要がある。
+    // これを行わないと、Releaseビルドでは深度書き込みが行われず、シャドウマップに何も描画されなくなる可能性がある。
+    m_context->OMSetDepthStencilState(m_renderer.GetDepthWriteState(), 0);
 
     m_currentCascadeIndex = cascadeIndex;
 

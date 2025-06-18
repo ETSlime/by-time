@@ -9,10 +9,9 @@
 //=============================================================================
 #pragma once
 #include "Core/Graphics/Renderer.h"
-//*****************************************************************************
-// マクロ定義
-//*****************************************************************************
-#define	TEXTURE_SKYBOX_PATH		"data/TEXTURE/BrightSky.dds"
+
+#define DAY_TIME 0.0f
+#define NIGHT_TIME 3000.0f
 
 //*****************************************************************************
 // 構造体定義
@@ -34,13 +33,15 @@ struct SkyBoxBuffer
 class Skybox 
 {
 public:
-    Skybox();
+    Skybox(float timeSpeed = 1);
     Skybox::~Skybox();
 
     void Update(void);
     void Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix);
+    void SetCurrentTime(float time);
 
     static float GetCurrentDaytime(void) { return s_blendFactor; }
+    
 
 private:
 
@@ -52,6 +53,9 @@ private:
     ID3D11Device* m_device;
     ID3D11DeviceContext* m_context;
 
+    float m_timeOfDay;
+    bool m_dayToNight;
+    static float s_blendFactor;
 
     ShaderSet m_shaderSet;
 
@@ -63,8 +67,7 @@ private:
     ID3D11ShaderResourceView* m_skyboxNightSRVs[6];
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
+    Renderer& m_renderer = Renderer::get_instance();
 
-    float m_timeOfDay;
-    bool m_dayToNight;
-    static float s_blendFactor;
+    float m_timeSpeed = 1;
 };

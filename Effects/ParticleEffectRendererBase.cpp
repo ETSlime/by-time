@@ -56,6 +56,9 @@ bool ParticleEffectRendererBase::Initialize(ID3D11Device* device, ID3D11DeviceCo
 
         // フリーリストを初期化
         InitializeFreeList();
+
+        // Sceneに登録は初期化完了後
+        Scene::get_instance().RegisterEntity(this);
     }
 
 #ifdef _DEBUG
@@ -73,6 +76,8 @@ bool ParticleEffectRendererBase::Initialize(ID3D11Device* device, ID3D11DeviceCo
 
 void ParticleEffectRendererBase::Shutdown(void)
 {
+    m_shutdown = true;
+
     SafeRelease(&m_cbParticleUpdate);
     SafeRelease(&m_cbParticleDraw);
     SafeRelease(&m_particleBuffer);
@@ -121,10 +126,10 @@ void ParticleEffectRendererBase::Update(void)
     UnbindComputeUAVs();
 }
 
-void ParticleEffectRendererBase::Draw(const XMMATRIX& viewProj)
+void ParticleEffectRendererBase::Draw(void)
 {
     XMMATRIX worldMatrix = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
-    BindParticleDrawResources(worldMatrix, viewProj);
+    BindParticleDrawResources(worldMatrix, m_camera.GetViewProjMtx());
     DrawParticles();
 }
 

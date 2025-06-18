@@ -1,4 +1,12 @@
 //*****************************************************************************
+// マクロ定義
+//*****************************************************************************
+#define SLOT_TEX_DIFFUSE            t0
+#define SLOT_SAMPLER_DEFAULT        s0
+#define SCREEN_WIDTH                1920.0f
+#define SCREEN_HEIGHT               1080.0f
+
+//*****************************************************************************
 // 定数バッファ
 //*****************************************************************************
 struct VS_INPUT
@@ -23,7 +31,9 @@ VS_OUTPUT VS(VS_INPUT input)
     VS_OUTPUT output;
     
     // 変換行列を適用
-    output.pos = float4(input.pos, 0.0f, 1.0f);
+    float2 ndc = input.pos / float2(SCREEN_WIDTH, SCREEN_HEIGHT) * 2.0f - 1.0f;
+    ndc.y *= -1.0f;
+    output.pos = float4(ndc, 0.0f, 1.0f);
     output.uv = input.uv;
     output.color = input.color;
     return output;
@@ -32,8 +42,8 @@ VS_OUTPUT VS(VS_INPUT input)
 //*****************************************************************************
 // グローバル変数
 //*****************************************************************************
-Texture2D g_Texture : register(t0);
-SamplerState g_SamplerState : register(s0);
+Texture2D g_Texture : register(SLOT_TEX_DIFFUSE);
+SamplerState g_SamplerState : register(SLOT_SAMPLER_DEFAULT);
 
 //=============================================================================
 // ピクセルシェーダ
@@ -41,5 +51,9 @@ SamplerState g_SamplerState : register(s0);
 float4 PS(VS_OUTPUT input) : SV_TARGET
 {
     float4 texColor = g_Texture.Sample(g_SamplerState, input.uv);
+    if (texColor.r == 0 && texColor.g == 0 && texColor.b == 0)
+        return float4(0, 1, 1, 1);
+    
     return texColor * input.color;
+    //return float4(input.uv, 0.0f0.0f, 1.0f);
 }

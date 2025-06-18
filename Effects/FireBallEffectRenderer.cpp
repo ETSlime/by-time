@@ -40,7 +40,6 @@ void FireBallEffectRenderer::Shutdown(void)
 {
     ParticleEffectRendererBase::Shutdown();
 
-    SafeRelease(&m_diffuseTextureSRV);
     SafeRelease(&m_cbFireBall);
 }
 

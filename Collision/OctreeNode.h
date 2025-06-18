@@ -8,8 +8,10 @@
 //=============================================================================
 #pragma once
 #include "main.h"
+#include "Core/Async/LightweightMutex.h"
 #include "Utility/SimpleArray.h"
 #include "Collision/AABBUtils.h"
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -64,26 +66,103 @@ struct Triangle
 class OctreeNode 
 {
 public:
-    static const int MAX_TRIANGLES = 10; // 1ノードあたりの最大三角形数
-    BOUNDING_BOX boundary; // このノードがカバーする領域（ワールド座標系）
-    SimpleArray<Triangle*> triangles;   // ノードに格納される三角形ポインタのリスト
-    OctreeNode* children[8] = { nullptr }; // 8つの子ノードへのポインタ
-    int depth;
-    int maxDepth;
 
-    OctreeNode(const BOUNDING_BOX& boundary, int depth = 0, int maxDepth = 8)
-        : boundary(boundary), depth(depth), maxDepth(maxDepth) {}
+    BOUNDING_BOX boundary; // このノードがカバーする領域（ワールド座標系）
+
+    OctreeNode(const BOUNDING_BOX& boundary, bool threadSafe = true, int depth = 0, int maxDepth = 8)
+        : boundary(boundary), m_threadSafe(threadSafe), m_depth(depth), m_maxDepth(maxDepth) {}
 
     ~OctreeNode() 
     {
         for (int i = 0; i < 8; i++) 
         {
-            delete children[i];
+            SAFE_DELETE(m_children[i]);
+        }
+    }
+    // 三角形をこの八分木に挿入する関数
+    bool insert(Triangle* tri) 
+    {
+        // ノードの基本情報に対してロックをかける
+        OptionalLockGuard guard(&m_lock, m_threadSafe);
+
+        // 三角形の AABB がこのノードの境界と交差しなければ挿入しない
+        if (!boundary.intersects(tri->aabb))
+            return false;
+
+        // 現在のノードが葉で、容量があるかまたは最大深さに達している場合はここに格納する
+        if (m_triangles.getSize() < MAX_TRIANGLES || m_depth == m_maxDepth)
+        {
+            m_triangles.push_back(tri);
+            return true;
+        }
+
+        // subdivide() が必要か一時判定（ダブルチェック用）
+        bool needSubdivide = (m_children[0] == nullptr);
+
+        // 最初のロックを解除して subdivide() によるデッドロックを防止
+        guard.~OptionalLockGuard();
+
+        // subdivide() を改めてロックのもと実行（ダブルチェックあり）
+        if (needSubdivide) 
+        {
+            OptionalLockGuard subdivideGuard(&m_lock, m_threadSafe);
+            if (m_children[0] == nullptr)
+                subdivide(); // 子ノードに分割されていなければ、分割する
+        }
+
+
+        // 子ノードに挿入を試みる
+        bool inserted = false;
+        for (int i = 0; i < CHILD_COUNT; i++)
+        {
+            if (m_children[i]->insert(tri))
+                inserted = true;
+        }
+
+        // もし子ノードのどこにも完全に収まらない場合は、現在のノードに保持する
+        if (!inserted)
+        {
+            OptionalLockGuard fallback(&m_lock, m_threadSafe);
+            m_triangles.push_back(tri);
+        }
+        return true;
+    }
+
+    // 指定した範囲 (AABB) と交差する三角形をクエリする関数
+    void queryRange(const BOUNDING_BOX& range, SimpleArray<Triangle*>& result)
+    {
+        OptionalLockGuard guard(const_cast<LightweightMutex*>(&m_lock), m_threadSafe);
+
+        // 現在のノードと範囲が交差しなければ、何もせずリターン
+        if (!boundary.intersects(range))
+            return;
+
+        // 現在のノードに格納された各三角形について、AABB の交差を確認する
+        int size = m_triangles.getSize();
+        for (int i = 0; i < size; i++)
+        {
+            if (m_triangles[i]->aabb.intersects(range))
+                result.push_back(m_triangles[i]);
+        }
+
+        // ロック解除後も完全な同期性を保証
+        OctreeNode* childrenCopy[CHILD_COUNT];
+        for (int i = 0; i < CHILD_COUNT; ++i)
+            childrenCopy[i] = m_children[i];
+
+        // 子ノードが存在する場合、再帰的にクエリを実行する
+        if (m_children[0] != nullptr) 
+        {
+            for (int i = 0; i < CHILD_COUNT; i++)
+            {
+                m_children[i]->queryRange(range, result);
+            }
         }
     }
 
+private:
     // 現在のノードを8つの子ノードに分割する関数
-    void subdivide() 
+    void subdivide()
     {
         XMFLOAT3 pMin = boundary.minPoint;
         XMFLOAT3 pMax = boundary.maxPoint;
@@ -96,79 +175,31 @@ public:
 
         // 8つの子ノードの境界をそれぞれ計算する
         // 子ノード 0: (min, center)
-        children[0] = new OctreeNode(BOUNDING_BOX(pMin, center), depth + 1, maxDepth);
+        m_children[0] = new OctreeNode(BOUNDING_BOX(pMin, center), m_depth + 1, m_maxDepth);
         // 子ノード 1: ( (center.x, min.y, min.z), (max.x, center.y, center.z) )
-        children[1] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, pMin.y, pMin.z), XMFLOAT3(pMax.x, center.y, center.z)), depth + 1, maxDepth);
+        m_children[1] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, pMin.y, pMin.z), XMFLOAT3(pMax.x, center.y, center.z)), m_depth + 1, m_maxDepth);
         // 子ノード 2: ( (min.x, center.y, min.z), (center.x, max.y, center.z) )
-        children[2] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, center.y, pMin.z), XMFLOAT3(center.x, pMax.y, center.z)), depth + 1, maxDepth);
+        m_children[2] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, center.y, pMin.z), XMFLOAT3(center.x, pMax.y, center.z)), m_depth + 1, m_maxDepth);
         // 子ノード 3: ( (center.x, center.y, min.z), (max.x, max.y, center.z) )
-        children[3] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, center.y, pMin.z), XMFLOAT3(pMax.x, pMax.y, center.z)), depth + 1, maxDepth);
+        m_children[3] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, center.y, pMin.z), XMFLOAT3(pMax.x, pMax.y, center.z)), m_depth + 1, m_maxDepth);
         // 子ノード 4: ( (min.x, min.y, center.z), (center.x, center.y, max.z) )
-        children[4] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, pMin.y, center.z), XMFLOAT3(center.x, center.y, pMax.z)), depth + 1, maxDepth);
+        m_children[4] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, pMin.y, center.z), XMFLOAT3(center.x, center.y, pMax.z)), m_depth + 1, m_maxDepth);
         // 子ノード 5: ( (center.x, min.y, center.z), (max.x, center.y, max.z) )
-        children[5] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, pMin.y, center.z), XMFLOAT3(pMax.x, center.y, pMax.z)), depth + 1, maxDepth);
+        m_children[5] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(center.x, pMin.y, center.z), XMFLOAT3(pMax.x, center.y, pMax.z)), m_depth + 1, m_maxDepth);
         // 子ノード 6: ( (min.x, center.y, center.z), (center.x, max.y, max.z) )
-        children[6] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, center.y, center.z), XMFLOAT3(center.x, pMax.y, pMax.z)), depth + 1, maxDepth);
+        m_children[6] = new OctreeNode(BOUNDING_BOX(XMFLOAT3(pMin.x, center.y, center.z), XMFLOAT3(center.x, pMax.y, pMax.z)), m_depth + 1, m_maxDepth);
         // 子ノード 7: ( (center.x, center.y, center.z), (max.x, max.y, max.z) )
-        children[7] = new OctreeNode(BOUNDING_BOX(center, pMax), depth + 1, maxDepth);
+        m_children[7] = new OctreeNode(BOUNDING_BOX(center, pMax), m_depth + 1, m_maxDepth);
     }
 
-    // 三角形をこの八分木に挿入する関数
-    bool insert(Triangle* tri) 
-    {
-        // 三角形の AABB がこのノードの境界と交差しなければ挿入しない
-        if (!boundary.intersects(tri->aabb))
-            return false;
+    static const int MAX_TRIANGLES = 10; // 1ノードあたりの最大三角形数
+    static const int CHILD_COUNT = 8;
 
-        // 現在のノードが葉で、容量があるかまたは最大深さに達している場合はここに格納する
-        if (triangles.getSize() < MAX_TRIANGLES || depth == maxDepth) 
-        {
-            triangles.push_back(tri);
-            return true;
-        }
+    SimpleArray<Triangle*> m_triangles;   // ノードに格納される三角形ポインタのリスト
+    OctreeNode* m_children[CHILD_COUNT] = { nullptr }; // 8つの子ノードへのポインタ
+    int m_depth;
+    int m_maxDepth;
+    bool m_threadSafe = true; // デフォルトでスレッドセーフ有効
 
-        // 子ノードに分割されていなければ、分割する
-        if (children[0] == nullptr) 
-        {
-            subdivide();
-        }
-
-        // 子ノードに挿入を試みる
-        bool inserted = false;
-        for (int i = 0; i < 8; i++) 
-        {
-            if (children[i]->insert(tri))
-                inserted = true;
-        }
-
-        // もし子ノードのどこにも完全に収まらない場合は、現在のノードに保持する
-        if (!inserted)
-            triangles.push_back(tri);
-        return true;
-    }
-
-    // 指定した範囲 (AABB) と交差する三角形をクエリする関数
-    void queryRange(const BOUNDING_BOX& range, SimpleArray<Triangle*>& result) const
-    {
-        // 現在のノードと範囲が交差しなければ、何もせずリターン
-        if (!boundary.intersects(range))
-            return;
-
-        // 現在のノードに格納された各三角形について、AABB の交差を確認する
-        int size = triangles.getSize();
-        for (int i = 0; i < size; i++)
-        {
-            if (triangles[i]->aabb.intersects(range))
-                result.push_back(triangles[i]);
-        }
-
-        // 子ノードが存在する場合、再帰的にクエリを実行する
-        if (children[0] != nullptr) 
-        {
-            for (int i = 0; i < 8; i++) 
-            {
-                children[i]->queryRange(range, result);
-            }
-        }
-    }
+    LightweightMutex m_lock; // 各ノードの互互掛かりを防ぐ
 };
