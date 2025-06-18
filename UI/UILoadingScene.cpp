@@ -9,11 +9,11 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define LOADING_ANIM_TILE_X       1
-#define LOADING_ANIM_TILE_Y       1
+#define LOADING_ANIM_TILE_X       3
+#define LOADING_ANIM_TILE_Y       4
 #define LOADING_ANIM_SPD          0.1f
-#define LOADING_SMOOTH_SPD      2.0f
-#define LOADING_FAST_SPD        4.0f
+#define LOADING_SMOOTH_SPD        1.0f
+#define LOADING_FAST_SPD          4.0f
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
@@ -41,29 +41,29 @@ void UILoadingScene::Update(void)
     m_elapsedTime += m_timer.GetDeltaTime();
 
     // 読み込み完了前までは進行度に合わせて滑らかにアニメバー更新
-    if (!m_resourceLoaded)
-    {
+    //if (!m_resourceLoaded)
+    //{
         m_animProgress += (m_loadProgress - m_animProgress) * m_timer.GetDeltaTime() * LOADING_SMOOTH_SPD;
-    }
-    else
-    {
-        // 読み込み完了後は一気にゴールへ進める
-        m_animProgress += (1.0f - m_animProgress) * m_timer.GetDeltaTime() * LOADING_FAST_SPD;
-    }
+    //}
+    //else
+    //{
+    //    // 読み込み完了後は一気にゴールへ進める
+    //    m_animProgress += (1.0f - m_animProgress) * m_timer.GetDeltaTime() * LOADING_FAST_SPD;
+    //}
 
     // アニメーション更新
     if (m_loadingAnim)
     {
-        if (!m_resourceLoaded) 
-        {
-            // 読み込み未完了 → プログレスに応じて手動でフレーム指定（進行度バーと連動）
-            m_loadingAnim->SetFrameDirectly(m_animProgress);
-        }
-        else 
-        {
-            // 読み込み完了後 → 通常再生でアニメーションを進行（速度制御も可能）
+        //if (!m_resourceLoaded) 
+        //{
+        //    // 読み込み未完了 → プログレスに応じて手動でフレーム指定（進行度バーと連動）
+        //    m_loadingAnim->SetFrameDirectly(m_animProgress);
+        //}
+        //else 
+        //{
+        //    // 読み込み完了後 → 通常再生でアニメーションを進行（速度制御も可能）
             m_loadingAnim->Update();
-        }
+        //}
     }
 
     m_screenFader.Update();

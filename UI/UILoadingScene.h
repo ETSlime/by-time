@@ -11,10 +11,11 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/loading 10.png"
+//#define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/loading 10.png"
+#define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/LoadingAnimation.png"
 #define LOADING_ANIM_THRESHOLD            0.5f
 
- // 内部サブ状態マネージャー
+// 内部サブ状態マネージャー
 enum class LoadingState
 {
     FadeInBlack,          // 最初に黒くフェードイン（外部でやってるなら skip）
