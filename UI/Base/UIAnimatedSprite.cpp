@@ -124,3 +124,9 @@ void UIAnimatedSprite::SetFrameDirectly(float ratio)
     if (m_currentFrame >= m_endFrame)
         m_currentFrame = m_endFrame - 1;
 }
+
+//’Ç‰Á
+bool UIAnimatedSprite::IsAnimationFinished() const
+{
+    return m_finished;
+}

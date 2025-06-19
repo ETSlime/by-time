@@ -12,8 +12,6 @@
 #define LOADING_ANIM_TILE_X       3
 #define LOADING_ANIM_TILE_Y       4
 #define LOADING_ANIM_SPD          0.1f
-#define LOADING_SMOOTH_SPD        1.0f
-#define LOADING_FAST_SPD          4.0f
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
@@ -21,11 +19,15 @@ void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 
     // ローディングアニメーション用スプライト
     m_loadingAnim = new UIAnimatedSprite();
-    m_loadingAnim->Init(tex, 
-        m_UIManager.GetSpriteVertexBuffer(), 
-        LOADING_ANIM_TILE_X, 
-        LOADING_ANIM_TILE_Y, 
-        LOADING_ANIM_SPD);
+    m_loadingAnim->Init(tex,
+        m_UIManager.GetSpriteVertexBuffer(),
+        LOADING_ANIM_TILE_X,
+        LOADING_ANIM_TILE_Y,
+        LOADING_ANIM_SPD,
+        false
+    );
+
+    m_loadingAnim->SetPlaybackSpeed(0.6f);
 
     // 表示位置とサイズを設定
     m_loadingAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
@@ -40,30 +42,20 @@ void UILoadingScene::Update(void)
 {
     m_elapsedTime += m_timer.GetDeltaTime();
 
-    // 読み込み完了前までは進行度に合わせて滑らかにアニメバー更新
-    //if (!m_resourceLoaded)
-    //{
-        m_animProgress += (m_loadProgress - m_animProgress) * m_timer.GetDeltaTime() * LOADING_SMOOTH_SPD;
-    //}
-    //else
-    //{
-    //    // 読み込み完了後は一気にゴールへ進める
-    //    m_animProgress += (1.0f - m_animProgress) * m_timer.GetDeltaTime() * LOADING_FAST_SPD;
-    //}
 
     // アニメーション更新
     if (m_loadingAnim)
     {
-        //if (!m_resourceLoaded) 
-        //{
-        //    // 読み込み未完了 → プログレスに応じて手動でフレーム指定（進行度バーと連動）
-        //    m_loadingAnim->SetFrameDirectly(m_animProgress);
-        //}
-        //else 
-        //{
-        //    // 読み込み完了後 → 通常再生でアニメーションを進行（速度制御も可能）
-            m_loadingAnim->Update();
-        //}
+        m_loadingAnim->Update();
+
+        if (m_loadingAnim->IsAnimationFinished())
+        {
+            if (m_state != LoadingState::Done && !m_screenFader.IsFading())
+            {
+                m_screenFader.StartFadeOut();
+                m_state = LoadingState::FadeInBeforeFinish;
+            }
+        }
     }
 
     m_screenFader.Update();
@@ -126,20 +118,5 @@ void UILoadingScene::Draw(void)
     {
         if (m_loadingAnim)
             m_loadingAnim->Draw();
-
-        DrawProgressBar();
     }
-}
-
-void UILoadingScene::DrawProgressBar(void)
-{
-    float barWidth = 400.0f * m_animProgress;
-    float barHeight = 16.0f;
-    float x = SCREEN_WIDTH / 2.0f - 200.0f;
-    float y = SCREEN_HEIGHT / 2.0f + 80.0f;
-
-    UIManager::get_instance().DrawOverlay(
-        x, y, barWidth, barHeight,
-        { 1.0f, 1.0f, 1.0f, 1.0f }
-    );
 }
