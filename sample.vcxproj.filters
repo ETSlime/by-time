@@ -44,6 +44,9 @@
     <Filter Include="UI\Base">
       <UniqueIdentifier>{8be4b185-68a5-4615-92f8-e1e698024ec5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Item">
+      <UniqueIdentifier>{ff0eafe7-f2b9-468c-a9d6-c169983b44f9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -278,6 +281,15 @@
     <ClInclude Include="UI\Base\ScreenFader.h">
       <Filter>UI\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Item\Sword.h">
+      <Filter>Scene\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\ItemManager.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -447,6 +459,15 @@
       <Filter>UI\Base</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Scene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Sword.cpp">
+      <Filter>Scene\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\ItemManager.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
