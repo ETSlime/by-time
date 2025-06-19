@@ -34,6 +34,11 @@ public:
 
     // 指定された進行度に応じてアニメーションフレームを手動設定する関数 (0.0～1.0 の範囲）
     void SetFrameDirectly(float ratio);
+    
+    //追加
+    bool IsAnimationFinished() const;
+    void SetLoop(bool loop) { m_loop = loop; }
+    bool IsLoop() const { return m_loop; }
 
 private:
     int m_columns = 1;     // 横のフレーム数

@@ -11,10 +11,10 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/loading 10.png"
+#define LOADING_ANIM_TEXTURE_PATH         "data/TEXTURE/LoadingAnimation.png"
 #define LOADING_ANIM_THRESHOLD            0.5f
 
- // 内部サブ状態マネージャー
+// 内部サブ状態マネージャー
 enum class LoadingState
 {
     FadeInBlack,          // 最初に黒くフェードイン（外部でやってるなら skip）
@@ -46,19 +46,15 @@ public:
     void SetProgress(float progress) { m_loadProgress = progress; }
 
 private:
-    // プログレスバーを中央下に表示
-    void DrawProgressBar(void);
 
     float m_elapsedTime = 0.0f;
     bool m_showLoadingUI = false;
     bool m_resourceLoaded = false; // 外部から通知を受けたかどうか
-    bool m_isAutoPlay = false;
     LoadingState m_state = LoadingState::FadeInBlack;
     const float m_threshold = LOADING_ANIM_THRESHOLD; // これ以上でアニメUI表示
 
-    // プログレス表示用
+    //変更
     float m_loadProgress = 0.0f; // 現在の読み込み進行 (0.0f～1.0f)
-    float m_animProgress = 0.0f; // アニメの内部進行（0～1）
 
     // アニメーション用スプライト
     UIAnimatedSprite* m_loadingAnim = nullptr;
