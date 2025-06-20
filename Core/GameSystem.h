@@ -110,7 +110,9 @@ protected:
         , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
-        , m_textureUploadQueue(TextureUploadQueue::get_instance()) {}
+        , m_textureUploadQueue(TextureUploadQueue::get_instance())
+        , m_ground(Ground::get_instance()) 
+        , m_skybox(Skybox::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -154,13 +156,13 @@ private:
     GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
-    Ground* m_ground = nullptr;
-    Skybox* m_skybox = nullptr;
 
     ResourceLoadStatus m_loadStatus;
     ResourceLoadContext m_currLoadCtx;
     UILoadingScene* m_loadingScene = nullptr;
 
+    Ground& m_ground;
+	Skybox& m_skybox;
     UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     Renderer& m_renderer;

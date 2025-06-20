@@ -6,6 +6,7 @@
 //
 //=============================================================================
 #include "Effects/ParticleEffectRendererBase.h"
+#include "Collision/VoxelBufferUploader.h"
 
 //*********************************************************
 // ç\ë¢ëÃ
@@ -72,4 +73,6 @@ private:
     ID3D11ShaderResourceView* m_waterDotTextureSRV = nullptr;
     ID3D11Buffer* m_cbWaterFluid = nullptr;
     ID3D11Buffer* m_cbEmit = nullptr;
+
+    VoxelBufferUploader& m_voxelBufferUploader = VoxelBufferUploader::get_instance();
 };

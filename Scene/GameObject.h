@@ -123,6 +123,7 @@ struct ModelInstance
 	bool				load = false;
 	bool				markedForDelete = false;
 	bool				postInit = false;
+	bool				collisionBuilt = false;	// 当たり判定のビルドが完了したかどうか
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 
@@ -157,6 +158,7 @@ struct SkinnedMeshModelInstance
 	bool				load = false;
 	bool				markedForDelete = false;
 	bool				postInit = false;
+	bool				collisionBuilt = false;	// 当たり判定のビルドが完了したかどうか
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 
@@ -281,6 +283,8 @@ public:
 	inline void SetEnableAlphaTest(bool alpha) { instance.enableAlphaTest = alpha; }
 	inline void SetCollisionType(ObjectCollisionType type) { instance.collisionType = type; }
 	inline ObjectCollisionType GetCollisionType(void) { return instance.collisionType; }
+	// 当たり判定のビルドが完了しているかどうか
+	inline bool GetCollisionBuilt() { return instance.collisionType == ObjectCollisionType::NONE ? true : instance.collisionBuilt; }
 
 	// インスタンス化されたモデルかどうか
 	inline void SetIsInstanced(bool instanced) { instance.instanceAttribute.isInstanced = instanced; }
@@ -523,6 +527,15 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		// 非同期で実行するかどうかを決定
 		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
 		options.debugName = "GameObject_InstantiateGameObject_Collision";
+		options.callbackAsync = false; // コールバックは同期で実行
+		options.onComplete = [](void* ptr) // タスク完了後のコールバック関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+				ctx->owner->instance.collisionBuilt = true; // 当たり判定のビルドが完了
+			};
+		options.callbackParam = ctx;
+
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
@@ -581,6 +594,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
 				instance.collider.enable = true;
 			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+			instance.collisionBuilt = true; // 当たり判定のビルドが完了
 		}
 
 		instance.modelBuildTaskRegistered = true;

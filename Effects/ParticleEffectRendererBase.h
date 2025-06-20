@@ -115,7 +115,7 @@ protected:
     virtual void DispatchEmitParticlesCS(void); // パーティクル発生用コンピュートシェーダーをディスパッチする
 
     // パーティクル描画前の共通バインド
-    virtual void BindParticleDrawResources(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj);
+    virtual void BindParticleDrawResources(void);
 
     void BindCommonComputeResources(void); // コンピュートシェーダー用の共通リソースをバインドする
     void UnbindComputeUAVs(void); // コンピュートシェーダーのUAVをアンバインドする
@@ -128,7 +128,7 @@ protected:
     // パーティクル発生器の更新
     void UpdateEmitter(void);
     // パーティクル描画用CB更新（Draw前に呼び出す）
-    void UpdateParticleDrawCB(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj);
+    void UpdateParticleDrawCB(void);
     // DrawInstancedIndirect用のインスタンス数を更新
     void UpdateDrawArgsInstanceCount(void);
     // シェーダーを読み込む

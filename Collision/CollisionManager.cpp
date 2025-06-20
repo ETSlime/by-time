@@ -5,9 +5,11 @@
 //
 //=============================================================================
 #include "Collision/CollisionManager.h"
+#include "Collision/VoxelBufferUploader.h"
 #include "Scene/GameObject.h"
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
+#include "Scene/Ground.h"
 #include "Utility/Debugproc.h"
 
 constexpr float HEIGHT_EPSILON = 5.0f;
@@ -40,11 +42,21 @@ void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, fl
 
 	// ボクセルグリッドの初期化
 	m_voxelGrid->Initialize(voxelSize);
-    m_voxelGrid->Build(triangles);
+    m_voxelGrid->BuildTriangles(triangles);
+	VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
 }
 
 void CollisionManager::Update()
 {
+    if (m_voxelGrid)
+    {
+		if (InputManager::get_instance().GetKeyboardTrigger(DIK_V))
+		{
+			m_voxelGrid->print_debug_stats();
+		}
+    }
+
+
     int numColliders = dynamicColliders.getSize();
     
     for (int i = 0; i < numColliders; i++)
@@ -442,20 +454,47 @@ void CollisionManager::VoxelGridInsertTriangle(const Triangle* tri)
 		m_voxelGrid = new VoxelGrid();
 		m_voxelGrid->Initialize();
 		m_voxelGrid->InsertTriangle(tri);
+		VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
     }
 }
 
 void CollisionManager::VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles)
 {
     if (m_voxelGrid)
-        m_voxelGrid->Build(triangles);
+        m_voxelGrid->BuildTriangles(triangles);
     else
     {
 		// ボクセルグリッドが初期化されていない場合は新規に作成
 		m_voxelGrid = new VoxelGrid();
 		m_voxelGrid->Initialize();
-		m_voxelGrid->Build(triangles);
+		m_voxelGrid->BuildTriangles(triangles);
+		VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
     }
+}
+
+void CollisionManager::PrepareVoxelMappingAfterSceneChange(void)
+{
+	// シーン切り替え後にボクセルマッピングを準備する
+	VoxelBufferUploader::get_instance().RegisterAsyncMappingBuild();
+
+    DeferredTaskOptions options{};
+    options.async = true; // 同期で実行
+    options.debugName = "CollisionManager_PrepareVoxelMappingAfterSceneChange"; // デバッグ用の名前
+
+    RawDeferredTask::Add(
+        nullptr,
+        [](void* ptr)
+        {
+            // ボクセルグリッドの三角形からボクセルマップを構築
+			CollisionManager::get_instance().m_voxelGrid->BuildVoxelMapByTriangles();
+        },
+        [](void* ptr)
+        {
+            // 地形が準備完了かどうかを確認する
+			return CollisionManager::get_instance().m_voxelGrid && Ground::get_instance().IsTerrainReady();
+        },
+        options
+    );
 }
 
 bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col2)

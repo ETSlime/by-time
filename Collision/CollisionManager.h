@@ -111,11 +111,12 @@ public:
 
 	// 静的オブジェクトの八分木を初期化する
     void InitOctree(const BOUNDING_BOX& boundingBox);
-	// 静的オブジェクトのボクセルグリッドを初期化する
-    void InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize = 1.0f);
-
     bool IsInitializedOctree(void) const { return m_staticOctree != nullptr; }
     bool OctreeInsertTriangle(const Triangle* tri);
+
+    // 静的オブジェクトのボクセルグリッドを初期化する
+    void InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize = 1.0f);
+	// ボクセルグリッドに三角形を挿入する
     void VoxelGridInsertTriangle(const Triangle* tri);
     void VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles);
 
@@ -123,6 +124,9 @@ public:
     void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
     // 動的衝突体リストのクリア
     void ClearDynamicColliders(void) { dynamicColliders.clear(); }
+
+    // シーン切り替え時に呼び出すVoxelMapping登録関数
+    void PrepareVoxelMappingAfterSceneChange(void);
 
 private:
     bool IsSelfCollision(const Collider* collider1, const Collider* collider2);

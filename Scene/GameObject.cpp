@@ -95,6 +95,15 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 		// 非同期で実行するかどうかを決定
 		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
 		options.debugName = "GameObject_InstantiateSkinnedGameObject_Collision";
+		options.callbackAsync = false; // コールバックは同期で実行
+		options.onComplete = [](void* ptr) // タスク完了後のコールバック関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+				ctx->owner->instance.collisionBuilt = true; // 当たり判定のビルドが完了
+			};
+		options.callbackParam = ctx;
+
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
@@ -153,6 +162,7 @@ void GameObject<SkinnedMeshModelInstance>::Instantiate(const SkinnedGameObjectCo
 				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
 				instance.collider.enable = true;
 			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+			instance.collisionBuilt = true; // 当たり判定のビルドが完了
 		}
 	}
 

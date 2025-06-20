@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 定数バッファ・SRV・UAV の最適バインド管理 [ShaderResourceBinder.h]
@@ -6,7 +7,6 @@
 // 冗長なバインドを回避してパフォーマンスを最適化するユーティリティ
 // 
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Utility/SingletonBase.h"
 
@@ -19,26 +19,27 @@
 #define MAX_UAV_SLOT_NUM            8
 
 // ===== スロット定義 =====
-#define SLOT_CB_WORLD_MATRIX        0
-#define SLOT_CB_VIEW_MATRIX         1
-#define SLOT_CB_PROJECTION_MATRIX   2
-#define SLOT_CB_MATERIAL            3
-#define SLOT_CB_LIGHT               4
-#define SLOT_CB_FOG                 5    
-#define SLOT_CB_EFFECT_UPDATE       5 // 粒子更新用
-#define SLOT_CB_EFFECT_DRAW         6 // 粒子描画用
-#define SLOT_CB_FUCHI               6   
-#define SLOT_CB_CASCADE_DATA_ARRAY  6
-#define SLOT_CB_CAMERA_POS          7
-#define SLOT_CB_EFFECT_PARTICLE     7
-#define SLOT_CB_CASCADE_DATA        8
-#define SLOT_CB_SKYBOX              9  
-#define SLOT_CB_DEBUG_BOUNDING_BOX  9  
-#define SLOT_CB_LIGHT_MODE          10 
-#define SLOT_CB_EFFECT_EMIT         10
-#define SLOT_CB_BONE_MATRIX_ARRAY   11 
-#define SLOT_CB_INSTANCED_DATA      12
-#define SLOT_CB_RENDER_PROGRESS     13
+#define SLOT_CB_WORLD_MATRIX                0
+#define SLOT_CB_VIEW_MATRIX                 1
+#define SLOT_CB_PROJECTION_MATRIX           2
+#define SLOT_CB_MATERIAL                    3
+#define SLOT_CB_LIGHT                       4
+#define SLOT_CB_FOG                         5    
+#define SLOT_CB_EFFECT_UPDATE               5 // 粒子更新用
+#define SLOT_CB_EFFECT_DRAW                 6 // 粒子描画用
+#define SLOT_CB_FUCHI                       6   
+#define SLOT_CB_CASCADE_DATA_ARRAY          6
+#define SLOT_CB_CAMERA_POS                  7
+#define SLOT_CB_EFFECT_PARTICLE             7
+#define SLOT_CB_CASCADE_DATA                8
+#define SLOT_CB_SKYBOX                      9  
+#define SLOT_CB_DEBUG_BOUNDING_BOX          9  
+#define SLOT_CB_LIGHT_MODE                  10 
+#define SLOT_CB_EFFECT_EMIT                 10
+#define SLOT_CB_BONE_MATRIX_ARRAY           11 
+#define SLOT_CB_INSTANCED_DATA              12
+#define SLOT_CB_RENDER_PROGRESS             13
+#define SLOT_CB_VOXEL_META                  13
 
 // ===== サンプラースロット定義 =====
 #define SLOT_SAMPLER_DEFAULT        0
@@ -59,8 +60,12 @@
 #define SLOT_TEX_SKYBOX_NIGHT       21
 
 // ===== ストラクチャードバッファ定義 =====
-#define SLOT_SRV_PARTICLE           6   // パーティクル読み取りバッファ
-#define SLOT_SRV_ALIVE_LIST         7   // パーティクル生存リスト
+#define SLOT_SRV_PARTICLE                   6   // パーティクル読み取りバッファ
+#define SLOT_SRV_ALIVE_LIST                 7   // パーティクル生存リスト
+#define SLOT_SRV_VOXEL_TRIANGLE_INDEX       8   // ボクセル三角形インデックスリスト
+#define SLOT_SRV_VOXEL_TRIANGLE_STRUCT      9   // ボクセル三角形構造体リスト
+#define SLOT_SRV_VOXEL_IDX_TRIPLET          10  // ボクセル三角形頂点リスト
+#define SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE     11  // ボクセル三角形インデックスページヘッダ
 // ===== RWストラクチャードバッファ定義 =====
 #define SLOT_UAV_PARTICLE           0   // パーティクル更新バッファ
 #define SLOT_UAV_ALIVE_LIST         1   // パーティクル生存リスト

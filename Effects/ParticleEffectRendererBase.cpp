@@ -115,6 +115,9 @@ void ParticleEffectRendererBase::Update(void)
     // パーティクル更新用CB更新
     UpdateParticleUpdateCB();
 
+    // パーティクル描画用CB更新
+    UpdateParticleDrawCB();
+
     // 子クラスのパーティクル更新
     DispatchComputeShader();
 
@@ -128,8 +131,7 @@ void ParticleEffectRendererBase::Update(void)
 
 void ParticleEffectRendererBase::Draw(void)
 {
-    XMMATRIX worldMatrix = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
-    BindParticleDrawResources(worldMatrix, m_camera.GetViewProjMtx());
+    BindParticleDrawResources();
     DrawParticles();
 }
 
@@ -375,11 +377,8 @@ void ParticleEffectRendererBase::DispatchEmitParticlesCS(void)
 #endif
 }
 
-void ParticleEffectRendererBase::BindParticleDrawResources(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj)
+void ParticleEffectRendererBase::BindParticleDrawResources(void)
 {
-    // パーティクル描画用CB更新
-    UpdateParticleDrawCB(worldMatrix, viewProj);
-
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::GS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
 
@@ -639,8 +638,11 @@ void ParticleEffectRendererBase::UpdateEmitter(void)
     m_accumulatedEmitCount -= m_particlesToEmitThisFrame;
 }
 
-void ParticleEffectRendererBase::UpdateParticleDrawCB(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj)
+void ParticleEffectRendererBase::UpdateParticleDrawCB(void)
 {
+	const XMMATRIX& worldMatrix = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); 
+	const XMMATRIX& viewProj = m_camera.GetViewProjMtx();
+
     D3D11_MAPPED_SUBRESOURCE mapped;
     if (SUCCEEDED(m_context->Map(m_cbParticleDraw, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
     {

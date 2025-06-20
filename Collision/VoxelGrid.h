@@ -20,27 +20,36 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_VOXEL_NUM       20000000 // ボクセルグリッドの最大サイズ
+#define MAX_VOXEL_NUM               20000000    // ボクセルグリッドの最大サイズ
+#define MAX_VOXEL_TRIANGLE_NUM      5000000     // ボクセルに属する最大三角形数
 
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
 struct VoxelKey
 {
     int x, y, z;
 }; // ボクセルのキーを表す構造体
 
 // ボクセルキーのハッシュ関数
-inline uint64_t Part1By2(uint32_t x)
+inline uint32_t Part1By2(uint32_t x)
 {
     x &= 0x3ff; // 限定10位
     x = (x | (x << 16)) & 0x30000ff;
-    x = (x | (x << 8)) & 0x300f00f;
-    x = (x | (x << 4)) & 0x30c30c3;
-    x = (x | (x << 2)) & 0x9249249;
+    x = (x | (x << 8))  & 0x300f00f;
+    x = (x | (x << 4))  & 0x30c30c3;
+    x = (x | (x << 2))  & 0x9249249;
     return x;
 }
 
 // 3次元座標をモートンコードにエンコードする関数
-inline uint64_t EncodeMorton3(uint32_t x, uint32_t y, uint32_t z)
+inline uint32_t EncodeMorton3(uint32_t x, uint32_t y, uint32_t z)
 {
+    //安全チェック
+    assert(x < 1024 && "MortonX must be < 1024");
+    assert(y < 1024 && "MortonY must be < 1024");
+    assert(z < 1024 && "MortonZ must be < 1024");
+
     return (Part1By2(z) << 2) | (Part1By2(y) << 1) | Part1By2(x);
 }
 
@@ -64,6 +73,7 @@ struct EqualVoxelKey
 
 class VoxelGrid
 {
+	friend class VoxelBufferUploader; // VoxelBufferUploaderからアクセス可能にする
 public:
     VoxelGrid(bool threadSafe = true) :m_threadSafe(threadSafe) {}
 
@@ -71,10 +81,14 @@ public:
 
     // ボクセルグリッドの初期化
     void Initialize(float voxelSize = 100.0f);
-    // 静的地形データから一括で構築（高速）
-    void Build(const SimpleArray<Triangle*>& triangles);
-    // 三角形を動的に追加（物理オブジェクトや生成地形など）
+	// ボクセルグリッドの初期化（スレッドセーフ）
+    void BuildTriangles(const SimpleArray<Triangle*>& triangles);
+    // 三角形を動的に追加（物理オブジェクトや生成地形など、スレッドセーフ）
     void InsertTriangle(const Triangle* tri);
+	// ボクセルグリッドを三角形から構築（初期化後に呼び出す）
+    void BuildVoxelMapByTriangles(void);
+    // グリッドが初期化済みかどうか
+	bool IsReady() const { return m_isReady; } 
 
 	// 指定された中心と半径に基づいて、ボクセルグリッドから三角形をクエリする関数
     void Query(const XMFLOAT3& center, float radius, SimpleArray<const Triangle*>& outTriangles) const;
@@ -83,20 +97,25 @@ public:
     void print_debug_stats(void) const;
 
 private:
-    // 各Voxelに登録された三角形＋スピンロック
+
+    // 各Voxelに登録された三角形
     struct VoxelEntry
     {
         SimpleArray<const Triangle*> triangles;
-        mutable SpinLock lock;
     };
 
     // 位置ベクトルから所属するVoxelキーを算出
     VoxelKey GetVoxelKey(const XMFLOAT3& pos) const;
-    // 三角形の軸方向AABBを計算する（各Voxelとの交差判定用）
-    BOUNDING_BOX ComputeTriangleAABB(const Triangle* tri) const;
+	// 三角形のAABBを計算し、ボクセルグリッド全体のAABBを更新
+    void ComputeVoxelBounds(const Triangle* tri);
 
-    float m_voxelSize = 1.0f;
+	BOUNDING_BOX m_voxelBounds; // ボクセルグリッド全体のAABB
+	float m_voxelSize = 1.0f; // ボクセルのサイズ（1辺の長さ）
+	XMFLOAT3 m_origin = { 0.0f, 0.0f, 0.0f }; // グリッドの原点
+	bool m_isReady = false; // グリッドが初期化済みかどうか
     bool m_threadSafe = true; // スレッドセーフかどうか
+	mutable SpinLock m_lock; // スレッドセーフ用のスピンロック
+	SimpleArray<const Triangle*> m_triangles; // 登録された三角形のリスト
 
 	// ボクセルキーと三角形のマッピングを保持するハッシュマップ
 	HashMap<VoxelKey, VoxelEntry, HashVoxelKey, EqualVoxelKey> m_voxelMap =

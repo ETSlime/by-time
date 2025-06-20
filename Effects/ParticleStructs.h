@@ -59,5 +59,24 @@ struct WaterFluidParticle
     XMFLOAT4 color;                // デバッグ用カラー（密度に応じた可視化など）
 
     float size;                    // サイズ
+
+
+    UINT debug_mortonIndex = 0;         
+    UINT debug_voxelX = 0;              
+    UINT debug_voxelY = 0;
+    UINT debug_voxelZ = 0;
+    int debug_foundTripletIndex = 0;    
+    UINT debug_triCheckCount = 0;       
+    UINT debug_hit = 0;                 
+    UINT debug_pageHeaderIndex = 0;
+    XMFLOAT3 debug_position = { 0.0f, 0.0f, 0.0f };
+    float debug_dirLength = 0;
+    XMFLOAT3 debug_triV0 = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_triV1 = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_triV2 = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_rayStart = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_rayDir = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_hitPoint = { 0.0f, 0.0f, 0.0f };
+
 	XMFLOAT3 padding;              // パディング（16バイト境界調整用）
 };

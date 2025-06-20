@@ -35,10 +35,6 @@ void GameSystem::Shutdown(void)
 {
     SAFE_DELETE(m_player); // プレイヤーの解放
 
-    SAFE_DELETE(m_ground); // 地面の解放
-
-    SAFE_DELETE(m_skybox); // Skyboxの解放
-
     m_UIManager.Uninit(); // UIManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
@@ -140,7 +136,6 @@ void GameSystem::ProcessModeLoading(void)
     );
     m_UIManager.AddElement(loadingUI);
     m_loadingScene = loadingUI;
-
     StartAsyncResourceLoading(); // 非同期ロード開始
 }
 
@@ -225,9 +220,9 @@ void GameSystem::StartAsyncResourceLoading(void)
     {
         m_player = new Player(); // プレイヤーの初期化
 
-        m_ground = new Ground(); // 地面の初期化
+        m_skybox.Init(); // Skyboxの初期化
 
-        m_skybox = new Skybox(); // Skyboxの初期化
+        m_ground.Init(); // 地面の初期化
 
         m_enemyManager.Init(m_player); // エネミーの初期化
 
@@ -235,16 +230,17 @@ void GameSystem::StartAsyncResourceLoading(void)
     }
     else
     {
-        m_ground->LoadScene(SceneID::SCENE_1);
+        m_ground.LoadScene(SceneID::SCENE_1);
         m_player->InitializePlayerStatus();
         m_enemyManager.InitializeEnemyStatus();
+        CollisionManager::get_instance().PrepareVoxelMappingAfterSceneChange(); // ボクセルマッピングの準備
     }
 
     if (!m_currLoadCtx.finishInitialLoad)
     {
         m_loadStatus.totalTasks += m_enemyManager.GetTotalEnemyLoadCnt();
         m_loadStatus.totalTasks += m_player->GetTotalModelLoadCnt();
-        m_loadStatus.totalTasks += m_ground->GetTotalModelLoadCnt();
+        m_loadStatus.totalTasks += m_ground.GetTotalModelLoadCnt();
     }
 
 }
@@ -278,10 +274,10 @@ void GameSystem::HandleInput(void)
                     [](void* ptr)
                     {
                         GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        if (self->m_ground->GetCurrentScene() == SceneID::SCENE_1)
-                            self->m_ground->LoadScene(SceneID::SCENE_2);
+                        if (self->m_ground.GetCurrentScene() == SceneID::SCENE_1)
+                            self->m_ground.LoadScene(SceneID::SCENE_2);
                         else
-                            self->m_ground->LoadScene(SceneID::SCENE_1);
+                            self->m_ground.LoadScene(SceneID::SCENE_1);
                         UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
                     },
                     [](void* ptr)
@@ -314,7 +310,7 @@ void GameSystem::HandleInput(void)
                     [](void* ptr)
                     {
                         GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        self->m_ground->UnloadCurrentScene();
+                        self->m_ground.UnloadCurrentScene();
                         self->Update();
                         self->ChangeMode(GameMode::TITLE);
                         UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
@@ -358,7 +354,7 @@ float GameSystem::CalculateCurrentLoadingProgress(void)
     {
         doneTasks += m_enemyManager.GetEnemyLoadedCnt();
         doneTasks += m_player->GetCurrentModelLoadCnt();
-        doneTasks += m_ground->GetCurrentModelLoadCnt();
+        doneTasks += m_ground.GetCurrentModelLoadCnt();
     }
 
     m_loadStatus.doneTasks = doneTasks;
@@ -391,8 +387,8 @@ void GameSystem::UpdateGame(void)
         m_cursorManager.OnExitVisibleTemp();
 
     m_player->Update(); // プレイヤーの更新処理
-    m_ground->Update(); // 地面の更新処理
-    m_skybox->Update(); // Skyboxの更新処理
+    m_skybox.Update(); // Skyboxの更新処理
+    m_ground.Update(); // 地面の更新処理
     m_enemyManager.Update(); // エネミーの更新処理
     m_effectSystem.Update(); // エフェクトの更新処理
 
@@ -409,7 +405,7 @@ void GameSystem::UpdateLoading(void)
         {
             m_enemyManager.Update();
             m_player->Update();
-            m_ground->Update();
+            m_ground.Update();
         }
 
         // 現在の読み込み進行を設定（0.0～1.0）
@@ -449,7 +445,7 @@ void GameSystem::DrawTitle(void)
 void GameSystem::DrawGame(void)
 {
     // スカイボックスの描画
-    m_skybox->Draw(XMLoadFloat4x4(&m_camera.GetViewMatrix()), XMLoadFloat4x4(&m_camera.GetProjMatrix()));
+    m_skybox.Draw(XMLoadFloat4x4(&m_camera.GetViewMatrix()), XMLoadFloat4x4(&m_camera.GetProjMatrix()));
 
     m_renderer.SetDepthMode(DepthMode::Enable); // 深度テストを有効に
     m_renderer.SetCullingMode(CULL_MODE_BACK); // カリングモードを有効に
@@ -466,17 +462,17 @@ void GameSystem::DrawGame(void)
     // ライティングを有効に
     m_lightManager.SetLightEnable(TRUE);
 
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
 
     
     m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
     m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
     m_player->Draw(); // プレイヤーの描画
     m_enemyManager.Draw(); // エネミーの描画
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
 
     m_renderer.SetRenderInstance(); // インスタンスの描画を設定
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
 
     m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
     m_renderer.SetRenderVFX(); // VFXの描画を設定

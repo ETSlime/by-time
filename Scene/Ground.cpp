@@ -26,15 +26,18 @@
 
 #define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
 
-//=============================================================================
-// 初期化処理
-//=============================================================================
+
 Ground::Ground()
 {
 #ifdef _DEBUG
 	DebugProc::get_instance().Register(this);
 #endif // DEBUG
+}
 
+Ground::~Ground() {}
+
+void Ground::Init(void)
+{
 	InitSceneLoadMap();
 
 	BOUNDING_BOX worldBB;
@@ -55,14 +58,8 @@ Ground::Ground()
 	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
 	fieldGO->Instantiate(config);
 	m_persistentSkinnedGOs.push_back(fieldGO);
-	m_fieldGO = fieldGO;
-
-	if (!m_modelLoadMap.contains(config.modelName))
-	{
-		m_modelLoadMap[config.modelName] = 0;
-		m_totalModelLoadCnt++;
-		m_persistentModelLoadCnt++;
-	}
+	m_fieldGO = fieldGO; // フィールドの GameObject を保存
+	RegisterModelLoadMap(config.modelName, true); // モデルのロードを登録
 
 	//GameObjectConfig config{};
 	//config.modelPath = MODEL_LAND_PATH;
@@ -82,7 +79,7 @@ Ground::Ground()
 	//banyanGO->Instantiate(banyanConfig);
 	//m_groundGO.push_back(banyanGO);
 
-	
+
 	DeferredTaskOptions options{};
 	options.async = false; // 同期実行
 	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
@@ -97,13 +94,6 @@ Ground::Ground()
 }
 
 //=============================================================================
-// 終了処理
-//=============================================================================
-Ground::~Ground()
-{
-}
-
-//=============================================================================
 // 更新処理
 //=============================================================================
 void Ground::Update(void)
@@ -115,7 +105,7 @@ void Ground::Update(void)
 
 	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
 	{
-		if (m_waterFluid)
+		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
 			m_waterFluid->EmitWater(35.0f, 1.0f);
 	}
 
@@ -159,17 +149,24 @@ void Ground::UnloadCurrentScene(void)
 {
 	for (auto it = m_modelLoadMap.begin(); it != m_modelLoadMap.end();)
 	{
+		// モデルロード済みのものは削除
 		if ((*it).value == 1)
 			it = m_modelLoadMap.erase(it);
 		else
 			++it;
 	}
 
+	// 現在のシーンの GameObject をクリア
 	m_staticGOs.clear();
 	m_skinnedGOs.clear();
-	m_totalModelLoadCnt = m_persistentModelLoadCnt;
-	m_currentModelLoadCnt = 0;
 
+	// 現在のシーンのモデルロードカウントをリセット
+	m_totalModelLoadCnt = m_persistentModelLoadCnt;
+	m_totalTerrainModelLoadCnt = m_persistentTerrainModelLoadCnt;
+	m_currentModelLoadCnt = 0;
+	m_currentTerrainModelLoadCnt = 0;
+
+	// 現在のシーンが存在しない場合は何もしない
 	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentScene)))
 		return;
 
@@ -236,7 +233,7 @@ void Ground::LoadScene1(void)
 	WaterFluidParams waterParams;
 	waterParams.type = EffectType::WaterFluid;
 	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
-	waterParams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f); // 初期生成位置
+	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
 	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
 	waterParams.numParticles = 10000; // 最大粒子数
 	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 1.0f); // 水色
@@ -270,12 +267,7 @@ void Ground::LoadScene1(void)
 	bonfireGO->Instantiate(bonfireConfig);
 	m_staticGOs.push_back(bonfireGO);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
-
-	if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
-	{
-		m_modelLoadMap[bonfireConfig.modelPath] = 0;
-		m_totalModelLoadCnt++;
-	}
+	RegisterModelLoadMap(bonfireConfig.modelPath);
 }
 
 void Ground::LoadScene2(void)
@@ -373,6 +365,23 @@ void Ground::GenerateEnvironmentObj(void*)
 		);
 	}
 	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+}
+
+void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool isTerrain)
+{
+	if (!m_modelLoadMap.contains(modelPath))
+	{
+		m_modelLoadMap[modelPath] = 0; // 初期値は0
+		m_totalModelLoadCnt++; // 全体のロード数を更新
+		if (isPersistent)
+		{
+			m_persistentModelLoadCnt++; // 永続的なモデルロード数も更新
+			if (isTerrain)
+				m_persistentTerrainModelLoadCnt++; // 永続的な地形モデルのロード数も更新
+		}
+		if (isTerrain)
+			m_totalTerrainModelLoadCnt++; // 地形モデルのロード数も更新
+	}
 }
 
 void Ground::RenderImGui(void)

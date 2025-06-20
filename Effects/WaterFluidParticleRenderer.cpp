@@ -70,6 +70,12 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
     // PBF粒子更新用のComputeShaderをバインド
     m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
 
+	// UpdateParticlesCSのリソースをバインド
+    m_voxelBufferUploader.BindVoxelResources();
+
+	// 定数バッファをバインド
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
+
     // スレッドグループ数を計算（1グループ = 64粒子 と仮定）
     UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, 64);
     m_context->Dispatch(threadGroupCount, 1, 1);
