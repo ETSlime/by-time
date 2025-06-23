@@ -293,6 +293,12 @@
     <ClInclude Include="Collision\VoxelBufferUploader.h">
       <Filter>Collision</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\SPHSystem.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Shader\ShaderInclude.h">
+      <Filter>Core\Shader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -475,6 +481,9 @@
     </ClCompile>
     <ClCompile Include="Collision\VoxelBufferUploader.cpp">
       <Filter>Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SPHSystem.cpp">
+      <Filter>Effects</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

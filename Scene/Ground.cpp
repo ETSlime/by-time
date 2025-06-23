@@ -246,10 +246,10 @@ void Ground::LoadScene1(void)
 	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
 
 	// 水の物理パラメータ
-	waterParams.supportRadius = 2.0f;       // サポート半径（粒子影響範囲）
+	waterParams.supportRadius = 15.0f;       // サポート半径（粒子影響範囲）
 	waterParams.restDensity = 1.0f;       // 静止密度（流体の基準密度）
 	waterParams.particleMass = 1.0f;       // 粒子質量
-	waterParams.stiffness = 0.2f;       // 拘束強度（大きいと固くなる）
+	waterParams.stiffness = 200.0f;       // 拘束強度（大きいと固くなる）
 	waterParams.friction = 0.01f;      // 速度減衰（地面との摩擦的な）
 
 	IEffectRenderer* waterFluid = EffectSystem::get_instance().SpawnParticleEffect(waterParams);

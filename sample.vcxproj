@@ -163,6 +163,7 @@
     <ClInclude Include="Core\Graphics\VertexStructs.h" />
     <ClInclude Include="Core\Light.h" />
     <ClInclude Include="Core\LightManager.h" />
+    <ClInclude Include="Core\Shader\ShaderInclude.h" />
     <ClInclude Include="Core\Shader\ShaderLoader.h" />
     <ClInclude Include="Core\Shader\ShaderManager.h" />
     <ClInclude Include="Core\Shader\ShaderReloader.h" />
@@ -177,6 +178,7 @@
     <ClInclude Include="Effects\ParticleStructs.h" />
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SmokeEffectRenderer.h" />
+    <ClInclude Include="Effects\SPHSystem.h" />
     <ClInclude Include="Effects\SwordTrail.h" />
     <ClInclude Include="Effects\WaterFluidParticleRenderer.h" />
     <ClInclude Include="main.h" />
@@ -250,6 +252,7 @@
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SmokeEffectRenderer.cpp" />
+    <ClCompile Include="Effects\SPHSystem.cpp" />
     <ClCompile Include="Effects\SwordTrail.cpp" />
     <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp" />
     <ClCompile Include="main.cpp" />

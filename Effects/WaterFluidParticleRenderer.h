@@ -6,7 +6,9 @@
 //
 //=============================================================================
 #include "Effects/ParticleEffectRendererBase.h"
+#include "Effects/SPHSystem.h"
 #include "Collision/VoxelBufferUploader.h"
+
 
 //*********************************************************
 // 構造体
@@ -31,6 +33,8 @@ struct EmitCB
     float  emitRadius;
     XMFLOAT3 _padding; // 16byte alignment
 };
+
+
 
 class WaterFluidParticleRenderer : public ParticleEffectRendererBase
 {
@@ -63,11 +67,13 @@ private:
 	bool CreateEmitCB(void); // パーティクル放出用の定数バッファを作成
 	void UploadEmitCB(void); // パーティクル放出用の定数バッファをアップロード
 
-    float m_supportRadius = 0.3f;     // 近傍半径（PBF）
+    float m_supportRadius = 15.0f;     // 近傍半径（PBF）
     float m_restDensity = 1.0f;       // 静止時の密度
     float m_particleMass = 1.0f;      // 粒子質量
-    float m_stiffness = 0.1f;         // 圧力（硬さ）
+    float m_stiffness = 200.0f;         // 圧力（硬さ）
     float m_friction = 0.05f;         // 地形との摩擦
+
+	SPHSystem m_sphSystem; // SPHシステム（PBF用）
 
 	EmitCB m_emitCBData;              // パーティクル放出用の定数バッファデータ
     ID3D11ShaderResourceView* m_waterDotTextureSRV = nullptr;

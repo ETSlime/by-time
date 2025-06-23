@@ -1,27 +1,10 @@
+#include "SharedParticleUtil.hlsl"
+#include "VoxelCollisionUtil.hlsl"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define SLOT_CB_EFFECT_UPDATE               b5
-#define SLOT_CB_EFFECT_DRAW                 b6
-#define SLOT_CB_EFFECT_PARTICLE             b7
 #define SLOT_CB_EFFECT_EMIT                 b10
-#define SLOT_CB_VOXEL_META                  b13
-#define SLOT_UAV_PARTICLE                   u0
-#define SLOT_UAV_ALIVE_LIST                 u1
-#define SLOT_UAV_FREE_LIST                  u2
-#define SLOT_UAV_FREE_LIST_CONSUME          u3
-#define SLOT_SRV_PARTICLE                   t6
-#define SLOT_SRV_ALIVE_LIST                 t7
-#define SLOT_SRV_VOXEL_TRIANGLE_INDEX       t8
-#define SLOT_SRV_VOXEL_TRIANGLE_STRUCT      t9
-#define SLOT_SRV_VOXEL_IDX_TRIPLET          t10
-#define SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE     t11
-#define SLOT_TEX_DIFFUSE                    t0
-#define SLOT_SAMPLER_DEFAULT                s0
-#define SLOT_CB_VIEW_MATRIX                 b1
-
-#define MAX_TRI_PER_VOXEL                   64  
-#define MAX_INDEX_TRIPLET_PAGES             1024
 
 //*****************************************************************************
 // 構造体定義
@@ -35,7 +18,8 @@ struct WaterFluidParticle
 
     float3 velocity; // 速度
     float lambda; // 拘束条件解（位置補正のための係数）
-
+    float pressure; // 圧力（密度から算出される）
+    
     float3 predictedPosition; // 予測位置（次の位置、拘束前）
     float lifeRemaining; // 寿命（将来拡張用、今は1で固定でも可）
 
@@ -59,108 +43,16 @@ struct WaterFluidParticle
     float3 debug_rayStart;
     float3 debug_rayDir;
     float3 debug_hitPoint;
+    float3 debug_pressureForce;
+    float3 debug_viscosityForce;
+    float3 debug_gridCoord;
     
     float3 padding;
-};
-
-// 三角形構造体：頂点3つと法線
-struct TriangleStruct
-{
-    float3 v0;
-    float pad0;
-    float3 v1;
-    float pad1;
-    float3 v2;
-    float pad2;
-    float3 normal;
-    float pad3;
-};
-
-// IndexTriplet：voxel index → 三角形の開始オフセットと数
-struct IndexTriplet
-{
-    uint voxelIndex;
-    uint startOffset;
-    uint count;
-    uint pad; // パディング（cbuffer整列のため）
-};
-
-// IndexTripletPageHeader：IndexTripletのページヘッダー
-struct IndexTripletPageHeader
-{
-    uint pageStartMorton; // ページ最小モートン番号
-    uint pageEndMorton; // ページ最大モートン番号
-    uint pageOffset; // g_IndexTripletsでのオフセット
-    uint pageCount; // このページのトリプレット数
-};
-
-struct VS_INPUT
-{
-    uint instanceID : SV_InstanceID; // DrawInstancedIndirect で渡される
-};
-
-// VS → 単にParticleIDを渡す
-struct VS_OUTPUT
-{
-    uint ParticleID : PARTICLE_ID;
-};
-
-struct GS_INPUT
-{
-    uint ParticleID : PARTICLE_ID;
-};
-
-// GS → Billboard展開
-struct GS_OUTPUT
-{
-    float4 PosH : SV_POSITION;
-    float2 TexCoord : TEXCOORD;
-    float4 Color : COLOR0;
-};
-
-struct PS_INPUT
-{
-    float4 PosH : SV_POSITION;
-    float2 TexCoord : TEXCOORD;
-    float4 Color : COLOR0;
 };
 
 //*****************************************************************************
 // 定数バッファ
 //*****************************************************************************
-
-// パーティクル更新用の定数バッファ
-cbuffer CBParticleUpdate : register(SLOT_CB_EFFECT_UPDATE)
-{
-    float3 g_Acceleration; // 加速度（例：float3(0, 1.5f, 0)）
-    float g_Scale; // サイズスケール
-    
-    float g_DeltaTime; // 経過時間
-    float g_TotalTime; // 全体経過時間
-    float g_LifeMin; // 最小ライフ
-    float g_LifeMax; // 最大ライフ
-    float g_SpawnRateMin; // 毎秒発射数
-    float g_SpawnRateMax; // 毎秒発射数
-    
-    uint g_MaxParticleCount; // 最大パーティクル数
-    uint g_ParticlesToEmitThisFrame; // このフレームに発射するパーティクル数
-    
-    float4 g_startColor;
-    float4 g_endColor;
-};
-
-// パーティクル描画用の定数バッファ
-cbuffer CBParticleDraw : register(SLOT_CB_EFFECT_DRAW)
-{
-    matrix g_World;
-    matrix g_ViewProj;
-};
-
-// ビュー行列用の定数バッファ
-cbuffer ViewBuffer : register(SLOT_CB_VIEW_MATRIX)
-{
-    matrix g_View;
-}
 
 // 水の流体パーティクル用の定数バッファ
 cbuffer CBWaterFluid : register(SLOT_CB_EFFECT_PARTICLE)
@@ -172,23 +64,6 @@ cbuffer CBWaterFluid : register(SLOT_CB_EFFECT_PARTICLE)
     float g_Friction;
     float3 padding;
 };
-
-// ボクセルメタデータ用の定数バッファ
-cbuffer CBVoxelMeta : register(SLOT_CB_VOXEL_META)
-{
-    float3 g_VoxelOrigin;           // ワールド空間での原点
-    float g_VoxelSize;              // 各ボクセルの1辺の長さ
-
-    uint g_TotalIndexTripletSize;   // g_IndexTripletsの総数
-    uint g_TotalPageHeaderSize;     // g_PageHeadersの総数
-    uint2 padVoxelMeta;             // パディングで16バイト揃え
-};
-
-// === ページヘッダーだけの定数バッファ ===
-//cbuffer CB_IndexTripletPages : register(SLOT_CB_INDEX_TRIPLET_PAGE_HEADERS)
-//{
-//    IndexTripletPageHeader g_PageHeaders[MAX_INDEX_TRIPLET_PAGES];
-//};
 
 // パーティクルエミット用の定数バッファ
 cbuffer CBEmit : register(SLOT_CB_EFFECT_EMIT)
@@ -202,157 +77,16 @@ cbuffer CBEmit : register(SLOT_CB_EFFECT_EMIT)
 //*****************************************************************************
 // グローバル変数
 //*****************************************************************************
-Texture2D g_DiffuseTex : register(SLOT_TEX_DIFFUSE); // ノイズテクスチャ
-SamplerState g_Sampler : register(SLOT_SAMPLER_DEFAULT); // サンプラーステート
 
 // バッファ
-AppendStructuredBuffer<uint> g_AliveListUAV : register(SLOT_UAV_ALIVE_LIST); // 書き込み用生存パーティクルリスト
-AppendStructuredBuffer<uint> g_FreeListUAV : register(SLOT_UAV_FREE_LIST); // 書き込み用空きパーティクルリスト
 RWStructuredBuffer<WaterFluidParticle> g_ParticlesUAV : register(SLOT_UAV_PARTICLE); // 書き込み用パーティクルデータバッファ
 StructuredBuffer<WaterFluidParticle> g_ParticlesSRV : register(SLOT_SRV_PARTICLE); // 読み取り用パーティクルデータバッファ
-StructuredBuffer<uint> g_AliveListSRV : register(SLOT_SRV_ALIVE_LIST); // 読み取り用生存パーティクルリスト
-ConsumeStructuredBuffer<uint> g_FreeListConsumeUAV : register(SLOT_UAV_FREE_LIST_CONSUME); // 読み取り用空きパーティクルリスト
-StructuredBuffer<uint> g_VoxelTriangleIndices : register(SLOT_SRV_VOXEL_TRIANGLE_INDEX); // 三角形インデックス
-StructuredBuffer<TriangleStruct> g_Triangles : register(SLOT_SRV_VOXEL_TRIANGLE_STRUCT); // 三角形構造体
-StructuredBuffer<IndexTriplet> g_IndexTriplets : register(SLOT_SRV_VOXEL_IDX_TRIPLET); // インデックス三つ組（モートンコード用）
-StructuredBuffer<IndexTripletPageHeader> g_PageHeaders : register(SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE); // ページヘッダー
-
-//================== 補助関数 ==================
-float Rand(float seed)
-{
-    return frac(sin(seed * 12.9898) * 43758.5453);
-}
-
-int3 GetVoxelCoord(float3 worldPos)
-{
-    float3 local = (worldPos - g_VoxelOrigin) / g_VoxelSize;
-    return int3(floor(local)); // ボクセル座標は整数値
-}
-
-uint Part1By2(uint x)
-{
-    x &= 0x3ff;
-    x = (x | (x << 16)) & 0x30000ff;
-    x = (x | (x << 8))  & 0x300f00f;
-    x = (x | (x << 4))  & 0x30c30c3;
-    x = (x | (x << 2))  & 0x9249249;
-    return x;
-}
-
-uint EncodeMorton3(uint x, uint y, uint z)
-{
-    return (Part1By2(z) << 2) | (Part1By2(y) << 1) | Part1By2(x);
-}
-
-// 二分探索で voxelIndex に一致する IndexTriplet を探す
-int FindIndexTriplet(uint voxelIndex)
-{
-    uint left = 0;
-    uint right = g_TotalPageHeaderSize - 1;
-
-    // ページヘッダーの二分探索
-    [allow_uav_condition]
-    while (left <= right)
-    {
-        uint mid = (left + right) / 2;
-        IndexTripletPageHeader pageHeader = g_PageHeaders[mid];
-        
-        if (voxelIndex < pageHeader.pageStartMorton)
-        {
-            right = mid - 1;
-        }
-        else if (voxelIndex > pageHeader.pageEndMorton)
-        {
-            left = mid + 1;
-        }
-        else
-        {
-            // ページの範囲に含まれているから、内部を探索する
-            [allow_uav_condition]
-            for (uint j = 0; j < pageHeader.pageCount; ++j)
-            {
-                IndexTriplet triplet = g_IndexTriplets[pageHeader.pageOffset + j];
-                if (triplet.voxelIndex == voxelIndex)
-                    return pageHeader.pageOffset + j;
-            }
-
-            // でも実際には見つからなかったら…？
-            // 範囲は合っていたけど、ページに含まれていないパターン！
-            // **探索は続けるべきじゃなくて、これはありえない状態かも！**
-            return -2; // 一応保険
-        }
-    }
-
-    return -1; // 完全に見つからない
-}
-
-//================== コリジョンチェック ==================
-//bool RayIntersectsTriangle(float3 origin, float3 dir, TriangleStruct tri, out float3 hitPoint)
-//{
-//    float3 edge1 = tri.v1 - tri.v0;
-//    float3 edge2 = tri.v2 - tri.v0;
-//    float3 h = cross(dir, edge2);
-//    float a = dot(edge1, h);
-
-//    if (abs(a) < 1e-6f)
-//        return false;
-
-//    float f = 1.0f / a;
-//    float3 s = origin - tri.v0;
-//    float u = f * dot(s, h);
-//    if (u < 0.0f || u > 1.0f)
-//        return false;
-
-//    float3 q = cross(s, edge1);
-//    float v = f * dot(dir, q);
-//    if (v < 0.0f || u + v > 1.0f)
-//        return false;
-
-//    float t = f * dot(edge2, q);
-//    if (t > 1e-6f)
-//    {
-//        hitPoint = origin + t * dir;
-//        return true;
-//    }
-//    return false;
-//}
-bool RayIntersectsTriangle(float3 origin, float3 dir, TriangleStruct tri, out float3 hitPoint, out float rayDistance)
-{
-    float3 edge1 = tri.v1 - tri.v0;
-    float3 edge2 = tri.v2 - tri.v0;
-    float3 h = cross(dir, edge2);
-    float a = dot(edge1, h);
-
-    if (abs(a) < 1e-6f)
-        return false;
-
-    float f = 1.0f / a;
-    float3 s = origin - tri.v0;
-    float u = f * dot(s, h);
-    if (u < 0.0f || u > 1.0f)
-        return false;
-
-    float3 q = cross(s, edge1);
-    float v = f * dot(dir, q);
-    if (v < 0.0f || u + v > 1.0f)
-        return false;
-
-    rayDistance = f * dot(edge2, q);
-
-    if (rayDistance > 1e-6f)
-    {
-        hitPoint = origin + rayDistance * dir;
-        return true;
-    }
-
-    return false;
-}
 
 
 //=============================================================================
 // コンピュートシェーダ
 //=============================================================================
-[numthreads(64, 1, 1)]
+[numthreads(THREAD_COUNT, 1, 1)]
 void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint id = dispatchThreadID.x;
@@ -365,8 +99,8 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     if (p.lifeRemaining > 0.0f)
     {
         // --- 予測位置更新（単純な速度積分）
-        float3 acc = g_Acceleration;
-        p.velocity += acc * g_DeltaTime; // 重力加速度 × Δt
+        float3 accel = g_Acceleration;
+        p.velocity += accel * g_DeltaTime; // 重力加速度 × Δt
         float3 deltaPos = p.velocity * g_DeltaTime;
         p.predictedPosition = p.position + deltaPos;
         
@@ -402,7 +136,7 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                 uint triIndex = g_VoxelTriangleIndices[t.startOffset + i];
                 TriangleStruct tri = g_Triangles[triIndex];
 
-                float3 hitPoint;
+                float3 hitPoint = float3(0, 0, 0);
                 float3 dir = deltaPos;
                 
                 float4 rayStartWS = mul(float4(p.position, 1.0f), g_World);
@@ -419,7 +153,7 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                 p.debug_rayDir = rayDir;
                 p.debug_dirLength = length(dir);
                 
-                float rayDistance;
+                float rayDistance = 0;
                 if (RayIntersectsTriangle(rayStart, rayDir, tri, hitPoint, rayDistance))
                 {
                     if (rayDistance <= rayRange && rayDistance < closestRayDistance)
@@ -463,35 +197,53 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 }
 
-float3 RandomInsideUnitSphere(uint seed)
+//================== 補助関数 ==================
+float3 SafeDirectionFromSeed(uint seed)
 {
-    uint state = seed * 747796405u + 2891336453u;
+    float x = frac((seed * 16807u) / 4294967296.0f) * 2.0f - 1.0f;
+    float y = frac((seed * 48271u) / 4294967296.0f) * 2.0f - 1.0f;
+    float z = frac((seed * 69691u) / 4294967296.0f) * 2.0f - 1.0f;
 
-    state = state * 747796405u + 2891336453u;
-    float x = frac(state / 4294967296.0);
+    float3 dir = float3(x, y, z);
+    float len = length(dir);
 
-    state = state * 747796405u + 2891336453u;
-    float y = frac(state / 4294967296.0);
-
-    state = state * 747796405u + 2891336453u;
-    float z = frac(state / 4294967296.0);
-
-    x = x * 2.0f - 1.0f;
-    y = y * 2.0f - 1.0f;
-    z = z * 2.0f - 1.0f;
-
-    float3 v = float3(x, y, z);
-    float len = length(v);
-
-    // fallback にほんの少しノイズを足す（絶対 0 にしない）
-    if (len > 1.0f || len == 0.0f)
-        return float3(0.001f * seed, 0.0f, 0.001f * seed);
-
-    return normalize(v);
+    if (len == 0.0f)
+        return float3(0.0f, 1.0f, 0.0f);
+    return normalize(dir);
 }
 
 
-[numthreads(64, 1, 1)]
+float3 RandomInsideUnitSphere(uint seed)
+{
+    for (int i = 0; i < 3; ++i)
+    {
+        uint state = seed * 747796405u + 2891336453u;
+        state = state * 747796405u + 2891336453u;
+        float x = frac(state / 4294967296.0);
+
+        state = state * 747796405u + 2891336453u;
+        float y = frac(state / 4294967296.0);
+
+        state = state * 747796405u + 2891336453u;
+        float z = frac(state / 4294967296.0);
+
+        x = x * 2.0f - 1.0f;
+        y = y * 2.0f - 1.0f;
+        z = z * 2.0f - 1.0f;
+
+        float3 v = float3(x, y, z);
+        if (length(v) <= 1.0f)
+            return normalize(v);
+
+        seed += 17; // 再試行用に乱数種をずらす
+    }
+
+    // fallback にほんの少しノイズを足す（絶対 0 にしない）
+    return SafeDirectionFromSeed(seed);
+}
+
+
+[numthreads(THREAD_COUNT, 1, 1)]
 void EmitCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 {
     uint id = dispatchThreadID.x;

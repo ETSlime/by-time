@@ -43,6 +43,7 @@ struct CBParticleDraw
 {
     // 行列情報
     XMMATRIX world;
+    XMMATRIX worldInv;
     XMMATRIX viewProj;
 };
 
@@ -53,6 +54,15 @@ struct DrawArgs
     UINT StartVertexLocation;  // 頂点開始位置（通常は0）
     UINT StartInstanceLocation; // インスタンス開始位置（通常は0）
 };
+
+// パーティクルシェーダーグループ
+struct ParticleBufferSet
+{
+    ID3D11Buffer* buffer = nullptr;
+    ID3D11ShaderResourceView* srv = nullptr;
+    ID3D11UnorderedAccessView* uav = nullptr;
+};
+
 
 struct ParticleEffectParams;
 
@@ -88,6 +98,16 @@ public:
 
     // パイプライン状態リセット
     static void ResetPipelineState(ParticleShaderGroup group) { s_pipelineBoundMap[TO_UINT64(group)] = false; }
+
+    // 汎用的な構造体バッファを作成する
+    static void CreateStructuredBuffer(ID3D11Device* device,
+        UINT structSize,
+        UINT count,
+        const void* initData,
+        ID3D11Buffer** ppBuffer,
+        ID3D11ShaderResourceView** ppSRV,
+        ID3D11UnorderedAccessView** ppUAV);
+
 
 protected:
 
@@ -154,15 +174,11 @@ protected:
 
     ID3D11Buffer* m_cbParticleUpdate = nullptr;  // 更新用定数バッファ
     ID3D11Buffer* m_cbParticleDraw = nullptr;    // 描画用定数バッファ
-    ID3D11Buffer* m_particleBuffer = nullptr;    // パーティクルデータバッファ
     ID3D11Buffer* m_drawArgsBuffer = nullptr;    // 描画用引数バッファ
-    ID3D11Buffer* m_aliveListBuffer = nullptr;  // アクティブなパーティクルリストバッファ
-    ID3D11Buffer* m_freeListBuffer = nullptr;   // フリーリストバッファ
-    ID3D11ShaderResourceView* m_particleSRV = nullptr; // パーティクル読み取り用SRV
-    ID3D11ShaderResourceView* m_aliveListSRV = nullptr; // アクティブなパーティクルリスト用SRV
-    ID3D11UnorderedAccessView* m_particleUAV = nullptr; // パーティクル書き込み用UAV
-    ID3D11UnorderedAccessView* m_aliveListUAV = nullptr; // アクティブなパーティクルリスト用UAV
-    ID3D11UnorderedAccessView* m_freeListUAV = nullptr; // フリーリスト用UAV
+
+	ParticleBufferSet m_particleBufferSet; // パーティクルバッファセット
+	ParticleBufferSet m_aliveListBufferSet; // アクティブなパーティクルリストバッファセット
+	ParticleBufferSet m_freeListBufferSet; // フリーリストバッファセット
     ID3D11UnorderedAccessView* m_freeListConsumeUAV = nullptr; // フリーリスト消費用UAV
 
     ID3D11Buffer* m_cbParticleEffect = nullptr; // 常量バッファ
@@ -218,7 +234,7 @@ inline bool ParticleEffectRendererBase::CreateParticleBuffer(ParticleEffectRende
     subData.pSysMem = initData.data();
 
     // StructuredBuffer作成（RWStructuredBuffer用）
-    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBuffer);
+    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBufferSet.buffer);
     if (FAILED(hr)) return false;
 
     // SRV作成
@@ -226,7 +242,7 @@ inline bool ParticleEffectRendererBase::CreateParticleBuffer(ParticleEffectRende
     srvDesc.Format = DXGI_FORMAT_UNKNOWN;
     srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
     srvDesc.Buffer.NumElements = self->m_maxParticles;
-    hr = self->m_device->CreateShaderResourceView(self->m_particleBuffer, &srvDesc, &self->m_particleSRV);
+    hr = self->m_device->CreateShaderResourceView(self->m_particleBufferSet.buffer, &srvDesc, &self->m_particleBufferSet.srv);
     if (FAILED(hr)) return false;
 
     // UAV作成
@@ -234,7 +250,7 @@ inline bool ParticleEffectRendererBase::CreateParticleBuffer(ParticleEffectRende
     uavDesc.Format = DXGI_FORMAT_UNKNOWN;
     uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
     uavDesc.Buffer.NumElements = self->m_maxParticles;
-    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBuffer, &uavDesc, &self->m_particleUAV);
+    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBufferSet.buffer, &uavDesc, &self->m_particleBufferSet.uav);
     if (FAILED(hr)) return false;
 
     return true;

@@ -5,6 +5,7 @@
 //
 //=============================================================================
 #include "Core/Shader/ShaderLoader.h"
+#include "Core/Shader/ShaderInclude.h"
 #include "Utility/SimpleArray.h"
 
 
@@ -190,12 +191,13 @@ bool ShaderLoader::CompileShaderFromFile(const char* fileName, const char* entry
 #endif
 
     ID3DBlob* pErrorBlob = nullptr;
+	ShaderInclude includeHandler; // シェーダーインクルードハンドラー
     // D3DCompile を使用してシェーダーをコンパイル
     HRESULT hr = D3DCompile(
         buffer, size,
         fileName,                           // ソース名（警告/エラー表示用）
         nullptr,                            // defines
-        nullptr,
+		&includeHandler,                    // インクルードハンドラー
         entryPoint, target,
         flags, 0,
         blobOut, &pErrorBlob

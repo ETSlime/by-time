@@ -4,9 +4,9 @@
 // Author : 
 //
 //=============================================================================
-#include "WaterFluidParticleRenderer.h"
-#include "EffectSystem.h"
-#include "ParticleStructs.h"
+#include "Effects/WaterFluidParticleRenderer.h"
+#include "Effects/EffectSystem.h"
+#include "Effects/ParticleStructs.h"
 
 bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
 {
@@ -28,6 +28,21 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	// EmitCBの作成
 	if (!CreateEmitCB())
 		return false;
+
+	// SPHシステムの初期化
+	SPHConfig sphConfig;
+	sphConfig.maxParticles = m_maxParticles;
+	sphConfig.gridMin = XMFLOAT3(-1000.0f, -1000.0f, -1000.0f);
+	sphConfig.cellSize = m_supportRadius * 0.5f; // SPHの平滑半径をセルサイズに設定
+	sphConfig.gridDim = XMUINT3(256, 256, 256); // グリッド分割数
+	sphConfig.maxParticlesPerCell = MAX_PARTICLES_PER_CELL; // セルあたりの最大パーティクル数
+	sphConfig.smoothingRadius = m_supportRadius; // 平滑化半径
+	sphConfig.particleMass = m_particleMass; // 粒子質量
+	sphConfig.restDensity = m_restDensity; // 静止時の密度
+	sphConfig.pressureMultiplier = m_stiffness; // 圧力係数
+	sphConfig.viscosity = m_friction; // 粘性係数
+	sphConfig.acceleration = m_acceleration; // 外力（重力など）
+	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet);
 
     return true;
 }
@@ -67,18 +82,21 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
     // PBF専用のCBをアップロード（例：deltaTime、supportRadiusなど）
     UploadWaterFluidCB();
 
-    // PBF粒子更新用のComputeShaderをバインド
-    m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
-
 	// UpdateParticlesCSのリソースをバインド
     m_voxelBufferUploader.BindVoxelResources();
 
 	// 定数バッファをバインド
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
 
-    // スレッドグループ数を計算（1グループ = 64粒子 と仮定）
-    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, 64);
-    m_context->Dispatch(threadGroupCount, 1, 1);
+    //// PBF粒子更新用のComputeShaderをバインド
+    //m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
+
+    //// スレッドグループ数を計算（1グループ = 64粒子 と仮定）
+    //UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, THREAD_COUNT);
+    //m_context->Dispatch(threadGroupCount, 1, 1);
+
+	// SPHシステムの更新
+	m_sphSystem.Update();
 
     // Emit処理（新しい水の注入）を基底クラスに任せる
     DispatchEmitParticlesCS();
@@ -110,7 +128,7 @@ void WaterFluidParticleRenderer::DispatchEmitParticlesCS(void)
     m_context->CSSetShader(m_emitParticlesCS.cs, nullptr, 0);
 
     // スレッドグループ数を計算（Emitは1スレッド = 1粒子）
-    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_emitCBData.emitCount, 64); // スレッドグループ数計算
+    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_emitCBData.emitCount, THREAD_COUNT); // スレッドグループ数計算
     m_context->Dispatch(threadGroupCount, 1, 1);
 
     // 使用済みなのでゼロリセット（次フレームまた呼び出される）

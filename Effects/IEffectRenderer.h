@@ -15,6 +15,7 @@
 //*****************************************************************************
 // 総スレッド数 total を groupSize 単位で割り、足りない分を繰り上げて補う
 #define GET_THREAD_GROUP_COUNT(total, groupSize) (((total) + (groupSize) - 1) / (groupSize))
+#define THREAD_COUNT 256 // スレッド数
 
 enum class EffectType
 {

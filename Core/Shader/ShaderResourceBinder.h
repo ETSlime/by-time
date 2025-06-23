@@ -31,6 +31,7 @@
 #define SLOT_CB_CASCADE_DATA_ARRAY          6
 #define SLOT_CB_CAMERA_POS                  7
 #define SLOT_CB_EFFECT_PARTICLE             7
+#define SLOT_CB_EFFECT_SPH                  8
 #define SLOT_CB_CASCADE_DATA                8
 #define SLOT_CB_SKYBOX                      9  
 #define SLOT_CB_DEBUG_BOUNDING_BOX          9  
@@ -66,11 +67,19 @@
 #define SLOT_SRV_VOXEL_TRIANGLE_STRUCT      9   // ボクセル三角形構造体リスト
 #define SLOT_SRV_VOXEL_IDX_TRIPLET          10  // ボクセル三角形頂点リスト
 #define SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE     11  // ボクセル三角形インデックスページヘッダ
+#define SLOT_SRV_SORTED_INDICES             12  // ソートされたパーティクルインデックス
+#define SLOT_SRV_GRID_START_INDEX           13  // グリッド開始インデックス
+#define SLOT_SRV_GRID_COUNTER               14  // グリッドカウンター
+
 // ===== RWストラクチャードバッファ定義 =====
 #define SLOT_UAV_PARTICLE           0   // パーティクル更新バッファ
 #define SLOT_UAV_ALIVE_LIST         1   // パーティクル生存リスト
 #define SLOT_UAV_FREE_LIST          2   // パーティクルフリーリスト
-#define SLOT_UAV_FREE_LIST_CONSUME  3
+#define SLOT_UAV_FREE_LIST_CONSUME  3   // フリーリスト消費用UAV
+#define SLOT_UAV_SORTED_INDICES     4   // ソートされたパーティクルインデックス
+#define SLOT_UAV_GRID_START_INDEX   5   // グリッド開始インデックス
+#define SLOT_UAV_GRID_COUNTER       6   // グリッドカウンター
+
 // ===== シェーダーステージ定義 =====
 enum class ShaderStage
 {
@@ -85,7 +94,7 @@ class ShaderResourceBinder : public SingletonBase<ShaderResourceBinder>
 public:
 
     void Initialize(ID3D11DeviceContext* context);
-    void Reset();
+    void Reset(void);
 
     // 定数バッファバインド
     void BindConstantBuffer(ShaderStage stage, UINT slot, ID3D11Buffer* buffer);

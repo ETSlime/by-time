@@ -52,6 +52,7 @@ struct WaterFluidParticle
 
     XMFLOAT3 velocity;             // 速度
     float    lambda;               // 拘束条件解（位置補正のための係数）
+	float    pressure;             // 圧力（密度から算出される）
 
     XMFLOAT3 predictedPosition;    // 予測位置（次の位置、拘束前）
     float    lifeRemaining;        // 寿命（将来拡張用、今は1で固定でも可）
@@ -77,6 +78,8 @@ struct WaterFluidParticle
     XMFLOAT3 debug_rayStart = { 0.0f, 0.0f, 0.0f };
     XMFLOAT3 debug_rayDir = { 0.0f, 0.0f, 0.0f };
     XMFLOAT3 debug_hitPoint = { 0.0f, 0.0f, 0.0f };
-
+	XMFLOAT3 debug_pressureForce = { 0.0f, 0.0f, 0.0f }; 
+	XMFLOAT3 debug_viscosityForce = { 0.0f, 0.0f, 0.0f };
+    XMFLOAT3 debug_gridCoord = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT3 padding;              // パディング（16バイト境界調整用）
 };

@@ -74,7 +74,7 @@ void FireBallEffectRenderer::DispatchComputeShader(void)
     m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
 
     // スレッドグループ数を計算（例: 64スレッド/グループ）
-    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, 64);
+    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, THREAD_COUNT);
     m_context->Dispatch(threadGroupCount, 1, 1);
 
     // Emit処理は基底クラスに任せる

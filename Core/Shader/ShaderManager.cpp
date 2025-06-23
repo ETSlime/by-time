@@ -101,7 +101,6 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         nullptr, nullptr, 
         "Shaders/Tree.hlsl", "PSShadowAlphaTest", false);
 
-    //RegisterComputeShaderSource(ShaderSetID::FireEffect, "Shaders/FireEffect.hlsl", "CS");
     RegisterComputeShaderSource(ParticleComputeGroup::BasicBillboard, ComputePassType::Update,
         "Shaders/ParticleBillboardSimple.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::BasicBillboard, ComputePassType::Emit,
@@ -114,6 +113,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Emit,
         "Shaders/WaterFluid.hlsl", "EmitCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
+        "Shaders/SPHSystem.hlsl", "BuildGirdCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate,
+        "Shaders/SPHSystem.hlsl", "SimulateCS");
 }
 
 void ShaderManager::RegisterShaderReloadEntry(const char* path, const char* entry, const char* target, void** outputShaderPtr, 
