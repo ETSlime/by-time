@@ -64,10 +64,10 @@ cbuffer CBVoxelMeta : register(SLOT_CB_VOXEL_META)
 //*****************************************************************************
 // グローバル変数
 //*****************************************************************************
-StructuredBuffer<uint> g_VoxelTriangleIndices : register(SLOT_SRV_VOXEL_TRIANGLE_INDEX); // 三角形インデックス
-StructuredBuffer<TriangleStruct> g_Triangles : register(SLOT_SRV_VOXEL_TRIANGLE_STRUCT); // 三角形構造体
-StructuredBuffer<IndexTriplet> g_IndexTriplets : register(SLOT_SRV_VOXEL_IDX_TRIPLET); // インデックス三つ組（モートンコード用）
-StructuredBuffer<IndexTripletPageHeader> g_PageHeaders : register(SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE); // ページヘッダー
+StructuredBuffer<uint> g_VoxelTriangleIndices           : register(SLOT_SRV_VOXEL_TRIANGLE_INDEX); // 三角形インデックス
+StructuredBuffer<TriangleStruct> g_Triangles            : register(SLOT_SRV_VOXEL_TRIANGLE_STRUCT); // 三角形構造体
+StructuredBuffer<IndexTriplet> g_IndexTriplets          : register(SLOT_SRV_VOXEL_IDX_TRIPLET); // インデックス三つ組（モートンコード用）
+StructuredBuffer<IndexTripletPageHeader> g_PageHeaders  : register(SLOT_SRV_VOXEL_IDX_TRIPLET_PAGE); // ページヘッダー
 
 //================== 補助関数 ==================
 int3 GetVoxelCoord(float3 worldPos)

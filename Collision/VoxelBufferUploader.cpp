@@ -175,38 +175,13 @@ void VoxelBufferUploader::UploadBuffers(void)
     // Voxelメタデータをアップロード
 	UploadVoxelMeta(m_cachedGrid->m_origin, m_cachedGrid->m_voxelSize);
 
-	// ページヘッダを定数バッファにアップロード
-	//UploadPageHeaders();
 
     if (m_voxelTriangleIndexBuffer && m_indexTripletBuffer && m_triangleStructBuffer && m_indexTripletPageBuffer)
 	{
 		m_isBuffersUploaded = true; // バッファがアップロードされたフラグを立てる
 	}
 }
-//
-//void VoxelBufferUploader::UploadPageHeaders(void)
-//{
-//    if (m_indexTripletPageHeaders.empty()) return;
-//
-//    D3D11_BUFFER_DESC desc = {};
-//    desc.ByteWidth = sizeof(IndexTripletPageHeader) * m_totalIndexTripletPageSize;
-//    desc.Usage = D3D11_USAGE_DEFAULT;
-//    desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-//    desc.CPUAccessFlags = 0;
-//
-//    D3D11_SUBRESOURCE_DATA subData = {};
-//    subData.pSysMem = m_indexTripletPageHeaders.data();
-//
-//    if (!m_cbIndexTripletPageHeaders)
-//    {
-//        HRESULT hr = m_device->CreateBuffer(&desc, &subData, &m_cbIndexTripletPageHeaders);
-//        assert(SUCCEEDED(hr));
-//    }
-//    else
-//    {
-//        m_renderer.GetDeviceContext()->UpdateSubresource(m_cbIndexTripletPageHeaders, 0, nullptr, m_indexTripletPageHeaders.data(), 0, 0);
-//    }
-//}
+
 
 void VoxelBufferUploader::UploadVoxelMeta(const XMFLOAT3& origin, float voxelSize)
 {

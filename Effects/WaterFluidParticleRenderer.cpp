@@ -37,13 +37,13 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	sphConfig.cellSize = m_supportRadius * 0.5f; // SPHの平滑半径をセルサイズに設定
 	sphConfig.gridDim = XMUINT3(256, 256, 256); // グリッド分割数
 	sphConfig.maxParticlesPerCell = MAX_PARTICLES_PER_CELL; // セルあたりの最大パーティクル数
-	sphConfig.smoothingRadius = m_supportRadius; // 平滑化半径
+	sphConfig.smoothingRadius = sphConfig.cellSize; // 平滑半径はセルサイズと同じ
 	sphConfig.particleMass = m_particleMass; // 粒子質量
 	sphConfig.restDensity = m_restDensity; // 静止時の密度
 	sphConfig.pressureMultiplier = m_stiffness; // 圧力係数
 	sphConfig.viscosity = m_friction; // 粘性係数
 	sphConfig.acceleration = m_acceleration; // 外力（重力など）
-	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet);
+	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
     return true;
 }

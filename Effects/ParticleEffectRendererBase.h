@@ -107,7 +107,8 @@ public:
         ID3D11Buffer** ppBuffer,
         ID3D11ShaderResourceView** ppSRV,
         ID3D11UnorderedAccessView** ppUAV,
-        bool allowAppendUAV = false);
+        bool allowAppendUAV = false,
+        bool cpuWritable = false);
 
 
 protected:

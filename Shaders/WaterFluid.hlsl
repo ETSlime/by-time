@@ -14,6 +14,7 @@
 struct WaterFluidParticle
 {
     float3 position; // 現在位置
+    float3 prevPosition; // 前フレーム位置
     float density; // 密度（周囲の粒子から算出）
 
     float3 velocity; // 速度

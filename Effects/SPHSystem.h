@@ -36,7 +36,7 @@ struct CBSPHSimParams
     UINT     maxParticlesPerCell;       // 1 セルあたりの最大パーティクル数
 
 	float    deltaTime;                 // タイムステップ (Δt)
-	UINT     totalGridPageHeaderSize;   // グリッドページヘッダの総サイズ
+	UINT     totalPageHeaderCount;      // グリッドページヘッダの総数
 	//float    padding;                   // 16バイトアライメント用のパディング
 };
 
@@ -49,7 +49,7 @@ struct SPHConfig
     float    cellSize = 1.0f; // グリッドセルのサイズ
     XMUINT3  gridDim = { 128, 128, 128 };  // グリッドの分割数 (x, y, z)
     UINT     maxParticlesPerCell = MAX_PARTICLES_PER_CELL; // セルあたりの最大パーティクル数
-	float    smoothingRadius = 1.0f; // SPH 平滑半径 (h)
+    float    smoothingRadius = 1.0f; // SPH 平滑半径 (h)
     float    particleMass = 1.0f; // パーティクル質量
     float    restDensity = 1.0f; // 静止時の密度
     float    pressureMultiplier = 0.1f; // 圧力係数
@@ -60,7 +60,8 @@ struct SPHConfig
 class SPHSystem
 {
 public:
-    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context, const SPHConfig& config, ParticleBufferSet particleBufferSet);
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context, const SPHConfig& config, 
+        ParticleBufferSet particleBufferSet, ParticleBufferSet aliveListBufferSet);
     void Update(void);
     void Shutdown(void);
     void SetConfig(const SPHConfig& config); // 設定を更新
@@ -68,7 +69,7 @@ public:
 
 private:
 	bool CreateConstantBuffer(void);    // 定数バッファの作成
-	bool CreateAliveListBuffers(void);  // 生存パーティクルリスト用バッファの作成
+	bool CreateReadbackBuffers(void);   // 生存パーティクルリストの読み取り用バッファの作成
 	void UpdateSPHSimParamsCB(void);    // SPH シミュレーションパラメータの更新
     bool LoadComputeShaders(void);      // ComputeShaderの読み込み
     void BindResources_BuildGrid(void); // グリッド構築ステージに必要なリソースをバインド
@@ -78,7 +79,8 @@ private:
     SPHConfig m_config;             // SPH シミュレーション設定
 	SPHGridUploader m_gridUploader; // グリッドアップローダー
 
-	SimpleArray<WaterFluidParticle> m_cpuAliveList;     // CPU側の生存パーティクルリスト
+	SimpleArray<WaterFluidParticle> m_prevFrameAliveListCPU;    // 前フレームの生存パーティクルリスト (CPU側)
+
     ParticleBufferSet m_aliveListBufferSet;             // 生存パーティクルリスト用バッファセット
 	ID3D11Buffer* m_aliveListReadbackBuffer = nullptr;  // 生存パーティクルリストの読み取り用バッファ
 	ID3D11Buffer* m_particleReadbackBuffer = nullptr;   // パーティクルデータの読み取り用バッファ

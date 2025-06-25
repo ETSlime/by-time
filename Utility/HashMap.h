@@ -52,6 +52,22 @@ struct EqualUInt64
     }
 };
 
+struct HashUInt32
+{
+    size_t operator()(uint32_t key) const
+    {
+        return static_cast<size_t>(key ^ (key >> 16));
+    }
+};
+
+struct EqualUInt32
+{
+    bool operator()(uint32_t a, uint32_t b) const
+    {
+        return a == b;
+    }
+};
+
 template<typename Key, typename Value, typename HashFunc, typename EqualsFunc>
 class HashMap
 {

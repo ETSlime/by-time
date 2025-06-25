@@ -296,17 +296,18 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
     ID3D11Buffer** ppBuffer, 
     ID3D11ShaderResourceView** ppSRV, 
     ID3D11UnorderedAccessView** ppUAV,
-    bool allowAppendUAV)
+    bool allowAppendUAV,
+    bool cpuWritable)
 {
     HRESULT hr = S_OK;
 
     D3D11_BUFFER_DESC desc = {};
     desc.ByteWidth = structSize * count;
-    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.Usage = cpuWritable ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
     desc.BindFlags = 0;
     if (ppSRV) desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
-    if (ppUAV) desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
-    desc.CPUAccessFlags = 0;
+	if (ppUAV && !cpuWritable) desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS; // UAVÇÕCPUèëÇ´çûÇ›ïsâ¬ÇÃèÍçáÇÃÇ›
+    desc.CPUAccessFlags = cpuWritable ? D3D11_CPU_ACCESS_WRITE : 0;
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     desc.StructureByteStride = structSize;
 
@@ -329,7 +330,7 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
         assert(SUCCEEDED(hr));
     }
 
-    if (ppUAV && *ppBuffer)
+	if (ppUAV && *ppBuffer && !cpuWritable) // UAVÇÕCPUèëÇ´çûÇ›ïsâ¬ÇÃèÍçáÇÃÇ›
     {
         D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
         uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;

@@ -132,8 +132,6 @@ private:
 
     // Voxelメタデータ用定数バッファ
 	ID3D11Buffer* m_cbVoxelMeta = nullptr;
- //   // IndexTripletのページヘッダ定数バッファ
-	//ID3D11Buffer* m_cbIndexTripletPageHeaders = nullptr;
 
 	SimpleArray<UINT> m_triangleIndices; // Voxelに属する三角形のインデックス配列
 	SimpleArray<TriangleStructuredBuffer> m_triangleStructs; // 三角形構造体の配列

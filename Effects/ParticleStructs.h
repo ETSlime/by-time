@@ -48,6 +48,7 @@ struct BillboardFlipbookParticle
 struct WaterFluidParticle
 {
     XMFLOAT3 position;             // 現在位置
+	XMFLOAT3 prevPosition;         // 前フレーム位置
     float    density;              // 密度（周囲の粒子から算出）
 
     XMFLOAT3 velocity;             // 速度

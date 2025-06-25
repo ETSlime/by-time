@@ -10,12 +10,14 @@
 bool SPHSystem::Initialize(ID3D11Device* device, 
     ID3D11DeviceContext* context,
     const SPHConfig& config,
-    ParticleBufferSet particleBufferSet)
+    ParticleBufferSet particleBufferSet,
+    ParticleBufferSet aliveListBufferSet)
 {
 	m_device = device; 
 	m_context = context;
 
     m_particleBufferSet = particleBufferSet;
+	m_aliveListBufferSet = aliveListBufferSet;
 
 	SetConfig(config); // SPHシミュレーションの設定を適用
 
@@ -31,8 +33,8 @@ bool SPHSystem::Initialize(ID3D11Device* device,
 	if (!CreateConstantBuffer())
 		return false;
 
-    // 生存パーティクルリスト用のバッファを作成
-	if (!CreateAliveListBuffers())
+	// 生存パーティクルリストの読み取り用バッファを作成
+	if (!CreateReadbackBuffers())
 		return false;
 
     // パーティクルのソート用インデックスバッファを作成
@@ -68,23 +70,21 @@ void SPHSystem::Update(void)
     UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_config.maxParticles, THREAD_COUNT); // スレッドグループ数計算
 
     UpdateSPHSimParamsCB(); // SPHシミュレーションパラメータの更新
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_SPH, m_cbSPHParams); // SPHシミュレーションパラメータの定数バッファをバインド
 
     // Grid モード切替
 	if (m_config.useSparseGrid) // 疎らなグリッドを使用する場合
 	{
-		//UpdateAliveList(); // 生存パーティクルリストの更新
-
         // CPU 側で Morton Grid を構築
-        m_gridUploader.BuildGrid(m_cpuAliveList);
+		m_gridUploader.BuildGrid(m_prevFrameAliveListCPU); // 前フレームの生存パーティクルリストを使用してグリッドを構築
 		m_gridUploader.UploadSortedIndicesTo(m_sortedIndicesBufferSet.buffer); // ソートされたインデックスをアップロード
-		m_gridUploader.UploadAndBindPageBuffers(); // グリッドページバッファをアップロード
+		m_gridUploader.UploadAndBindGridBuffers(); // グリッドページバッファをアップロード
 
 	}
 	else                        
     {
         // 密なグリッドを使用する場合
         SwapGridBuffers(); // グリッドバッファをスワップ
-        m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_SPH, m_cbSPHParams); // SPHシミュレーションパラメータの定数バッファをバインド
         BindResources_BuildGrid(); // グリッド構築用リソースをバインド
         m_context->CSSetShader(m_buildGridCS.cs, nullptr, 0);
         m_context->Dispatch(threadGroupCount, 1, 1); // グリッド構築のディスパッチ
@@ -93,6 +93,8 @@ void SPHSystem::Update(void)
 	BindResources_Simulate(); // シミュレーション用リソースをバインド
     m_context->CSSetShader(m_simulateCS.cs, nullptr, 0);
 	m_context->Dispatch(threadGroupCount, 1, 1); // SPHシミュレーションのディスパッチ
+
+    UpdateAliveList(); // 生存パーティクルリストの更新
 }
 
 void SPHSystem::Shutdown(void)
@@ -114,9 +116,6 @@ void SPHSystem::Shutdown(void)
 	SafeRelease(&m_aliveCountBuffer);
 	SafeRelease(&m_aliveListReadbackBuffer);
 	SafeRelease(&m_particleReadbackBuffer);
-	SafeRelease(&m_aliveListBufferSet.buffer);
-	SafeRelease(&m_aliveListBufferSet.srv);
-	SafeRelease(&m_aliveListBufferSet.uav);
 
 	m_gridUploader.Shutdown(); // グリッドアップローダーのシャットダウン
 }
@@ -145,31 +144,25 @@ bool SPHSystem::CreateConstantBuffer(void)
     return true;
 }
 
-bool SPHSystem::CreateAliveListBuffers(void)
+bool SPHSystem::CreateReadbackBuffers(void)
 {
     HRESULT hr = S_OK;
 
-    // 生存パーティクルリスト用の構造化バッファを作成
-	ParticleEffectRendererBase::CreateStructuredBuffer(m_device, sizeof(UINT), m_config.maxParticles, nullptr,
-		&m_aliveListBufferSet.buffer, &m_aliveListBufferSet.srv, &m_aliveListBufferSet.uav, true); // allow append
-	if (!m_aliveListBufferSet.buffer)
-		return false;
-
-	// 生存パーティクルリストのバッファを作成
+    // 生存パーティクルのカウント用バッファを作成
     D3D11_BUFFER_DESC desc = {};
     desc.ByteWidth = sizeof(UINT);
-    desc.Usage = D3D11_USAGE_STAGING;
+	desc.Usage = D3D11_USAGE_STAGING; // 読み取り専用のステージングバッファ
     desc.BindFlags = 0;
     desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     desc.MiscFlags = 0;
-    hr = m_device->CreateBuffer(&desc, nullptr, &m_aliveCountBuffer);
+	hr = m_device->CreateBuffer(&desc, nullptr, &m_aliveCountBuffer); 
 	assert(SUCCEEDED(hr));
 
 	// 生存パーティクルリストの読み取り用バッファを作成
     desc.ByteWidth = sizeof(UINT) * m_config.maxParticles;
-    desc.Usage = D3D11_USAGE_STAGING;
-    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.Usage = D3D11_USAGE_STAGING; // 読み取り専用のステージングバッファ
     desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     desc.MiscFlags = 0;
     hr = m_device->CreateBuffer(&desc, nullptr, &m_aliveListReadbackBuffer);
     assert(SUCCEEDED(hr));
@@ -202,7 +195,7 @@ void SPHSystem::UpdateSPHSimParamsCB(void)
     params->viscosity = m_config.viscosity;
     params->acceleration = m_config.acceleration;
     params->deltaTime = m_timer.GetDeltaTime();
-	params->totalGridPageHeaderSize = m_gridUploader.GetTotalGridPageHeaderSize();
+	params->totalPageHeaderCount = m_gridUploader.GetTotalGridPageHeaderSize();
     //params->padding = 0.0f;
 
     m_context->Unmap(m_cbSPHParams, 0);
@@ -289,7 +282,7 @@ void SPHSystem::UpdateAliveList(void)
     // 空の場合はリストをクリアして終了
     if (m_aliveListCount == 0) 
     {
-        m_cpuAliveList.clear();
+        m_prevFrameAliveListCPU.clear();
         return;
     }
 
@@ -314,11 +307,11 @@ void SPHSystem::UpdateAliveList(void)
     WaterFluidParticle* allParticles = reinterpret_cast<WaterFluidParticle*>(mappedParticles.pData);
 
     // 有効な粒子を収集してCPU配列に保存
-    m_cpuAliveList.clear();
+    m_prevFrameAliveListCPU.clear();
     for (UINT i = 0; i < m_aliveListCount; ++i)
     {
         UINT id = aliveIndices[i];
-        m_cpuAliveList.push_back(allParticles[id]);
+        m_prevFrameAliveListCPU.push_back(allParticles[id]);
     }
 
     m_context->Unmap(m_aliveListReadbackBuffer, 0);
