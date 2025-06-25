@@ -30,6 +30,7 @@
 #define SLOT_SRV_SORTED_INDICES             t12
 #define SLOT_SRV_GRID_START_INDEX           t13
 #define SLOT_SRV_GRID_COUNTER               t14
+#define SLOT_SRV_SPH_GRID_PAGE_HEADER       t15
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -95,7 +96,17 @@ struct SPHSimParams
     uint maxParticlesPerCell; // 1 セルあたりの最大パーティクル数
     
     float deltaTime; // タイムステップ (Δt)
-    float padding; // パディング（アライメント用）
+    uint totalGridPageHeaderSize; // SPH グリッドページヘッダーの総数
+    //float padding; // パディング（アライメント用）
+};
+
+// SPH グリッドページヘッダー
+struct SPHGridPageHeader
+{
+    uint morton; // Morton 格子インデックス
+    uint count; // このページに含まれる粒子数
+    uint startIndex; // g_SortedIndicesSRV[] の開始位置
+    uint pad; // パディング（16バイトアライメントのため）
 };
 
 //*****************************************************************************
@@ -109,13 +120,14 @@ cbuffer CBSPHParams : register(SLOT_CB_EFFECT_SPH)
 
 
 // バッファ
-RWStructuredBuffer<WaterFluidParticle> g_ParticlesUAV   : register(SLOT_UAV_PARTICLE); // 書き込み用パーティクルデータバッファ
-RWStructuredBuffer<uint> g_SortedIndicesUAV             : register(SLOT_UAV_SORTED_INDICES); // 書き込み用ソート済みインデックス
-StructuredBuffer<uint> g_SortedIndicesSRV               : register(SLOT_SRV_SORTED_INDICES); // 読み取り用ソート済みインデックス
-RWStructuredBuffer<uint> g_GridStartIndexUAV            : register(SLOT_UAV_GRID_START_INDEX); // 書き込み用グリッド開始位置
-StructuredBuffer<uint> g_GridStartIndexSRV              : register(SLOT_SRV_GRID_START_INDEX); // 読み取り用グリッド開始位置
-RWStructuredBuffer<uint> g_GridCounterUAV               : register(SLOT_UAV_GRID_COUNTER); // 各グリッドセル内のパーティクル数カウンタ（原子加算用）
-StructuredBuffer<uint> g_GridCounterSRV                 : register(SLOT_SRV_GRID_COUNTER); // 読み取り用グリッドカウンタ
+RWStructuredBuffer<WaterFluidParticle> g_ParticlesUAV       : register(SLOT_UAV_PARTICLE); // 書き込み用パーティクルデータバッファ
+RWStructuredBuffer<uint> g_SortedIndicesUAV                 : register(SLOT_UAV_SORTED_INDICES); // 書き込み用ソート済みインデックス
+StructuredBuffer<uint> g_SortedIndicesSRV                   : register(SLOT_SRV_SORTED_INDICES); // 読み取り用ソート済みインデックス
+RWStructuredBuffer<uint> g_GridStartIndexUAV                : register(SLOT_UAV_GRID_START_INDEX); // 書き込み用グリッド開始位置
+StructuredBuffer<uint> g_GridStartIndexSRV                  : register(SLOT_SRV_GRID_START_INDEX); // 読み取り用グリッド開始位置
+RWStructuredBuffer<uint> g_GridCounterUAV                   : register(SLOT_UAV_GRID_COUNTER); // 各グリッドセル内のパーティクル数カウンタ（原子加算用）
+StructuredBuffer<uint> g_GridCounterSRV                     : register(SLOT_SRV_GRID_COUNTER); // 読み取り用グリッドカウンタ
+StructuredBuffer<SPHGridPageHeader> g_GridPageHeadersSRV    : register(SLOT_SRV_SPH_GRID_PAGE_HEADER); // SPH グリッドページヘッダー（各グリッドセルのパーティクルインデックスを管理）
 
 //================== 補助関数 ==================
 // Poly6 / Spiky / Viscosity カーネル
@@ -392,3 +404,212 @@ void SimulateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         g_FreeListUAV.Append(id);
     }
 }
+
+int FindGridPageHeader(uint morton)
+{
+    uint left = 0;
+    uint right = SPHParams.totalGridPageHeaderSize - 1;
+
+    // SPHGridPageHeader の二分探索
+    [allow_uav_condition]
+    while (left <= right)
+    {
+        uint mid = (left + right) / 2;
+        SPHGridPageHeader header = g_GridPageHeadersSRV[mid];
+
+        if (morton < header.morton)
+        {
+            if (mid == 0)
+                break; // underflow防止
+            right = mid - 1;
+        }
+        else if (morton > header.morton)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            // 見つかった！
+            return mid;
+        }
+    }
+
+    // 見つからなかったら…
+    return -1;
+}
+
+// ------------------------------
+// SPHSimulateSparseCS
+// ------------------------------
+// SPH計算と位置更新をまとめて行う
+// -------------------------------
+[numthreads(THREAD_COUNT, 1, 1)]
+void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
+{
+    uint id = dispatchThreadID.x;
+    if (id >= g_MaxParticleCount)
+        return;
+
+    WaterFluidParticle p = g_ParticlesUAV[id];
+
+    if (p.lifeRemaining > 0.0f)
+    {
+        //======================
+        // Step 1: 密度 & 圧力計算
+        //======================
+        float density = 0.0f;
+        float3 rel = p.position - SPHParams.gridMin;
+        uint3 gridCoord = (uint3) floor(rel / SPHParams.cellSize);
+        uint centerMorton = EncodeMorton3(gridCoord.x, gridCoord.y, gridCoord.z);
+
+        // 近傍の 3x3x3 セルを走査
+        [allow_uav_condition]
+        for (int z = -1; z <= 1; ++z)
+        {
+            [allow_uav_condition]
+            for (int y = -1; y <= 1; ++y)
+            {
+                [allow_uav_condition]
+                for (int x = -1; x <= 1; ++x)
+                {
+                    uint3 neighborCoord = gridCoord + uint3(x, y, z);
+                    uint morton = EncodeMorton3(neighborCoord.x, neighborCoord.y, neighborCoord.z);
+                    int found = FindGridPageHeader(morton);
+                    if (found < 0)
+                        continue;
+
+                    SPHGridPageHeader header = g_GridPageHeadersSRV[found];
+                    //[allow_uav_condition]
+                    //for (uint i = 0; i < header.count; ++i)
+                    //{
+                    //    uint neighborID = g_SortedIndicesSRV[header.startIndex + i];
+                    //    if (neighborID >= g_MaxParticleCount || neighborID == id)
+                    //        continue;
+
+                    //    WaterFluidParticle q = g_ParticlesUAV[neighborID];
+                    //    float3 r = p.position - q.position;
+                    //    float dist = length(r);
+                    //    if (dist >= SPHParams.smoothingRadius || dist < 0.0001f)
+                    //        continue;
+
+                    //    float W = W_poly6(dist, SPHParams.smoothingRadius);
+                    //    density += SPHParams.particleMass * W;
+                    //}
+                }
+            }
+        }
+
+        p.density = density;
+        p.pressure = SPHParams.pressureMultiplier * max(density - SPHParams.restDensity, 0.0);
+
+        //======================
+        // Step 2: 圧力 + 粘性力
+        //======================
+        float3 pressureForce = float3(0, 0, 0);
+        float3 viscosityForce = float3(0, 0, 0);
+
+        [allow_uav_condition]
+        for (int zz = -1; zz <= 1; ++zz)
+        {
+            [allow_uav_condition]
+            for (int yy = -1; yy <= 1; ++yy)
+            {
+                [allow_uav_condition]
+                for (int xx = -1; xx <= 1; ++xx)
+                {
+                    uint3 neighborCoord = gridCoord + uint3(xx, yy, zz);
+                    uint morton = EncodeMorton3(neighborCoord.x, neighborCoord.y, neighborCoord.z);
+                    int found = FindGridPageHeader(morton);
+                    if (found < 0)
+                        continue;
+
+                    SPHGridPageHeader header = g_GridPageHeadersSRV[found];
+                    //[allow_uav_condition]
+                    //for (uint i = 0; i < header.count; ++i)
+                    //{
+                    //    uint neighborID = g_SortedIndicesSRV[header.startIndex + i];
+                    //    if (neighborID >= g_MaxParticleCount || neighborID == id)
+                    //        continue;
+
+                    //    WaterFluidParticle q = g_ParticlesUAV[neighborID];
+                    //    float3 r = p.position - q.position;
+                    //    float dist = length(r);
+                    //    if (dist >= SPHParams.smoothingRadius || dist < 0.0001f)
+                    //        continue;
+
+                    //    float3 dir = normalize(r);
+                    //    float avgP = (p.pressure + SPHParams.pressureMultiplier * max(q.density - SPHParams.restDensity, 0.0)) * 0.5f;
+                    //    float Wspiky = W_spiky_grad(dist, SPHParams.smoothingRadius);
+                    //    pressureForce -= dir * avgP * Wspiky * SPHParams.particleMass / q.density;
+
+                    //    float3 velDiff = q.velocity - p.velocity;
+                    //    float Wvisc = W_visc_laplacian(dist, SPHParams.smoothingRadius);
+                    //    viscosityForce += SPHParams.viscosity * velDiff * Wvisc * SPHParams.particleMass / q.density;
+                    //}
+                }
+            }
+        }
+
+        //======================
+        // Step 3: 加速度と予測位置
+        //======================
+        float3 accel = (pressureForce + viscosityForce) / max(p.density, 0.0001f) + g_Acceleration;
+        p.velocity += accel * g_DeltaTime;
+        float3 deltaPos = p.velocity * g_DeltaTime;
+        p.predictedPosition = p.position + deltaPos;
+
+        //======================
+        // Step 4: 地形衝突
+        //======================
+        float4 worldPredicted = mul(float4(p.predictedPosition, 1.0), g_World);
+        uint3 voxelCoord = GetVoxelCoord(worldPredicted.xyz);
+        uint mortonIndex = EncodeMorton3(voxelCoord.x, voxelCoord.y, voxelCoord.z);
+        int found = FindIndexTriplet(mortonIndex);
+        if (found >= 0)
+        {
+            IndexTriplet trip = g_IndexTriplets[found];
+            float closestDist = 1e20;
+            float3 bestHit = float3(0, 0, 0);
+            float3 bestNormal = float3(0, 0, 0);
+
+            float4 rayStartWS = mul(float4(p.position, 1.0), g_World);
+            float4 rayDirWS = mul(float4(deltaPos, 0.0), g_World);
+            float3 rayDir = normalize(rayDirWS.xyz);
+            float rayLength = length(rayDirWS.xyz);
+            float3 rayStart = rayStartWS.xyz + rayDir * 0.001f;
+
+            [allow_uav_condition]
+            for (uint i = 0; i < trip.count; ++i)
+            {
+                TriangleStruct tri = g_Triangles[g_VoxelTriangleIndices[trip.startOffset + i]];
+                float3 hit; float dist;
+                if (RayIntersectsTriangle(rayStart, rayDir, tri, hit, dist) && dist <= rayLength && dist < closestDist)
+                {
+                    closestDist = dist;
+                    bestHit = hit;
+                    bestNormal = tri.normal;
+                }
+            }
+
+            if (closestDist < 1e19)
+            {
+                float3 normal = normalize(bestNormal);
+                p.predictedPosition = mul(float4(bestHit + normal * 0.01f, 1.0), g_WorldInv).xyz;
+                p.velocity = ApplyCollisionSlideVelocity(p.velocity, normal, 0.99f, 0.01f);
+                p.color = float4(1, 0, 0, 1);
+            }
+        }
+
+        //======================
+        // Step 5: 書き戻し & Alive 登録
+        //======================
+        p.position = p.predictedPosition;
+        g_ParticlesUAV[id] = p;
+        g_AliveListUAV.Append(id);
+    }
+    else
+    {
+        g_FreeListUAV.Append(id);
+    }
+}
+

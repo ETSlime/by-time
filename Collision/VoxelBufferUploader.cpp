@@ -10,7 +10,7 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_INDEX_TRIPLE_TPAGE_SIZE           4096  // 各ページに含まれる最大トリプレット数
+#define MAX_INDEX_TRIPLET_PAGE_SIZE           4096  // 各ページに含まれる最大トリプレット数
 #define MAX_TRI_PER_VOXEL                     64    // ボクセルあたりの最大三角形数
 
 VoxelBufferUploader::VoxelBufferUploader(void)
@@ -18,7 +18,7 @@ VoxelBufferUploader::VoxelBufferUploader(void)
     m_triangleStructs.reserve(MAX_VOXEL_TRIANGLE_NUM);
 	m_triangleIndices.reserve(MAX_VOXEL_TRIANGLE_NUM);
     m_indexTriplets.reserve(MAX_VOXEL_NUM);
-    m_indexTripletPageHeaders.reserve(MAX_INDEX_TRIPLE_TPAGE_SIZE);
+    m_indexTripletPageHeaders.reserve(MAX_INDEX_TRIPLET_PAGE_SIZE);
 
 }
 
@@ -115,7 +115,7 @@ void VoxelBufferUploader::BuildPagedIndexTripletBuffer(void)
     while (currentOffset < totalTriplets)
     {
         UINT pageStart = currentOffset;
-        UINT pageEnd = min(currentOffset + MAX_INDEX_TRIPLE_TPAGE_SIZE, totalTriplets);
+        UINT pageEnd = min(currentOffset + MAX_INDEX_TRIPLET_PAGE_SIZE, totalTriplets);
 
         IndexTripletPageHeader header;
         header.pageStartMorton = m_indexTriplets[pageStart].voxelIndex;

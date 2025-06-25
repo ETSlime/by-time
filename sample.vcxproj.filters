@@ -299,6 +299,9 @@
     <ClInclude Include="Core\Shader\ShaderInclude.h">
       <Filter>Core\Shader</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\SPHGridUploader.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -483,6 +486,9 @@
       <Filter>Collision</Filter>
     </ClCompile>
     <ClCompile Include="Effects\SPHSystem.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SPHGridUploader.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
   </ItemGroup>

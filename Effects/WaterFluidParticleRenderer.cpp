@@ -31,6 +31,7 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 
 	// SPHシステムの初期化
 	SPHConfig sphConfig;
+    sphConfig.useSparseGrid = true;
 	sphConfig.maxParticles = m_maxParticles;
 	sphConfig.gridMin = XMFLOAT3(-1000.0f, -1000.0f, -1000.0f);
 	sphConfig.cellSize = m_supportRadius * 0.5f; // SPHの平滑半径をセルサイズに設定

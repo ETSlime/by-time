@@ -295,7 +295,8 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
     const void* initData, 
     ID3D11Buffer** ppBuffer, 
     ID3D11ShaderResourceView** ppSRV, 
-    ID3D11UnorderedAccessView** ppUAV)
+    ID3D11UnorderedAccessView** ppUAV,
+    bool allowAppendUAV)
 {
     HRESULT hr = S_OK;
 
@@ -335,7 +336,7 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
         uavDesc.Buffer.NumElements = count;
         uavDesc.Format = DXGI_FORMAT_UNKNOWN;
         uavDesc.Buffer.FirstElement = 0;
-        uavDesc.Buffer.Flags = 0;
+        uavDesc.Buffer.Flags = allowAppendUAV ? D3D11_BUFFER_UAV_FLAG_APPEND : 0;
         hr = device->CreateUnorderedAccessView(*ppBuffer, &uavDesc, ppUAV);
         assert(SUCCEEDED(hr));
     }

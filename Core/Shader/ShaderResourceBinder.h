@@ -70,6 +70,7 @@
 #define SLOT_SRV_SORTED_INDICES             12  // ソートされたパーティクルインデックス
 #define SLOT_SRV_GRID_START_INDEX           13  // グリッド開始インデックス
 #define SLOT_SRV_GRID_COUNTER               14  // グリッドカウンター
+#define SLOT_SRV_SPH_GRID_PAGE_HEADER       15  // SPHグリッドページヘッダ
 
 // ===== RWストラクチャードバッファ定義 =====
 #define SLOT_UAV_PARTICLE           0   // パーティクル更新バッファ

@@ -75,6 +75,7 @@ class VoxelBufferUploader : public SingletonBase<VoxelBufferUploader>
 {
 public:
     VoxelBufferUploader(void);
+    ~VoxelBufferUploader(void) {};
 
     // Voxelメタデータをアップロードする関数
     void UploadVoxelMeta(const XMFLOAT3& origin, float voxelSize);

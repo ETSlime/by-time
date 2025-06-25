@@ -178,6 +178,7 @@
     <ClInclude Include="Effects\ParticleStructs.h" />
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SmokeEffectRenderer.h" />
+    <ClInclude Include="Effects\SPHGridUploader.h" />
     <ClInclude Include="Effects\SPHSystem.h" />
     <ClInclude Include="Effects\SwordTrail.h" />
     <ClInclude Include="Effects\WaterFluidParticleRenderer.h" />
@@ -252,6 +253,7 @@
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SmokeEffectRenderer.cpp" />
+    <ClCompile Include="Effects\SPHGridUploader.cpp" />
     <ClCompile Include="Effects\SPHSystem.cpp" />
     <ClCompile Include="Effects\SwordTrail.cpp" />
     <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp" />

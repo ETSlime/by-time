@@ -106,7 +106,8 @@ public:
         const void* initData,
         ID3D11Buffer** ppBuffer,
         ID3D11ShaderResourceView** ppSRV,
-        ID3D11UnorderedAccessView** ppUAV);
+        ID3D11UnorderedAccessView** ppUAV,
+        bool allowAppendUAV = false);
 
 
 protected:

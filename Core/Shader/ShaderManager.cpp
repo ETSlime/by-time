@@ -115,8 +115,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "EmitCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
         "Shaders/SPHSystem.hlsl", "BuildGirdCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate,
-        "Shaders/SPHSystem.hlsl", "SimulateCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
+        "Shaders/SPHSystem.hlsl", "SimulateCS"); 
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Sparse_Grid,
+        "Shaders/SPHSystem.hlsl", "SPHSimulateSparseCS");
 }
 
 void ShaderManager::RegisterShaderReloadEntry(const char* path, const char* entry, const char* target, void** outputShaderPtr, 
