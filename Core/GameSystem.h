@@ -93,6 +93,8 @@ public:
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode() const { return m_mode; }
 
+	Ground* GetGround(void) const { return m_ground; } // 地面オブジェクト取得
+
 protected:
     // プライベートコンストラクタ
     GameSystem()
@@ -180,3 +182,5 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
 };
+
+void OnSceneSwitchClicked(void* userData);

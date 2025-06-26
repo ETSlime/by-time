@@ -194,7 +194,9 @@
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
     <ClInclude Include="UI\Base\ScreenFader.h" />
+    <ClInclude Include="UI\Base\TweenManager.h" />
     <ClInclude Include="UI\Base\UIAnimatedSprite.h" />
+    <ClInclude Include="UI\Base\UIButton.h" />
     <ClInclude Include="UI\Base\UIElement.h" />
     <ClInclude Include="UI\Base\UIManager.h" />
     <ClInclude Include="UI\Base\UIOverlayRenderer.h" />
@@ -208,6 +210,7 @@
     <ClInclude Include="UI\imgui\imstb_textedit.h" />
     <ClInclude Include="UI\imgui\imstb_truetype.h" />
     <ClInclude Include="UI\PauseModal.h" />
+    <ClInclude Include="UI\UICallbacks.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
     <ClInclude Include="UI\UITitleScene.h" />
     <ClInclude Include="Utility\DebugBoundingBoxRenderer.h" />
@@ -266,7 +269,9 @@
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
     <ClCompile Include="UI\Base\ScreenFader.cpp" />
+    <ClCompile Include="UI\Base\TweenManager.cpp" />
     <ClCompile Include="UI\Base\UIAnimatedSprite.cpp" />
+    <ClCompile Include="UI\Base\UIButton.cpp" />
     <ClCompile Include="UI\Base\UIManager.cpp" />
     <ClCompile Include="UI\Base\UIOverlayRenderer.cpp" />
     <ClCompile Include="UI\Base\UISpriteRenderer.cpp" />
@@ -276,6 +281,7 @@
     <ClCompile Include="UI\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="UI\imgui\imgui_tables.cpp" />
     <ClCompile Include="UI\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="UI\UICallbacks.cpp" />
     <ClCompile Include="UI\UILoadingScene.cpp" />
     <ClCompile Include="Utility\DebugBoundingBoxRenderer.cpp" />
     <ClCompile Include="Utility\Debugproc.cpp" />

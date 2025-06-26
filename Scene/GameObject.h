@@ -116,6 +116,8 @@ struct InstanceModelAttribute
 	SimpleArray<Collider>* colliderArray = nullptr;
 };
 
+using PostInitCallback = void (*)(void*);
+
 struct ModelInstance
 {
 	char*				modelPath = nullptr;
@@ -126,6 +128,9 @@ struct ModelInstance
 	bool				postInit = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
+
+	PostInitCallback	onPostInit = nullptr; // モデルの読み込み完了後に呼び出される初期化処理関数
+	void*				userData = nullptr;
 
 	Model*				pModel = nullptr;				// モデル情報
 	bool				modelBuildTaskRegistered = false;
@@ -160,6 +165,9 @@ struct SkinnedMeshModelInstance
 	bool				postInit = false;
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
+
+	PostInitCallback	onPostInit = nullptr; // モデルの読み込み完了後に呼び出される初期化処理関数
+	void*				userData = nullptr;
 
 	SkinnedMeshModel*	pModel = nullptr;
 	bool				modelBuildTaskRegistered = false;
@@ -230,6 +238,7 @@ public:
 template<typename TModel>
 class GameObject : public IGameObject, public IDebugUI
 {
+
 public:
 	GameObject();
 	~GameObject();
@@ -237,9 +246,17 @@ public:
 	void Instantiate(const SkinnedGameObjectConfig& config);
 	virtual void Destroy() override { instance.markedForDelete = true; }
 	virtual bool IsMarkedForDelete() const override { return instance.markedForDelete; }
+	void SetPostInitCallback(PostInitCallback cb, void* userData) { instance.onPostInit = cb; instance.userData = userData;}
 
 	// モデルの読み込みが完了した後に呼び出される初期化処理関数
-	virtual void PostInit() { instance.postInit = true; }
+	virtual void PostInit()
+	{ 
+		if (instance.onPostInit)
+			instance.onPostInit(instance.userData);
+		else
+			instance.postInit = true; 
+	}
+	void SetPostInit(bool postInit) { instance.postInit = postInit; }
 
 	virtual void Update();
 	virtual void Draw();

@@ -28,8 +28,10 @@
 #define	MODEL_TOWN_PATH				"data/MODEL/Environment/Knight"
 #define	MODEL_TREE_NAME				"Tree.fbx"
 #define	MODEL_FIELD_NAME			"Land.fbx"
+#define MODEL_TERRAIN_NAME			"terrain_prototype2.fbx"
+//#define MODEL_TERRAIN_NAME			"spaceland2.fbx"
 #define MODEL_BONFIRE_PATH			"data/MODEL/Environment/bonfire.obj"
-#define MODEL_LAND_PATH				"data/MODEL/Environment/Spaceland.obj"
+#define MODEL_LAND_PATH				"data/MODEL/Environment/terrain_prototype.obj"
 
 
 enum class SceneID : uint64_t

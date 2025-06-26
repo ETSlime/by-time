@@ -156,7 +156,8 @@ void SkinnedMeshModel::DrawModel()
             material.noTexSampling = TRUE;
         if (m_modelData.modelType == SkinnedModelType::Town_LOD0 ||
             m_modelData.modelType == SkinnedModelType::Town_LOD1 ||
-            m_modelData.modelType == SkinnedModelType::Town_LOD2)
+            m_modelData.modelType == SkinnedModelType::Town_LOD2 ||
+            m_modelData.modelType == SkinnedModelType::Field)
             material.noTexSampling = FALSE;
 
         Renderer::get_instance().SetMaterial(material);
@@ -330,6 +331,36 @@ void SkinnedMeshModel::SetFaceLightMapTexture(char* texturePath)
     TextureMgr::get_instance().RequestTextureAsync(
         texturePath,
         &faceLightMapTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
+}
+
+void SkinnedMeshModel::SetTerrainDiffuseTexture(char* texturePath)
+{
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &terrainDiffuseTexture,
+        [](bool success, void* param)
+        {
+            SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
+            model->m_completedTextureCount++;
+        },
+        this
+    );
+}
+
+void SkinnedMeshModel::SetTerrainDiffuseTexture2(char* texturePath)
+{
+    m_pendingTextureCount++;
+    TextureMgr::get_instance().RequestTextureAsync(
+        texturePath,
+        &terrainDiffuseTexture2,
         [](bool success, void* param)
         {
             SkinnedMeshModel* model = static_cast<SkinnedMeshModel*>(param);
@@ -1368,8 +1399,14 @@ void SkinnedMeshModel::DrawLumine(MeshData* meshData)
 
 void SkinnedMeshModel::DrawField(MeshData* meshData)
 {
-    Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
-    Renderer::get_instance().GetDeviceContext()->DrawIndexed(meshData->IndexNum, 0, 0);
+    //Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
+    int IndexNum, StartIndexLocation;
+    ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture);
+    CalculateDrawParameters(meshData, 0.0f, 0.5f, IndexNum, StartIndexLocation);
+    Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
+    ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture2);
+    CalculateDrawParameters(meshData, 0.5f, 1.0f, IndexNum, StartIndexLocation);
+    Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }
 
 void SkinnedMeshModel::DrawChurch(MeshData* meshData)

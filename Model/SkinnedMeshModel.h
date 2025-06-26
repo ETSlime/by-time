@@ -306,6 +306,9 @@ public:
 	void SetFaceDiffuseTexture(char* texturePath);
 	void SetFaceLightMapTexture(char* texturePath);
 
+	void SetTerrainDiffuseTexture(char* texturePath);
+	void SetTerrainDiffuseTexture2(char* texturePath);
+
 	void LoadTownTexture(void);
 	bool AreAllTexturesLoaded(void) const;
 
@@ -392,6 +395,9 @@ private:
 	ID3D11ShaderResourceView* hairLightMapTexture = nullptr;
 	ID3D11ShaderResourceView* faceDiffuseTexture = nullptr;
 	ID3D11ShaderResourceView* faceLightMapTexture = nullptr;
+
+	ID3D11ShaderResourceView* terrainDiffuseTexture = nullptr;
+	ID3D11ShaderResourceView* terrainDiffuseTexture2 = nullptr;
 
 	ID3D11ShaderResourceView* Area_Mdcity_Lvy01_Diffuse = nullptr;
 	ID3D11ShaderResourceView* Area_MdCity_Plot02_Diffuse = nullptr;

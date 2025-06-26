@@ -290,6 +290,15 @@
     <ClInclude Include="Scene\ItemManager.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="UI\Base\UIButton.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UICallbacks.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\TweenManager.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -470,5 +479,12 @@
     <ClCompile Include="Scene\ItemManager.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="UI\Base\UIButton.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UICallbacks.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Base\TweenManager.cpp" />
   </ItemGroup>
 </Project>

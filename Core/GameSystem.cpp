@@ -118,7 +118,9 @@ void GameSystem::Draw(void)
 
 void GameSystem::InitTitle(void)
 {
-    m_UIManager.AddElement(new UITitleScene());
+	UITitleScene* titleScene = new UITitleScene();
+	titleScene->Init(this);
+    m_UIManager.AddElement(titleScene);
     m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
 
@@ -506,4 +508,44 @@ void GameSystem::DrawGame(void)
 void GameSystem::DrawResult(void)
 {
     // リザルト画面の描画
+}
+
+void OnSceneSwitchClicked(void* userData)
+{
+    GameSystem* self = static_cast<GameSystem*>(userData);
+
+    auto& fader = UIManager::get_instance().GetFader();
+
+    if (!fader.IsFading())
+    {
+        struct ReturnToTitleContext
+        {
+            GameSystem* gameSystem;
+        };
+
+        fader.StartFadeOut(); // 画面を黒くフェードイン
+
+        DeferredTaskOptions options{};
+        options.async = false; // 同期で実行
+        options.debugName = "Switch_Scene"; // デバッグ用の名前
+        auto* ctx = new ReturnToTitleContext{ self }; // コンテキストを作成して渡す
+
+        RawDeferredTask::Add(
+            ctx, // コンテキストを渡す
+            [](void* ptr)
+            {
+                GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
+                if (self->GetGround()->GetCurrentScene() == SceneID::SCENE_1)
+                    self->GetGround()->LoadScene(SceneID::SCENE_2);
+                else
+                    self->GetGround()->LoadScene(SceneID::SCENE_1);
+                UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+            },
+            [](void* ptr)
+            {
+                return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+            },
+            options
+        );
+    }
 }
