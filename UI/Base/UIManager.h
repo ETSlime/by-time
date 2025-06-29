@@ -13,44 +13,43 @@
 #include "UI/Base/UIElement.h"
 #include "UI/Base/UIOverlayRenderer.h"
 #include "UI/Base/ScreenFader.h"
+#include "UI/Base/TweenManager.h"
 
 class UIManager : public SingletonBase<UIManager>
 {
 public:
-    UIManager() : m_modal(nullptr), m_spriteVB(nullptr) {}
+    UIManager() {}
 
     void Init(void);
-    void Uninit(void) {Clear();}
+    void Shutdown(void) {Clear();}
     void Update(void);
     void Draw(void);
     void Clear(void);
     void AddElement(UIElement* element);
 
-    template<typename T>
-    void SetModalIfNotExist()
+    template<typename T, typename... Args>
+    T* PushModal(Args&&... args)
     {
-        if (dynamic_cast<T*>(m_modal) == nullptr)
-        {
-            if (m_modal)
-                delete m_modal;
-            m_modal = new T();
-        }
+        auto* modal = new T(std::forward<Args>(args)...);
+        m_modals.push_back(modal);
+        return modal;
     }
 
-    void SetModal(UIElement* modal);
-    bool IsModalActive(void) const;
-    void ClearModal(void);
+    void PopModal(void);
+	void PopAllModals(void);
+    bool IsModalActive(void) const { return !m_modals.empty(); }
+    UIElement* GetTopModal(void) const { return m_modals.empty() ? nullptr : m_modals.back(); }
 
     void DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color);
-
     ID3D11Buffer* GetSpriteVertexBuffer(void) const { return m_spriteVB; }
     ScreenFader& GetFader(void) { return m_screenFader; }
 
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
-    UIElement* m_modal; // モーダルUIの保持
+    SimpleArray<UIElement*> m_modals; // モーダルUIの保持
     UIOverlayRenderer m_overlay; // UIオーバーレイ描画
     ScreenFader m_screenFader;
-    ID3D11Buffer* m_spriteVB;
+    ID3D11Buffer* m_spriteVB = nullptr;
+	TweenManager& m_tweenManager = TweenManager::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
 };

@@ -101,6 +101,8 @@ void EffectSystem::Draw(void)
 		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::BillboardSimple);
 		for (auto* effect : m_billboardSimpleEffects)
 		{
+			if (effect->IsShutdown()) // シャットダウン済みならスキップ
+				continue;
 			effect->SetupPipeline();
 			effect->Draw();
 		}
@@ -112,6 +114,8 @@ void EffectSystem::Draw(void)
 		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::BillboardFlipbook);
 		for (auto* effect : m_billboardFlipbookEffects)
 		{
+			if (effect->IsShutdown()) // シャットダウン済みならスキップ
+				continue;
 			effect->SetupPipeline();
 			effect->Draw();
 		}

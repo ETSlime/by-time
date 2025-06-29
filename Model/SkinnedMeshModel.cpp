@@ -1401,10 +1401,10 @@ void SkinnedMeshModel::DrawField(MeshData* meshData)
 {
     //Renderer::get_instance().GetDeviceContext()->PSSetShaderResources(0, 1, &meshData->diffuseTexture);
     int IndexNum, StartIndexLocation;
-    ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture);
+    //ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture);
     CalculateDrawParameters(meshData, 0.0f, 0.5f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
-    ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture2);
+    //ShaderResourceBinder::get_instance().BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, terrainDiffuseTexture2);
     CalculateDrawParameters(meshData, 0.5f, 1.0f, IndexNum, StartIndexLocation);
     Renderer::get_instance().GetDeviceContext()->DrawIndexed(IndexNum, StartIndexLocation, 0);
 }

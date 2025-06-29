@@ -17,6 +17,7 @@
 #include "Core/Graphics/ShadowMapRenderer.h"
 #include "UI/UILoadingScene.h"
 #include "UI/Base/UIManager.h"
+#include "UI/Base/TweenManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/ItemManager.h"
@@ -114,7 +115,8 @@ protected:
         , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
-        , m_textureUploadQueue(TextureUploadQueue::get_instance()) {}
+        , m_textureUploadQueue(TextureUploadQueue::get_instance())
+        , m_tweenManager(TweenManager::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -181,6 +183,7 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
+	TweenManager& m_tweenManager;
 };
 
 void OnSceneSwitchClicked(void* userData);

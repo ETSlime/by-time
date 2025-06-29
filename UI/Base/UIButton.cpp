@@ -7,10 +7,19 @@
 #include "UI/Base/UIButton.h"
 
 
-UIButton::UIButton()
+UIButton::UIButton(void) : m_name(nullptr), m_currentTex(nullptr), m_currentTint({ 1,1,1,1 }), m_isEnabled(true),
+m_state(ButtonState::Normal), m_pressedInside(false), m_prevMouseDown(false), m_useTintMode(false) 
 {
-	// tint 配列を初期化（デフォルト値は白）
-	for (auto& c : m_tint) c = { 1,1,1,1 };
+    // tint 配列を初期化（デフォルト値は白）
+    for (auto& c : m_tint) c = { 1,1,1,1 };
+    m_sprite = new UISprite();
+}
+
+UIButton::UIButton(XMFLOAT2 pos, XMFLOAT2 size, const char* name) : UIButton()
+{
+    m_name = const_cast<char*>(name);
+    SetPosition(pos);
+	SetSize(size);
 }
 
 UIButton::~UIButton()
@@ -19,7 +28,6 @@ UIButton::~UIButton()
 
 void UIButton::InitWithTextures(ID3D11Buffer* vb, char* normalTex, char* hoverTex, char* pressedTex, char* disabledTex)
 {
-	m_vertexBuffer = vb;
     m_useTintMode = false;
 
     m_tex[0] = m_textureMgr.CreateTexture(normalTex);
@@ -27,22 +35,30 @@ void UIButton::InitWithTextures(ID3D11Buffer* vb, char* normalTex, char* hoverTe
     m_tex[2] = pressedTex ? m_textureMgr.CreateTexture(pressedTex) : m_tex[0];
     m_tex[3] = disabledTex ? m_textureMgr.CreateTexture(disabledTex) : m_tex[0];
 
+    // スプライトの初期化
+    m_sprite->SetVertexBuffer(vb);
+    m_sprite->SetTexture(m_tex[0]);
+	m_sprite->SetDrawMode(SpriteDrawMode::CenterWithColor); // 中心を基準に色を指定して描画する
+
     UpdateVisual();
 }
 
 void UIButton::InitWithSingleTexture(ID3D11Buffer* vb, char* texture, XMFLOAT4& tint_normal, XMFLOAT4& tint_hover, XMFLOAT4& tint_pressed, XMFLOAT4& tint_disabled)
 {
-	m_vertexBuffer = vb;
     m_useTintMode = true;
 
     m_tex[0] = m_textureMgr.CreateTexture(texture);
-    // すべて同じテクスチャ
-    m_tex[1] = m_tex[2] = m_tex[3] = m_tex[0];
+    m_tex[1] = m_tex[2] = m_tex[3] = m_tex[0]; // すべて同じテクスチャ
 
     m_tint[0] = tint_normal;
     m_tint[1] = tint_hover;
     m_tint[2] = tint_pressed;
     m_tint[3] = tint_disabled;
+
+    // スプライトの初期化
+    m_sprite->SetVertexBuffer(vb);
+    m_sprite->SetTexture(m_tex[0]);
+    m_sprite->SetDrawMode(SpriteDrawMode::CenterWithColor); // 中心を基準に色を指定して描画する
 
     UpdateVisual();
 }
@@ -56,22 +72,9 @@ void UIButton::Draw(void)
 {
     if (!m_currentTex) return;
 
-    UISpriteRenderer::SetSpriteWithColor(
-        m_vertexBuffer,
-        m_position.x, m_position.y,
-        m_size.x, m_size.y,
-		0, 0, 1, 1,  // UV座標（全体を使用）
-        m_currentTint);  // 色
-
-    // テクスチャをバインド
-    m_resourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, m_currentTex);
-
-    UINT stride = sizeof(UIVertex);
-    UINT offset = 0;
-    m_renderer.GetDeviceContext()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
-    m_renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-    // 描画
-    m_renderer.GetDeviceContext()->Draw(4, 0);
+	m_sprite->SetTexture(m_currentTex);
+	m_sprite->SetColor(m_currentTint);
+	m_sprite->Draw();
 }
 
 void UIButton::HandleMouseInput(void)
@@ -151,13 +154,16 @@ void UIButton::SetEnabled(bool enabled)
 bool UIButton::IsCursorInside(int mouseX, int mouseY) const
 {
     const auto& pos = GetPosition();
-    const auto& size = GetSize();
+    XMFLOAT2 scaledSize = GetSize();
+    scaledSize.x *= GetScale().x; // スケールを考慮
+    scaledSize.y *= GetScale().y; // スケールを考慮
 
+    // マウス座標がボタンの範囲内にあるかチェック
 	// ボタンの中心位置からの相対座標を計算
-    const float left = pos.x - size.x * 0.5f;
-    const float right = pos.x + size.x * 0.5f;
-    const float top = pos.y - size.y * 0.5f;
-    const float bottom = pos.y + size.y * 0.5f;
+    const float left = pos.x - scaledSize.x * 0.5f;
+    const float right = pos.x + scaledSize.x * 0.5f;
+    const float top = pos.y - scaledSize.y * 0.5f;
+    const float bottom = pos.y + scaledSize.y * 0.5f;
 
     return (mouseX >= left && mouseX <= right &&
         mouseY >= top && mouseY <= bottom);

@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Core/GameSystem.h"
 #include "UI/PauseModal.h"
+#include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
 #include "Utility/Debugproc.h"
 #include "Effects/EffectSystem.h"
@@ -39,11 +40,13 @@ void GameSystem::Shutdown(void)
 
     SAFE_DELETE(m_skybox); // Skyboxの解放
 
-    m_UIManager.Uninit(); // UIManagerの解放
+    m_UIManager.Shutdown(); // UIManagerの解放
+
+	m_tweenManager.Shutdown(); // TweenManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
-    m_textureUploadQueue.ShutDown();
+	m_textureUploadQueue.ShutDown(); // テクスチャアップロードキューの解放
 
 	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
@@ -80,6 +83,7 @@ void GameSystem::Update(void)
     }
 
     // UI 全体の更新を行う
+	m_tweenManager.Update(); // TweenManagerの更新
     m_UIManager.Update();
 }
 
@@ -205,8 +209,9 @@ void GameSystem::PauseGame(void)
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
-    // ポーズモーダルを表示
-    m_UIManager.SetModalIfNotExist<PauseModal>(); 
+
+    m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
+	m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
 
 }
 
@@ -347,7 +352,7 @@ void GameSystem::HandlePauseInput(void)
         {
             // ゲームを再開
             ResumeGame();
-            m_UIManager.ClearModal();
+            m_UIManager.PopAllModals();
         }
         else
         {
@@ -508,44 +513,4 @@ void GameSystem::DrawGame(void)
 void GameSystem::DrawResult(void)
 {
     // リザルト画面の描画
-}
-
-void OnSceneSwitchClicked(void* userData)
-{
-    GameSystem* self = static_cast<GameSystem*>(userData);
-
-    auto& fader = UIManager::get_instance().GetFader();
-
-    if (!fader.IsFading())
-    {
-        struct ReturnToTitleContext
-        {
-            GameSystem* gameSystem;
-        };
-
-        fader.StartFadeOut(); // 画面を黒くフェードイン
-
-        DeferredTaskOptions options{};
-        options.async = false; // 同期で実行
-        options.debugName = "Switch_Scene"; // デバッグ用の名前
-        auto* ctx = new ReturnToTitleContext{ self }; // コンテキストを作成して渡す
-
-        RawDeferredTask::Add(
-            ctx, // コンテキストを渡す
-            [](void* ptr)
-            {
-                GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                if (self->GetGround()->GetCurrentScene() == SceneID::SCENE_1)
-                    self->GetGround()->LoadScene(SceneID::SCENE_2);
-                else
-                    self->GetGround()->LoadScene(SceneID::SCENE_1);
-                UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
-            },
-            [](void* ptr)
-            {
-                return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
-            },
-            options
-        );
-    }
 }

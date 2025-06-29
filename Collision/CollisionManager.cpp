@@ -10,12 +10,28 @@
 #include "Scene/Player.h"
 #include "Utility/Debugproc.h"
 
+//*****************************************************************************
+// マクロ定義
+//*****************************************************************************
+#define DRAW_BOUNDING_BOX       1
+
 constexpr float HEIGHT_EPSILON = 5.0f;
 constexpr float SMOOTHING_FACTOR = 0.1f;
 // 最大許容斜面角度（ラジアン、例：45度）
 const float MAX_SLOPE_ANGLE = 0.785398f; // 約45度
 // 階段として許容する最大高さ差（ステップオフセット）
 const float STEP_OFFSET = 15.0f;
+
+void CollisionManager::Init(void)
+{
+#ifdef _DEBUG
+    DebugProc::get_instance().Register(this);
+#endif // DEBUG
+
+#if DRAW_BOUNDING_BOX
+    m_debugBoundingBoxRenderer.Initialize();
+#endif
+}
 
 void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
 {
@@ -96,6 +112,7 @@ void CollisionManager::Update()
                         {
                             minDistSq = distSq;
                             obstacleNormal = currObstacleNormal;
+							m_curCollisionBox = candidates[j]->aabb; // 現在の衝突ボックスを更新
                         }
 
                         // n.y が 0 に近い場合は、斜面判定を無視
@@ -429,6 +446,18 @@ bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col
         (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_ATTACK) ||
         (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
         (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
+}
+
+void CollisionManager::RenderDebugInfo(void)
+{
+#if DRAW_BOUNDING_BOX
+    if (m_drawBoundingBox)
+    {
+        XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+        const BOUNDING_BOX& box = m_curCollisionBox;
+        m_debugBoundingBoxRenderer.DrawBox(box, Camera::get_instance().GetViewProjMtx(), color);
+    }
+#endif
 }
 
 //bool CollisionManager::PreciseCollision(Collider* col, Triangle* tri)

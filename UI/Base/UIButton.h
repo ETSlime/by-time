@@ -6,7 +6,7 @@
 //
 //=============================================================================
 #include "UI/Base/UIElement.h"
-#include "UI/Base/UISpriteRenderer.h"
+#include "UI/Base/UISprite.h"
 #include "Core/TextureMgr.h"
 #include "Utility/InputManager.h"
 
@@ -24,11 +24,12 @@ enum class ButtonState
 // コールバック用ネイティブ関数ポインタ
 using UIButtonCallback = void (*)(void* userData);
 
-class UIButton : public UIElement
+class UIButton : public UIElement, public ISpriteUI
 {
 public:
-    UIButton();
-    ~UIButton() override;
+	UIButton(void);
+    UIButton(XMFLOAT2 pos, XMFLOAT2 size, const char* name = nullptr);
+    ~UIButton(void) override;
 
     // 複数テクスチャ方式（Normal / Hover / Pressed / Disabled）
     void InitWithTextures(ID3D11Buffer* vb, 
@@ -64,6 +65,9 @@ public:
     void SetEnabled(bool enabled);
     bool IsEnabled(void) const { return m_isEnabled; }
 
+	// ISpriteUI インターフェースの実装
+    DELEGATE_SPRITE_ALL_INTERFACE(m_sprite);
+
 private:
     //----------------------------------------------------------------------
     // 内部ヘルパー
@@ -71,13 +75,17 @@ private:
     bool IsCursorInside(int mouseX, int mouseY) const;
     void UpdateVisual(void);   // 状態に応じたテクスチャ/色を更新
 
+	char* m_name = nullptr; // ボタン名（デバッグ用）
+
+	UISprite* m_sprite = nullptr; // ボタンのスプライト（描画用）
+
+	//--- 状態管理 ---
     ButtonState m_state = ButtonState::Normal;
     bool        m_isEnabled = true;
     bool        m_prevMouseDown = false;
     bool        m_pressedInside = false;
 
     //--- 描画 ---
-    ID3D11Buffer* m_vertexBuffer = nullptr;
     bool m_useTintMode = false; // true=色変更方式
     ID3D11ShaderResourceView* m_tex[4] = { nullptr }; // 0:Normal 1:Hover 2:Pressed 3:Disabled
     XMFLOAT4 m_tint[4]; // 各状態の色

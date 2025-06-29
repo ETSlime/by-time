@@ -115,7 +115,7 @@ struct EnemyAttributes
 	}
 };
 
-struct UISprite
+struct EnemyUI
 {
 	XMFLOAT3	pos;			// 位置
 	XMFLOAT3	scl;			// スケール
@@ -196,7 +196,7 @@ private:
 	// 頂点バッファ
 	ID3D11Buffer*				m_HPGaugeVertexBuffer = nullptr;
 	ID3D11Buffer*				m_HPGaugeCoverVertexBuffer = nullptr;
-	UISprite					m_HPGauge;
+	EnemyUI						m_HPGauge;
 
 	//void UpdateEditorSelect(int sx, int sy);
 };

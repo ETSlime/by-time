@@ -28,6 +28,7 @@
 #define	MODEL_TOWN_PATH				"data/MODEL/Environment/Knight"
 #define	MODEL_TREE_NAME				"Tree.fbx"
 #define	MODEL_FIELD_NAME			"Land.fbx"
+#define MODEL_TERRAIN_PATH			"data/MODEL/Environment/Terrain"
 #define MODEL_TERRAIN_NAME			"terrain_prototype2.fbx"
 //#define MODEL_TERRAIN_NAME			"spaceland2.fbx"
 #define MODEL_BONFIRE_PATH			"data/MODEL/Environment/bonfire.obj"

@@ -67,7 +67,7 @@ Ground::Ground(Skybox* skybox)
 	//}
 
 	SkinnedGameObjectConfig config;
-	config.modelPath = MODEL_ENVIRONMENT_PATH;
+	config.modelPath = MODEL_TERRAIN_PATH;
 	config.modelName = MODEL_TERRAIN_NAME;
 	config.modelType = SkinnedModelType::Field;
 	config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
@@ -131,17 +131,17 @@ Ground::Ground(Skybox* skybox)
 	//m_groundGO.push_back(banyanGO);
 
 	
-	DeferredTaskOptions options{};
-	options.async = false; // 同期実行
-	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
-	// タスクを DeferredTaskSystem に登録
-	DeferredTaskBinder<Ground>::Add(
-		this,
-		nullptr,
-		&Ground::GenerateEnvironmentObj,
-		&Ground::DeferredIsFieldReady,
-		options
-	);
+	//DeferredTaskOptions options{};
+	//options.async = false; // 同期実行
+	//options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	//// タスクを DeferredTaskSystem に登録
+	//DeferredTaskBinder<Ground>::Add(
+	//	this,
+	//	nullptr,
+	//	&Ground::GenerateEnvironmentObj,
+	//	&Ground::DeferredIsFieldReady,
+	//	options
+	//);
 
 	m_skybox = skybox;
 }
@@ -306,7 +306,7 @@ void Ground::LoadScene2(void)
 	if (m_sceneSword == nullptr) {
 
 		Transform trans;
-		trans.pos = XMFLOAT3(13289.0f, -1900.0f, -19485.0f);
+		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = SWORD_SIZE;
 	

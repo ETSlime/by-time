@@ -193,6 +193,7 @@
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
+    <ClInclude Include="UI\Base\ISpriteUI.h" />
     <ClInclude Include="UI\Base\ScreenFader.h" />
     <ClInclude Include="UI\Base\TweenManager.h" />
     <ClInclude Include="UI\Base\UIAnimatedSprite.h" />
@@ -200,7 +201,9 @@
     <ClInclude Include="UI\Base\UIElement.h" />
     <ClInclude Include="UI\Base\UIManager.h" />
     <ClInclude Include="UI\Base\UIOverlayRenderer.h" />
+    <ClInclude Include="UI\Base\UISprite.h" />
     <ClInclude Include="UI\Base\UISpriteRenderer.h" />
+    <ClInclude Include="UI\GameMenuModal.h" />
     <ClInclude Include="UI\imgui\imconfig.h" />
     <ClInclude Include="UI\imgui\imgui.h" />
     <ClInclude Include="UI\imgui\imgui_impl_dx11.h" />
@@ -210,7 +213,6 @@
     <ClInclude Include="UI\imgui\imstb_textedit.h" />
     <ClInclude Include="UI\imgui\imstb_truetype.h" />
     <ClInclude Include="UI\PauseModal.h" />
-    <ClInclude Include="UI\UICallbacks.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
     <ClInclude Include="UI\UITitleScene.h" />
     <ClInclude Include="Utility\DebugBoundingBoxRenderer.h" />
@@ -281,7 +283,6 @@
     <ClCompile Include="UI\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="UI\imgui\imgui_tables.cpp" />
     <ClCompile Include="UI\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="UI\UICallbacks.cpp" />
     <ClCompile Include="UI\UILoadingScene.cpp" />
     <ClCompile Include="Utility\DebugBoundingBoxRenderer.cpp" />
     <ClCompile Include="Utility\Debugproc.cpp" />

@@ -8,14 +8,13 @@
 #include "UI/Base/UIManager.h"
 #include "UI/Base/UIAnimatedSprite.h"
 #include "UI/Base/UIButton.h"
-#include "UI/UICallbacks.h"
 #include "Core/TextureMgr.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
 #define TITLE_ANIM_TEXTURE_PATH         "data/TEXTURE/bg000.jpg"
-#define TITLE_NEWGAME_TEXTURE_PATH      "data/TEXTURE/newgame_xlixk.png"
+#define TITLE_NEWGAME_TEXTURE_PATH      "data/TEXTURE/UI/newgame_xlixk.png"
 #define TITLE_BTN_TEXTURE_SIZE_X        380
 #define TITLE_BTN_TEXTURE_SIZE_Y        80
 #define TITLE_ANIM_TILE_X               1
@@ -25,10 +24,7 @@
 class UITitleScene : public UIElement
 {
 public:
-    UITitleScene()
-    {
-
-    }
+    UITitleScene() {}
 
 	void Init(GameSystem* system)
 	{
@@ -82,6 +78,7 @@ public:
             if (fader.IsFadeOutComplete())
             {
                 GameSystem::get_instance().ChangeMode(GameMode::LOADING, true);
+                UnlockClick(); // ← シーン切り替え完了時にロック解除
             }
         }
     }
@@ -97,18 +94,31 @@ public:
 			m_btnNewGame->Draw();
     }
 
-    void RequestStartFadeOut() 
+    void RequestStartFadeOut(void)
     {
         auto& fader = UIManager::get_instance().GetFader();
         m_fadeOutStarted = true;
         fader.StartFadeOut(1.0f); // 1秒でフェードアウト開始
     }
 
+    static void OnClick_NewGame(void* userData)
+    {
+        UITitleScene* scene = static_cast<UITitleScene*>(userData);
+
+        if (scene->IsClickLocked()) return; // 二重クリック防止
+        scene->RequestStartFadeOut();
+        scene->LockClick(); // ロック！
+    }
+
+	// クリックロックの管理
+    void LockClick(void) { m_clickLocked = true; }
+    void UnlockClick(void) { m_clickLocked = false; }
+    bool IsClickLocked(void) const { return m_clickLocked; }
+
 private:
-    GameSystem* m_gameSystem = nullptr;
 
     UIAnimatedSprite* m_titleAnim = nullptr; // タイトルのアニメ
-
+    bool m_clickLocked = false; // クリックロック（多重起動防止）
     bool m_fadeOutStarted = false; // フェードアウト開始フラグ
 	UIButton* m_btnNewGame = nullptr; // 新規ゲームボタン
 	UIButton* m_btnLoadGame = nullptr; // ロードゲームボタン
