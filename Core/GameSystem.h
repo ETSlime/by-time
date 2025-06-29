@@ -20,6 +20,7 @@
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/ItemManager.h"
+#include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
@@ -103,6 +104,7 @@ protected:
         , m_UIManager(UIManager::get_instance())
         , m_enemyManager(EnemyManager::get_instance())
         , m_itemManager(ItemManager::get_instance())
+        , m_projectileManager(ProjectileManager::get_instance())
         , m_camera(Camera::get_instance())
         , m_scene(Scene::get_instance())
         , m_shadowMapRenderer(ShadowMapRenderer::get_instance())
@@ -166,6 +168,7 @@ private:
     UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     ItemManager& m_itemManager;
+    ProjectileManager& m_projectileManager;
     Renderer& m_renderer;
     LightManager& m_lightManager;
     Camera& m_camera;

@@ -47,6 +47,9 @@
     <Filter Include="Scene\Item">
       <UniqueIdentifier>{ff0eafe7-f2b9-468c-a9d6-c169983b44f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Weapon">
+      <UniqueIdentifier>{fc6db5bc-5ef4-4f1b-83b7-4ef46ccf8365}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -290,6 +293,15 @@
     <ClInclude Include="Scene\ItemManager.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Weapon\Projectile.h">
+      <Filter>Scene\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Weapon\ProjectileManager.h">
+      <Filter>Scene\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Weapon\Bullet.h">
+      <Filter>Scene\Weapon</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -469,6 +481,15 @@
     </ClCompile>
     <ClCompile Include="Scene\ItemManager.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Weapon\Projectile.cpp">
+      <Filter>Scene\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Weapon\ProjectileManager.cpp">
+      <Filter>Scene\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Weapon\Bullet.cpp">
+      <Filter>Scene\Weapon</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

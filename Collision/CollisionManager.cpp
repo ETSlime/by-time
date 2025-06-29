@@ -8,6 +8,7 @@
 #include "Scene/GameObject.h"
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
+#include "Scene/Weapon/Projectile.h"
 #include "Utility/Debugproc.h"
 
 constexpr float HEIGHT_EPSILON = 5.0f;
@@ -263,10 +264,23 @@ void CollisionManager::Update()
             if (dynamicColliders[i]->aabb.intersects(dynamicColliders[j]->aabb))
             {
                 if ((dynamicCol->tag == ColliderTag::ENEMY && dynamicCol2->tag == ColliderTag::PLAYER_ATTACK)
-                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::PLAYER_ATTACK))
+                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::PLAYER_ATTACK)
+                    || (dynamicCol->tag == ColliderTag::ENEMY && dynamicCol2->tag == ColliderTag::PLAYER_PROJECTILE)
+                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE)
+                    )
                 {
                     const Collider* enemyCol = dynamicCol->tag == ColliderTag::ENEMY ? dynamicCol : dynamicCol2;
                     auto colliderOwner = static_cast<Enemy*>(enemyCol->owner);
+
+
+                    if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE || dynamicCol2->tag == ColliderTag::PLAYER_PROJECTILE) {
+
+                        const Collider* projectileCol = dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE ? dynamicCol : dynamicCol2;
+                        auto itemColOwner = static_cast<Projectile*>(projectileCol->owner);
+
+                        itemColOwner->SetActive(FALSE);
+
+                    }
 
                     if (colliderOwner->GetAttributes().hitTimer <= 0)
                     {
@@ -427,6 +441,8 @@ bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col
 
     return (col1->tag == ColliderTag::PLAYER && col2->tag == ColliderTag::PLAYER_ATTACK) ||
         (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_ATTACK) ||
+        (col1->tag == ColliderTag::PLAYER && col2->tag == ColliderTag::PLAYER_PROJECTILE) ||
+        (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_PROJECTILE) ||
         (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
         (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
 }
