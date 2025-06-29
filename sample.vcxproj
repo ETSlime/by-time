@@ -194,6 +194,9 @@
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
+    <ClInclude Include="Scene\Weapon\Bullet.h" />
+    <ClInclude Include="Scene\Weapon\Projectile.h" />
+    <ClInclude Include="Scene\Weapon\ProjectileManager.h" />
     <ClInclude Include="UI\Base\ISpriteUI.h" />
     <ClInclude Include="UI\Base\ScreenFader.h" />
     <ClInclude Include="UI\Base\TweenManager.h" />
@@ -272,6 +275,9 @@
     <ClCompile Include="Scene\Player.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
+    <ClCompile Include="Scene\Weapon\Bullet.cpp" />
+    <ClCompile Include="Scene\Weapon\Projectile.cpp" />
+    <ClCompile Include="Scene\Weapon\ProjectileManager.cpp" />
     <ClCompile Include="UI\Base\ScreenFader.cpp" />
     <ClCompile Include="UI\Base\TweenManager.cpp" />
     <ClCompile Include="UI\Base\UIAnimatedSprite.cpp" />

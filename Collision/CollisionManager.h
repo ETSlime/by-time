@@ -31,6 +31,7 @@ enum class ColliderTag
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
+    PLAYER_PROJECTILE
 };
 
 //*****************************************************************************

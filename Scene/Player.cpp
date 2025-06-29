@@ -12,6 +12,7 @@
 #include "Utility/Debugproc.h"
 #include "Collision/OctreeNode.h"
 #include "Core/CursorManager.h"
+#include "Scene/Weapon/ProjectileManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -119,7 +120,7 @@ void Player::Update(void)
 	}
 #endif
 
-	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
+	/*if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
 		if (m_attributes.hasWeapon) {
 
@@ -136,7 +137,7 @@ void Player::Update(void)
 			}
 
 		}
-	}
+	}*/
 
 	if (m_inputManager.GetKeyboardTrigger(DIK_SPACE))
 	{
@@ -198,6 +199,29 @@ void Player::Update(void)
 
 	}
 	HandlePlayerMove(transform);
+
+	// ”­ŽË
+	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
+	{
+
+		if (m_attributes.hasWeapon) {
+
+			Transform trans;
+			trans.pos = m_playerGO->GetTransform().pos;
+			trans.pos.y += 70;
+			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+			XMFLOAT3 bulletDir;
+			bulletDir.x = sinf(transform.rot.y) * 5;
+			bulletDir.z = cosf(transform.rot.y) * 5;
+			bulletDir.y = 0;
+
+			ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, bulletDir, 5);
+
+		}
+
+	}
 
 	if (m_attributes.isHit1 || m_attributes.hitTimer > 0)
 	{

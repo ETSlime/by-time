@@ -240,6 +240,8 @@ void GameSystem::StartAsyncResourceLoading(void)
 
         m_itemManager.Init();
 
+        m_projectileManager.Init();
+
         m_currLoadCtx.startInitialLoad = false;
     }
     else
@@ -248,12 +250,14 @@ void GameSystem::StartAsyncResourceLoading(void)
         m_player->InitializePlayerStatus();
         m_enemyManager.InitializeEnemyStatus();
         m_itemManager.InitializeItemStatus();
+        m_projectileManager.InitializeObjectsStatus();
     }
 
     if (!m_currLoadCtx.finishInitialLoad)
     {
         m_loadStatus.totalTasks += m_enemyManager.GetTotalEnemyLoadCnt();
         m_loadStatus.totalTasks += m_itemManager.GetTotalItemLoadCnt();
+        m_loadStatus.totalTasks += m_projectileManager.GetTotalProjectileLoadCnt();
         m_loadStatus.totalTasks += m_player->GetTotalModelLoadCnt();
         m_loadStatus.totalTasks += m_ground->GetTotalModelLoadCnt();
     }
@@ -369,6 +373,7 @@ float GameSystem::CalculateCurrentLoadingProgress(void)
     {
         doneTasks += m_enemyManager.GetEnemyLoadedCnt();
         doneTasks += m_itemManager.GetItemLoadedCnt();
+        doneTasks += m_projectileManager.GetProjectileLoadedCnt();
         doneTasks += m_player->GetCurrentModelLoadCnt();
         doneTasks += m_ground->GetCurrentModelLoadCnt();
     }
@@ -407,6 +412,7 @@ void GameSystem::UpdateGame(void)
     m_skybox->Update(); // Skyboxの更新処理
     m_enemyManager.Update(); // エネミーの更新処理
     m_itemManager.Update();
+    m_projectileManager.Update();
     m_effectSystem.Update(); // エフェクトの更新処理
 
 #ifdef _DEBUG
@@ -422,6 +428,7 @@ void GameSystem::UpdateLoading(void)
         {
             m_enemyManager.Update();
             m_itemManager.Update();
+            m_projectileManager.Update();
             m_player->Update();
             m_ground->Update();
         }
@@ -482,6 +489,7 @@ void GameSystem::DrawGame(void)
 
     m_ground->Draw(); // 地面の描画
     m_itemManager.Draw();
+    m_projectileManager.Draw();
     
     m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
     m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
