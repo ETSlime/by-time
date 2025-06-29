@@ -91,8 +91,8 @@ Ground::Ground(Skybox* skybox)
 			{
 				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
 
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/12.jpg");
+				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
+				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
 				ctx->owner->SetPostInit(true);
 			},
 			nullptr,

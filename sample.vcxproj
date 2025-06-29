@@ -180,6 +180,7 @@
     <ClInclude Include="Model\ModelCacheLoader.h" />
     <ClInclude Include="Model\OBJLoader.h" />
     <ClInclude Include="Model\SkinnedMeshModel.h" />
+    <ClInclude Include="Scene\Character\GBMonster.h" />
     <ClInclude Include="Scene\Character\Hilichurl.h" />
     <ClInclude Include="Scene\Character\Lumine.h" />
     <ClInclude Include="Scene\Enemy.h" />
@@ -257,6 +258,7 @@
     <ClCompile Include="Model\ModelCacheLoader.cpp" />
     <ClCompile Include="Model\OBJLoader.cpp" />
     <ClCompile Include="Model\SkinnedMeshModel.cpp" />
+    <ClCompile Include="Scene\Character\GBMonster.cpp" />
     <ClCompile Include="Scene\Character\Hilichurl.cpp" />
     <ClCompile Include="Scene\Character\Lumine.cpp" />
     <ClCompile Include="Scene\Enemy.cpp" />

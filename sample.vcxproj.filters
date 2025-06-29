@@ -305,6 +305,9 @@
     <ClInclude Include="UI\Base\ISpriteUI.h">
       <Filter>UI\Base</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Character\GBMonster.h">
+      <Filter>Scene\Character</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -490,6 +493,9 @@
     </ClCompile>
     <ClCompile Include="UI\Base\TweenManager.cpp">
       <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Character\GBMonster.cpp">
+      <Filter>Scene\Character</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
