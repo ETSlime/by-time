@@ -23,6 +23,7 @@
 
 #define TREE_SIZE			(350.0f)
 #define FIELD_SIZE			(46850.0f)
+#define TERRAIN_SIZE		(11111)
 #define BONFIRE_SIZE		(12.0f)
 
 #define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
@@ -45,18 +46,64 @@ Ground::Ground(Skybox* skybox)
 
 	//m_town = new Town();
 
+	//SkinnedGameObjectConfig config;
+	//config.modelPath = MODEL_ENVIRONMENT_PATH;
+	//config.modelName = MODEL_FIELD_NAME;
+	//config.modelType = SkinnedModelType::Field;
+	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	//config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
+	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	//GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
+	//fieldGO->Instantiate(config);
+	//m_persistentSkinnedGOs.push_back(fieldGO);
+	//m_fieldGO = fieldGO;
+
+	//if (!m_modelLoadMap.contains(config.modelName))
+	//{
+	//	m_modelLoadMap[config.modelName] = 0;
+	//	m_totalModelLoadCnt++;
+	//	m_persistentModelLoadCnt++;
+	//}
+
 	SkinnedGameObjectConfig config;
-	config.modelPath = MODEL_ENVIRONMENT_PATH;
-	config.modelName = MODEL_FIELD_NAME;
+	config.modelPath = MODEL_TERRAIN_PATH;
+	config.modelName = MODEL_TERRAIN_NAME;
 	config.modelType = SkinnedModelType::Field;
-	config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
 	config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
 	config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
 	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
+
+	fieldGO->SetPostInitCallback([](void* userData) {
+		// 遅延用コンテキスト構築
+		auto* go = static_cast<GameObject<SkinnedMeshModelInstance>*>(userData);
+		auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ go };
+
+		DeferredTaskOptions options{};
+		options.async = true; // 非同期実行
+		options.debugName = "AsyncFbxModelLoader_InitializeAnim_Ground"; // デバッグ用の名前
+		// タスクを DeferredTaskSystem に登録
+		RawDeferredTask::Add(
+			ctx,
+			[](void* ptr)
+			{
+				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+
+				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
+				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
+				ctx->owner->SetPostInit(true);
+			},
+			nullptr,
+			options
+		);
+		}, fieldGO);
+
 	fieldGO->Instantiate(config);
 	m_persistentSkinnedGOs.push_back(fieldGO);
-	m_fieldGO = fieldGO;
+	m_fieldGO = fieldGO; 
+
 
 	if (!m_modelLoadMap.contains(config.modelName))
 	{
@@ -84,17 +131,17 @@ Ground::Ground(Skybox* skybox)
 	//m_groundGO.push_back(banyanGO);
 
 	
-	DeferredTaskOptions options{};
-	options.async = false; // 同期実行
-	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
-	// タスクを DeferredTaskSystem に登録
-	DeferredTaskBinder<Ground>::Add(
-		this,
-		nullptr,
-		&Ground::GenerateEnvironmentObj,
-		&Ground::DeferredIsFieldReady,
-		options
-	);
+	//DeferredTaskOptions options{};
+	//options.async = false; // 同期実行
+	//options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	//// タスクを DeferredTaskSystem に登録
+	//DeferredTaskBinder<Ground>::Add(
+	//	this,
+	//	nullptr,
+	//	&Ground::GenerateEnvironmentObj,
+	//	&Ground::DeferredIsFieldReady,
+	//	options
+	//);
 
 	m_skybox = skybox;
 }
@@ -259,7 +306,7 @@ void Ground::LoadScene2(void)
 	if (m_sceneSword == nullptr) {
 
 		Transform trans;
-		trans.pos = XMFLOAT3(13289.0f, -1900.0f, -19485.0f);
+		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = SWORD_SIZE;
 	

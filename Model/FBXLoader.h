@@ -115,6 +115,7 @@ enum class SkinnedModelType
 	Weapon,
 	Hilichurl,
 	Mitachurl,
+	GBMonster,
 	AbyssMage,
 	Field,
 	Skybox,

@@ -34,7 +34,7 @@
 
 #define	HPGAUGE_PATH		"data/TEXTURE/EnemyHPGauge.png"
 #define	HPGAUGE_COVER_PATH	"data/TEXTURE/EnemyHPGauge_bg.png"
-#define HPGAUGE_WIDTH_SCL	(0.5f)
+#define HPGAUGE_WIDTH_SCL	(0.6f)
 #define HPGAUGE_HEIGHT		(5.0f)
 
 //=============================================================================
@@ -53,6 +53,16 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	switch (m_enemyAttr.enemyType)
 	{
 	case EnemyType::Hilichurl:
+		m_enemyAttr.maxHP = HILI_MAX_HP;
+		m_enemyAttr.HP = HILI_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::GBMonster:
 		m_enemyAttr.maxHP = HILI_MAX_HP;
 		m_enemyAttr.HP = HILI_MAX_HP;
 		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
@@ -107,7 +117,7 @@ void Enemy::Update(void)
 		BOUNDING_BOX aabb = instance.pModel->GetBoundingBox();
 		float height = aabb.maxPoint.y - aabb.minPoint.y;
 		m_HPGauge.pos = instance.transform.pos;
-		m_HPGauge.pos.y += height;
+		m_HPGauge.pos.y += height * m_enemyAttr.initTrans.scl.y;
 
 		m_enemyAttr.timer += timer.GetScaledDeltaTime();
 
@@ -318,11 +328,8 @@ void Enemy::DrawHPGaugeCover(void)
 void Enemy::InitHPGauge(void)
 {
 	BOUNDING_BOX aabb = instance.pModel->GetBoundingBox();
-	float height = aabb.maxPoint.y - aabb.minPoint.y;
-	float width = (aabb.maxPoint.x - aabb.minPoint.x) * HPGAUGE_WIDTH_SCL;
+	float width = (aabb.maxPoint.x - aabb.minPoint.x) * m_enemyAttr.initTrans.scl.x * 1.2f * HPGAUGE_WIDTH_SCL;
 
-	m_HPGauge.pos = instance.transform.pos;
-	m_HPGauge.pos.y += height;
 	m_HPGauge.fWidth = width;
 	m_HPGauge.fHeight = HPGAUGE_HEIGHT;
 	MakeVertexHPGauge(m_HPGauge.fWidth, m_HPGauge.fHeight);

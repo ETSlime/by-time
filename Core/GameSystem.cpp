@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Core/GameSystem.h"
 #include "UI/PauseModal.h"
+#include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
 #include "Utility/Debugproc.h"
 #include "Effects/EffectSystem.h"
@@ -39,11 +40,13 @@ void GameSystem::Shutdown(void)
 
     SAFE_DELETE(m_skybox); // Skyboxの解放
 
-    m_UIManager.Uninit(); // UIManagerの解放
+    m_UIManager.Shutdown(); // UIManagerの解放
+
+	m_tweenManager.Shutdown(); // TweenManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
-    m_textureUploadQueue.ShutDown();
+	m_textureUploadQueue.ShutDown(); // テクスチャアップロードキューの解放
 
 	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
@@ -80,6 +83,7 @@ void GameSystem::Update(void)
     }
 
     // UI 全体の更新を行う
+	m_tweenManager.Update(); // TweenManagerの更新
     m_UIManager.Update();
 }
 
@@ -118,7 +122,9 @@ void GameSystem::Draw(void)
 
 void GameSystem::InitTitle(void)
 {
-    m_UIManager.AddElement(new UITitleScene());
+	UITitleScene* titleScene = new UITitleScene();
+	titleScene->Init(this);
+    m_UIManager.AddElement(titleScene);
     m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
 
@@ -203,8 +209,9 @@ void GameSystem::PauseGame(void)
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
-    // ポーズモーダルを表示
-    m_UIManager.SetModalIfNotExist<PauseModal>(); 
+
+    m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
+	m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
 
 }
 
@@ -233,6 +240,8 @@ void GameSystem::StartAsyncResourceLoading(void)
 
         m_itemManager.Init();
 
+        m_projectileManager.Init();
+
         m_currLoadCtx.startInitialLoad = false;
     }
     else
@@ -241,12 +250,14 @@ void GameSystem::StartAsyncResourceLoading(void)
         m_player->InitializePlayerStatus();
         m_enemyManager.InitializeEnemyStatus();
         m_itemManager.InitializeItemStatus();
+        m_projectileManager.InitializeObjectsStatus();
     }
 
     if (!m_currLoadCtx.finishInitialLoad)
     {
         m_loadStatus.totalTasks += m_enemyManager.GetTotalEnemyLoadCnt();
         m_loadStatus.totalTasks += m_itemManager.GetTotalItemLoadCnt();
+        m_loadStatus.totalTasks += m_projectileManager.GetTotalProjectileLoadCnt();
         m_loadStatus.totalTasks += m_player->GetTotalModelLoadCnt();
         m_loadStatus.totalTasks += m_ground->GetTotalModelLoadCnt();
     }
@@ -345,7 +356,7 @@ void GameSystem::HandlePauseInput(void)
         {
             // ゲームを再開
             ResumeGame();
-            m_UIManager.ClearModal();
+            m_UIManager.PopAllModals();
         }
         else
         {
@@ -362,6 +373,7 @@ float GameSystem::CalculateCurrentLoadingProgress(void)
     {
         doneTasks += m_enemyManager.GetEnemyLoadedCnt();
         doneTasks += m_itemManager.GetItemLoadedCnt();
+        doneTasks += m_projectileManager.GetProjectileLoadedCnt();
         doneTasks += m_player->GetCurrentModelLoadCnt();
         doneTasks += m_ground->GetCurrentModelLoadCnt();
     }
@@ -400,6 +412,7 @@ void GameSystem::UpdateGame(void)
     m_skybox->Update(); // Skyboxの更新処理
     m_enemyManager.Update(); // エネミーの更新処理
     m_itemManager.Update();
+    m_projectileManager.Update();
     m_effectSystem.Update(); // エフェクトの更新処理
 
 #ifdef _DEBUG
@@ -415,6 +428,7 @@ void GameSystem::UpdateLoading(void)
         {
             m_enemyManager.Update();
             m_itemManager.Update();
+            m_projectileManager.Update();
             m_player->Update();
             m_ground->Update();
         }
@@ -475,6 +489,7 @@ void GameSystem::DrawGame(void)
 
     m_ground->Draw(); // 地面の描画
     m_itemManager.Draw();
+    m_projectileManager.Draw();
     
     m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
     m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定

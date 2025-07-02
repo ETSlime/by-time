@@ -17,9 +17,11 @@
 #include "Core/Graphics/ShadowMapRenderer.h"
 #include "UI/UILoadingScene.h"
 #include "UI/Base/UIManager.h"
+#include "UI/Base/TweenManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/ItemManager.h"
+#include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
@@ -93,6 +95,8 @@ public:
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode() const { return m_mode; }
 
+	Ground* GetGround(void) const { return m_ground; } // 地面オブジェクト取得
+
 protected:
     // プライベートコンストラクタ
     GameSystem()
@@ -103,6 +107,7 @@ protected:
         , m_UIManager(UIManager::get_instance())
         , m_enemyManager(EnemyManager::get_instance())
         , m_itemManager(ItemManager::get_instance())
+        , m_projectileManager(ProjectileManager::get_instance())
         , m_camera(Camera::get_instance())
         , m_scene(Scene::get_instance())
         , m_shadowMapRenderer(ShadowMapRenderer::get_instance())
@@ -112,7 +117,8 @@ protected:
         , m_asyncResourceLoader(AsyncResourceLoader::get_instance())
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
-        , m_textureUploadQueue(TextureUploadQueue::get_instance()) {}
+        , m_textureUploadQueue(TextureUploadQueue::get_instance())
+        , m_tweenManager(TweenManager::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -166,6 +172,7 @@ private:
     UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     ItemManager& m_itemManager;
+    ProjectileManager& m_projectileManager;
     Renderer& m_renderer;
     LightManager& m_lightManager;
     Camera& m_camera;
@@ -179,4 +186,7 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
+	TweenManager& m_tweenManager;
 };
+
+void OnSceneSwitchClicked(void* userData);

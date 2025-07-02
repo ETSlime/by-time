@@ -11,7 +11,10 @@
 //*****************************************************************************
 #define LOADING_ANIM_TILE_X       3
 #define LOADING_ANIM_TILE_Y       4
-#define LOADING_ANIM_SPD          0.1f
+#define LOADING_ANIM_SPD          1.5f
+#define LOADING_SMOOTH_DAMP       0.2f // 緩やかな（未完成時）
+#define LOADING_FAST_DAMP         0.05f  // 急激な（完成時）
+constexpr float ANIM_PROGRESS_EPSILON = 0.09f;
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
@@ -27,7 +30,7 @@ void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
         false
     );
 
-    m_loadingAnim->SetPlaybackSpeed(0.6f);
+    //m_loadingAnim->SetPlaybackSpeed(0.6f);
 
     // 表示位置とサイズを設定
     m_loadingAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
@@ -42,20 +45,27 @@ void UILoadingScene::Update(void)
 {
     m_elapsedTime += m_timer.GetDeltaTime();
 
+    // 読み込み完了前までは進行度に合わせて滑らかにアニメバー更新
+    if (!m_resourceLoaded)
+    {
+        float alpha = 1.0f - powf(LOADING_SMOOTH_DAMP, m_timer.GetDeltaTime());
+        if (m_loadProgress != 0)
+            m_animProgress += (m_loadProgress - m_animProgress) * alpha;
+    }
+    else
+    {
+        // 読み込み完了後は一気にゴールへ進める
+        float alpha = 1.0f - powf(LOADING_FAST_DAMP, m_timer.GetDeltaTime());
+        m_animProgress += (1.0f - m_animProgress) * alpha;
+
+        if ((1.0f - m_animProgress) <= ANIM_PROGRESS_EPSILON)
+            m_animProgress = 1.0f;
+    }
 
     // アニメーション更新
     if (m_loadingAnim)
     {
-        m_loadingAnim->Update();
-
-        if (m_loadingAnim->IsAnimationFinished())
-        {
-            if (m_state != LoadingState::Done && !m_screenFader.IsFading())
-            {
-                m_screenFader.StartFadeOut();
-                m_state = LoadingState::FadeInBeforeFinish;
-            }
-        }
+        m_loadingAnim->SetFrameDirectly(m_animProgress);
     }
 
     m_screenFader.Update();
@@ -94,7 +104,7 @@ void UILoadingScene::Update(void)
 
         // アニメ表示中（読み込み完了を待つ）
     case LoadingState::ShowLoadingUI:
-        if (m_resourceLoaded)
+        if (m_resourceLoaded && (m_animProgress >= 1.0f))
         {
             m_screenFader.StartFadeOut();
             m_state = LoadingState::FadeInBeforeFinish;

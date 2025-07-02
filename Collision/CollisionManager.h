@@ -10,7 +10,10 @@
 #include "Collision/OctreeNode.h"
 #include "Utility/SimpleArray.h"
 #include "Utility/SingletonBase.h"
+#include "Utility/Debugproc.h"
+#include "Utility/DebugBoundingBoxRenderer.h"
 #include "Model/Model.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -28,6 +31,7 @@ enum class ColliderTag
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
+    PLAYER_PROJECTILE
 };
 
 //*****************************************************************************
@@ -103,9 +107,12 @@ public:
 };
 
 // CollisionManager クラス：静的オブジェクト（八分木）と動的オブジェクトの衝突管理
-class CollisionManager : public SingletonBase<CollisionManager>
+class CollisionManager : public SingletonBase<CollisionManager>, IDebugUI
 {
 public:
+
+	void Init(void);
+
     // 静的オブジェクト（例：地面モデル）の八分木
     OctreeNode* staticOctree = nullptr;
 
@@ -118,21 +125,20 @@ public:
     void InitOctree(const BOUNDING_BOX& boundingBox);
 
     // 動的衝突体の登録
-    void RegisterDynamicCollider(const Collider* collider)
-    {
-        dynamicColliders.push_back(collider);
-    }
+    void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
 
     // 動的衝突体リストのクリア
-    void ClearDynamicColliders() 
-    {
-        dynamicColliders.clear();
-    }
+    void ClearDynamicColliders() { dynamicColliders.clear(); }
 
     void Update();
 
 private:
     bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
+    virtual void RenderDebugInfo(void) override;
+
+    bool m_drawBoundingBox = true;
+	BOUNDING_BOX m_curCollisionBox; // 現在のバウンディングボックス（デバッグ用）
+	DebugBoundingBoxRenderer m_debugBoundingBoxRenderer; // デバッグ用のバウンディングボックス描画
 
     //// 精密衝突判定関数（Collider と Triangle 間の衝突判定）
     //bool PreciseCollision(Collider* col, Triangle* tri);

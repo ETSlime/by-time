@@ -6,8 +6,9 @@
 //
 //=============================================================================
 #include "UI/Base/UIElement.h"
+#include "UI/Base/UISprite.h"
 
-class UIAnimatedSprite : public UIElement
+class UIAnimatedSprite : public UIElement, public ISpriteUI
 {
 public:
     void Init(ID3D11ShaderResourceView* tex, ID3D11Buffer* vb, 
@@ -40,6 +41,9 @@ public:
     void SetLoop(bool loop) { m_loop = loop; }
     bool IsLoop() const { return m_loop; }
 
+	// ISpriteUI インターフェースの実装
+    DELEGATE_SPRITE_ALL_INTERFACE(m_sprite);
+
 private:
     int m_columns = 1;     // 横のフレーム数
     int m_rows = 1;        // 縦のフレーム数
@@ -54,8 +58,9 @@ private:
     bool m_finished = false;   // 一度終了したらtrueに
     void (*m_onFinish)() = nullptr; // 再生終了時のコールバック
 
-    ID3D11ShaderResourceView* m_texture = nullptr;
-    ID3D11Buffer* m_vertexBuffer = nullptr; // 頂点バッファ（スプライト用）
+	UISprite* m_sprite = nullptr; // スプライト描画用
+    //ID3D11ShaderResourceView* m_texture = nullptr;
+    //ID3D11Buffer* m_vertexBuffer = nullptr; // 頂点バッファ（スプライト用）
     Timer& m_timer = Timer::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
     ShaderResourceBinder& m_resourceBinder = ShaderResourceBinder::get_instance();

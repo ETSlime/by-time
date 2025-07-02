@@ -55,6 +55,7 @@ private:
 
     //変更
     float m_loadProgress = 0.0f; // 現在の読み込み進行 (0.0f～1.0f)
+    float m_animProgress = 0.0f; // アニメの内部進行（0～1）
 
     // アニメーション用スプライト
     UIAnimatedSprite* m_loadingAnim = nullptr;

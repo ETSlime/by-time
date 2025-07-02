@@ -6,18 +6,20 @@
 //=============================================================================
 #include "UI/Base/UIAnimatedSprite.h"
 
-void UIAnimatedSprite::Init(ID3D11ShaderResourceView* tex, ID3D11Buffer* vb, 
+void UIAnimatedSprite::Init(ID3D11ShaderResourceView* tex, ID3D11Buffer* sharedVB,
     int columns, int rows, float frameTime, bool loop)
 {
-    m_texture = tex;
-    m_vertexBuffer = vb;
+    m_sprite = new UISprite(sharedVB, tex);
+    m_sprite->SetDrawMode(SpriteDrawMode::CenterWithColor); // 中心を基準に色を指定して描画する
+    //m_texture = tex;
+    //m_vertexBuffer = vb;
     m_columns = columns;
     m_rows = rows;
     m_frameTime = frameTime;
     m_loop = loop;
 
     m_startFrame = 0;
-    m_endFrame = columns * rows - 1;
+    m_endFrame = columns * rows;
     m_currentFrame = m_startFrame;
     m_finished = false;
 }
@@ -80,7 +82,7 @@ void UIAnimatedSprite::Update(void)
 
 void UIAnimatedSprite::Draw()
 {
-    if (!m_texture || !m_vertexBuffer) return;
+    //if (!m_texture || !m_vertexBuffer) return;
 
     int totalFrames = m_columns * m_rows;
     if (m_currentFrame >= totalFrames) return;
@@ -95,24 +97,9 @@ void UIAnimatedSprite::Draw()
     float u = col * uvW;
     float v = row * uvH;
 
-    // スプライトを描画（左上基準で）
-    UISpriteRenderer::SetSpriteWithColor(
-        m_vertexBuffer,
-        m_position.x, m_position.y,
-        m_size.x, m_size.y,
-        u, v, uvW, uvH,
-        XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-    );
-
-    // テクスチャをバインド
-    m_resourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, m_texture);
-
-    UINT stride = sizeof(UIVertex);
-    UINT offset = 0;
-    m_renderer.GetDeviceContext()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
-    m_renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-    // 描画
-    m_renderer.GetDeviceContext()->Draw(4, 0);
+    // スプライトを描画
+	m_sprite->SetUV(u, v, uvW, uvH);
+    m_sprite->Draw();
 }
 
 void UIAnimatedSprite::SetFrameDirectly(float ratio)

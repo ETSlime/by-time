@@ -580,7 +580,8 @@ bool FBXLoader::ParseObjectProperties(FILE* file, SkinnedMeshModelData* modelDat
                 else
                 {
                     delete node;
-                    return false;
+					SkipNode(file);
+					continue;   // –¢‘Î‰ž‚ÌGeometryƒ^ƒCƒv
                 }
 
                 if (!ParseGeometry(file, modelData, geometryType, node))
@@ -2510,14 +2511,16 @@ bool FBXLoader::ParseTexture(FILE* file, SkinnedMeshModelData* modelData, FbxNod
         {
             if (sscanf(buffer, " RelativeFilename: \"%[^\"]\"", textureName) != 1)
             {
-                delete textureName;
-                return false;
+				textureName = nullptr;
             }
                 
         }
         else if (strstr(buffer, "}"))
         {
-            node->nodeData = static_cast<void*>(textureName);
+			if (textureName != nullptr)
+			{
+                node->nodeData = static_cast<void*>(textureName);
+			}
             return true;
         }
     }
