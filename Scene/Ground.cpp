@@ -106,7 +106,7 @@ void Ground::Update(void)
 	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
 	{
 		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(35.0f, 1.0f);
+			m_waterFluid->EmitWater(35.0f, 15);
 	}
 
 	if (m_town)
@@ -246,11 +246,13 @@ void Ground::LoadScene1(void)
 	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
 
 	// 水の物理パラメータ
-	waterParams.supportRadius = 15.0f;       // サポート半径（粒子影響範囲）
-	waterParams.restDensity = 1.0f;       // 静止密度（流体の基準密度）
-	waterParams.particleMass = 1.0f;       // 粒子質量
-	waterParams.stiffness = 200.0f;       // 拘束強度（大きいと固くなる）
-	waterParams.friction = 0.01f;      // 速度減衰（地面との摩擦的な）
+	waterParams.supportRadius = 15.0f;		// サポート半径（粒子影響範囲）
+	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
+	waterParams.particleMass = 15.0f;		// 粒子質量
+	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
+	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
+	waterParams.viscosity = 0.0f;			// 粘性係数（流体の粘り気）
+	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
 	IEffectRenderer* waterFluid = EffectSystem::get_instance().SpawnParticleEffect(waterParams);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);

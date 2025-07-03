@@ -68,10 +68,12 @@ private:
 	void UploadEmitCB(void); // パーティクル放出用の定数バッファをアップロード
 
     float m_supportRadius = 15.0f;     // 近傍半径（PBF）
-    float m_restDensity = 1.0f;       // 静止時の密度
+    float m_restDensity = 300.0f;       // 静止時の密度
     float m_particleMass = 1.0f;      // 粒子質量
     float m_stiffness = 200.0f;         // 圧力（硬さ）
     float m_friction = 0.05f;         // 地形との摩擦
+	float m_viscosity = 0.01f;        // 粘性係数（SPH用）
+	float m_restitution = 0.5f; // 反発係数（衝突時の挙動制御用）
 
 	SPHSystem m_sphSystem; // SPHシステム（PBF用）
 

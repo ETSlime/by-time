@@ -64,6 +64,8 @@ struct WaterFluidParams : public ParticleEffectParams
     float particleMass = 1.0f;      // 粒子質量
     float stiffness = 0.1f;         // 圧力（硬さ）
     float friction = 0.05f;         // 地形との摩擦
+	float viscosity = 0.01f;        // 粘性係数（流体の粘り気）
+	float restitution = 0.5f;       // 反発係数（衝突時の挙動制御用）
 };
 
 class EffectSystem : public SingletonBase<EffectSystem>

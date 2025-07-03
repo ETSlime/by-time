@@ -26,11 +26,12 @@ uint64_t EncodeMorton3_64(uint32_t x, uint32_t y, uint32_t z)
     return (Part1By2_64(z) << 2) | (Part1By2_64(y) << 1) | Part1By2_64(x);
 }
 
-void SPHGridUploader::Initialize(float cellSize, UINT maxParticles)
+void SPHGridUploader::Initialize(float cellSize, UINT maxParticles, XMFLOAT3* gridMin)
 {
 	Clear();
 
 	m_cellSize = cellSize;
+    m_gridMin = gridMin;
 	m_indexTripletCapacity = static_cast<UINT>(maxParticles * 2.5f); // 粒子数の2.5倍程度を見込む
     m_indexTripletPageHeaders.reserve(MAX_SPH_GRID_PAGE_SIZE);
 	m_sphIndexTriplets.reserve(m_indexTripletCapacity);
@@ -39,7 +40,7 @@ void SPHGridUploader::Initialize(float cellSize, UINT maxParticles)
     // グリッドページヘッダ用バッファセット作成
     ParticleEffectRendererBase::CreateStructuredBuffer(
         m_device, 
-        sizeof(IndexTripletPageHeader64),
+        sizeof(IndexTripletPageHeaderVec2),
         MAX_SPH_GRID_PAGE_SIZE, 
         nullptr,
 		&m_gridPageBufferSet.buffer, 
@@ -86,35 +87,45 @@ void SPHGridUploader::BuildGrid(const SimpleArray<WaterFluidParticle>& particles
 	if (numParticles == 0) return; // パーティクルがいない場合は何もしない
 
 	// グリッドの最小座標をパーティクルの位置から計算
-    XMFLOAT3 newGridMin = m_gridMin;
+    XMFLOAT3 newGridMin = *m_gridMin;
+
+    //XMFLOAT3 rawMin = { FLT_MAX, FLT_MAX, FLT_MAX };
+    XMFLOAT3 rawMin = { -2222, -2222, -2222};
     for (UINT i = 0; i < numParticles; ++i)
     {
         const auto& p = particles[i];
-        newGridMin.x = min(newGridMin.x, p.position.x);
-        newGridMin.y = min(newGridMin.y, p.position.y);
-        newGridMin.z = min(newGridMin.z, p.position.z);
+
+        rawMin.x = min(rawMin.x, p.position.x);
+        rawMin.y = min(rawMin.y, p.position.y);
+        rawMin.z = min(rawMin.z, p.position.z);
     }
 
-	// グリッドの最小座標をセルサイズで切り捨て
+    // グリッドの最小座標をセルサイズで切り捨て
     const float padding = m_cellSize;
-    newGridMin.x = floorf((newGridMin.x - padding) / m_cellSize) * m_cellSize;
-    newGridMin.y = floorf((newGridMin.y - padding) / m_cellSize) * m_cellSize;
-    newGridMin.z = floorf((newGridMin.z - padding) / m_cellSize) * m_cellSize;
+    rawMin.x -= padding;
+    rawMin.y -= padding;
+    rawMin.z -= padding;
+
+    // セルの境界に切り捨て
+    rawMin.x = floorf(rawMin.x / m_cellSize) * m_cellSize;
+    rawMin.y = floorf(rawMin.y / m_cellSize) * m_cellSize;
+    rawMin.z = floorf(rawMin.z / m_cellSize) * m_cellSize;
 
     // グリッドの最小座標を更新
-	m_gridMin = newGridMin;
+    *m_gridMin = rawMin;
 
 
     // すべての粒子の近傍セルに登録
     for (UINT i = 0; i < numParticles; ++i)
     {
         const auto& p = particles[i];
+		UINT particleID = p.particleID; // 粒子のID
 
         // 自身のグリッド座標を取得
         XMFLOAT3 rel = {
-            p.position.x - m_gridMin.x,
-            p.position.y - m_gridMin.y,
-            p.position.z - m_gridMin.z
+            p.position.x - (*m_gridMin).x,
+            p.position.y - (*m_gridMin).y,
+            p.position.z - (*m_gridMin).z
         };
 
         // モートンキーを使って粒子をグリッドに登録
@@ -122,34 +133,33 @@ void SPHGridUploader::BuildGrid(const SimpleArray<WaterFluidParticle>& particles
         UINT gy = static_cast<UINT>(floorf(rel.y / m_cellSize));
         UINT gz = static_cast<UINT>(floorf(rel.z / m_cellSize));
         uint64_t morton = EncodeMorton3_64(gx, gy, gz);
-        m_mortonMap[morton].push_back(i);
+		m_mortonMap[morton].push_back(particleID); // モートンキーをキーにして粒子IDを登録
 
         // 3x3x3近傍探索セルを登録
-        for (int dz = -1; dz <= 1; ++dz)
-        {
-            for (int dy = -1; dy <= 1; ++dy)
-            {
-                for (int dx = -1; dx <= 1; ++dx)
-                {
-                    int nx = gx + dx;
-                    int ny = gy + dy;
-                    int nz = gz + dz;
+        //for (int dz = -1; dz <= 1; ++dz)
+        //{
+        //    for (int dy = -1; dy <= 1; ++dy)
+        //    {
+        //        for (int dx = -1; dx <= 1; ++dx)
+        //        {
+        //            int nx = gx + dx;
+        //            int ny = gy + dy;
+        //            int nz = gz + dz;
 
-                    if (nx < 0 || ny < 0 || nz < 0) 
-                        continue; // 安全チェック！
+        //            if (nx < 0 || ny < 0 || nz < 0) 
+        //                continue; // 安全チェック！
 
-                    uint64_t neighBorMorton = EncodeMorton3_64(static_cast<UINT>(nx), static_cast<UINT>(ny), static_cast<UINT>(nz));
-
-                    // 重複チェック（同一 Morton に同一ID 入れるのは1回だけ）
-                    auto& particles = m_mortonMap[neighBorMorton];
-                    if (particles.find_index(i) == -1)
-                    {
-                        // もしまだ登録されていなければ追加
-                        particles.push_back(i);
-                    }
-                }
-            }
-        }
+        //            uint64_t neighborMorton = EncodeMorton3_64(static_cast<UINT>(nx), static_cast<UINT>(ny), static_cast<UINT>(nz));
+        //            // 重複チェック（同一 Morton に同一ID 入れるのは1回だけ）
+        //            auto& particles = m_mortonMap[neighborMorton];
+        //            if (particles.find_index(particleID) == -1)
+        //            {
+        //                // もしまだ登録されていなければ追加
+        //                particles.push_back(particleID);
+        //            }
+        //        }
+        //    }
+        //}
     }
 
 	// 一時的な Triplet リストを作成
@@ -183,11 +193,10 @@ void SPHGridUploader::BuildGrid(const SimpleArray<WaterFluidParticle>& particles
     {
         // Triplet を生成（startOffset は並べ替え後に確定）
         SPHIndexTriplet triplet;
-        triplet.morton_low = t.morton.x;
-        triplet.morton_high = t.morton.y;
+        triplet.mortonIndex.x = t.morton.x;
+        triplet.mortonIndex.y = t.morton.y;
         triplet.startOffset = currentStart; // GPU が読み出す開始位置
         triplet.count = t.count;
-        triplet.padding = 0; // 16byte アライン用
         m_sphIndexTriplets.push_back(triplet);
 
         // ソートされたインデックスを作成
@@ -212,7 +221,7 @@ void SPHGridUploader::UploadAndBindGridBuffers(void)
         HRESULT hr = m_context->Map(m_gridPageBufferSet.buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         if (SUCCEEDED(hr))
         {
-            memcpy(mapped.pData, m_indexTripletPageHeaders.data(), m_indexTripletPageHeaders.getSize() * sizeof(IndexTripletPageHeader64));
+            memcpy(mapped.pData, m_indexTripletPageHeaders.data(), m_indexTripletPageHeaders.getSize() * sizeof(IndexTripletPageHeaderVec2));
             m_context->Unmap(m_gridPageBufferSet.buffer, 0);
 
             m_shaderResourceBinder.BindShaderResource(ShaderStage::CS, SLOT_SRV_SPH_GRID_PAGE_HEADER, m_gridPageBufferSet.srv);
@@ -269,16 +278,14 @@ void SPHGridUploader::BuildPagedIndexTripletBuffer(void)
 	// ソート済みの m_sphIndexTriplets をページ単位で分割
     for (UINT i = 0; i < totalTripletCount; i += MAX_SPH_GRID_PAGE_SIZE)
     {
-        IndexTripletPageHeader64 page;
+        IndexTripletPageHeaderVec2 page;
         UINT tripletCount = min(MAX_SPH_GRID_PAGE_SIZE, totalTripletCount - i);
 
         const SPHIndexTriplet& first = m_sphIndexTriplets[i];
         const SPHIndexTriplet& last = m_sphIndexTriplets[i + tripletCount - 1];
 
-        page.pageStartMorton_High = first.morton_high;
-		page.pageStartMorton_Low = first.morton_low;
-		page.pageEndMorton_High = last.morton_high;
-		page.pageEndMorton_Low = last.morton_low;
+        page.pageStartMorton = first.mortonIndex;
+		page.pageEndMorton = last.mortonIndex;
 
         page.pageOffset = i;
         page.pageCount = tripletCount;

@@ -21,11 +21,9 @@
 
 struct SPHIndexTriplet
 {
-    UINT morton_low;    // Morton の下位32bit
-    UINT morton_high;   // Morton の上位32bit
-	UINT startOffset;   // g_GridSortedIndices[] の開始位置
-	UINT count;         // そのセルに含まれる粒子数
-    UINT padding;       // 16バイト境界に合わせるためのパディング
+    XMUINT2 mortonIndex;    // 64-bit Morton（下位: x, 上位: y）
+	UINT startOffset;       // g_GridSortedIndices[] の開始位置
+	UINT count;             // そのセルに含まれる粒子数
 };
 
 // 一時トリプレットをハッシュ表から収集
@@ -37,15 +35,12 @@ struct TempTriplet
 };
 
 // 64ビット版のIndexTripletPageHeader（モートンコードを64ビットで扱う）
-struct IndexTripletPageHeader64
+struct IndexTripletPageHeaderVec2
 {
-    UINT64 pageStartMorton_Low;  // uint2.x
-    UINT64 pageStartMorton_High; // uint2.y
-    UINT64 pageEndMorton_Low;    // uint2.x
-    UINT64 pageEndMorton_High;   // uint2.y
+    XMUINT2 pageStartMorton; // ページ最小 Morton 値
+    XMUINT2 pageEndMorton;   // ページ最大 Morton 値
     UINT pageOffset;
     UINT pageCount;
-    UINT padding[2]; // パディングで16バイト境界に
 };
 
 
@@ -53,7 +48,7 @@ struct IndexTripletPageHeader64
 class SPHGridUploader
 {
 public:
-    void Initialize(float cellSize, UINT maxParticles);
+    void Initialize(float cellSize, UINT maxParticles, XMFLOAT3* gridMin);
 	void Shutdown(void);
     void Clear(void);
     void BuildGrid(const SimpleArray<WaterFluidParticle>& particles);
@@ -62,7 +57,7 @@ public:
 
     UINT GetTotalGridPageHeaderSize(void) const { return m_indexTripletPageHeaders.getSize(); }
     const SimpleArray<UINT>& GetGridSortedIndices(void) const { return m_gridSortedIndices; }
-    const SimpleArray<IndexTripletPageHeader64>& GetPageHeaders(void) const { return m_indexTripletPageHeaders; }
+    const SimpleArray<IndexTripletPageHeaderVec2>& GetPageHeaders(void) const { return m_indexTripletPageHeaders; }
 
 private:
     // IndexTripletをページ単位で構築
@@ -76,11 +71,11 @@ private:
     }
 
     float m_cellSize = 1.0f;
-    XMFLOAT3 m_gridMin = { 0, 0, 0 };
+    XMFLOAT3* m_gridMin = nullptr;
 
 	SimpleArray<UINT> m_gridSortedIndices; // ソートされた粒子インデックスの配列
 	SimpleArray<SPHIndexTriplet> m_sphIndexTriplets; // モートンキーとパーティクルインデックスの対応付け
-    SimpleArray<IndexTripletPageHeader64> m_indexTripletPageHeaders; // IndexTripletのページヘッダ
+    SimpleArray<IndexTripletPageHeaderVec2> m_indexTripletPageHeaders; // IndexTripletのページヘッダ
 
 	UINT m_indexTripletCapacity = 0; // IndexTripletの最大容量
 	ParticleBufferSet m_gridPageBufferSet; // グリッドページヘッダ用バッファセット

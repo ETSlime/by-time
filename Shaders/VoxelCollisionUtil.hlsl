@@ -171,3 +171,20 @@ float3 ApplyCollisionSlideVelocity(float3 velocity, float3 normal, float frictio
     float3 tangent = velocity - dot(velocity, normal) * normal;
     return (length(tangent) < minStopSpeed) ? float3(0, 0, 0) : tangent * friction; // –€ŽC—Í‚ð“K—p
 }
+
+float3 ApplyCollisionResponseVelocity(float3 velocity, float3 normal, float restitution, float friction, float minStopSpeed)
+{
+    float3 normalComponent = dot(velocity, normal) * normal;
+    float3 tangentialComponent = velocity - normalComponent;
+
+    // ”½”­¬•ª‚ðŒvŽZ
+    float3 bounce = -restitution * normalComponent;
+
+    // –€ŽC¬•ª‚ðŒvŽZ
+    if (length(tangentialComponent) < minStopSpeed)
+        tangentialComponent = float3(0, 0, 0);
+    else
+        tangentialComponent *= saturate(1.0f - friction);
+
+    return bounce + tangentialComponent;
+}

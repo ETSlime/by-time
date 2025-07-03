@@ -23,7 +23,7 @@ bool SPHSystem::Initialize(ID3D11Device* device,
 
     // 疎らなグリッドを使用する場合はアップローダーを初期化
     if (m_config.useSparseGrid)
-		m_gridUploader.Initialize(m_config.cellSize, m_config.maxParticles);
+		m_gridUploader.Initialize(m_config.cellSize, m_config.maxParticles, &m_config.gridMin);
 
     // シェーダー読み込み
     if (!LoadComputeShaders())
@@ -69,9 +69,6 @@ void SPHSystem::Update(void)
 
     UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_config.maxParticles, THREAD_COUNT); // スレッドグループ数計算
 
-    UpdateSPHSimParamsCB(); // SPHシミュレーションパラメータの更新
-    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_SPH, m_cbSPHParams); // SPHシミュレーションパラメータの定数バッファをバインド
-
     // Grid モード切替
 	if (m_config.useSparseGrid) // 疎らなグリッドを使用する場合
 	{
@@ -80,9 +77,16 @@ void SPHSystem::Update(void)
 		m_gridUploader.UploadSortedIndicesTo(m_sortedIndicesBufferSet.buffer); // ソートされたインデックスをアップロード
 		m_gridUploader.UploadAndBindGridBuffers(); // グリッドページバッファをアップロード
 
+        // SPHParams に含まれる gridMin は「BuildGrid() の実行によって決まった座標」を使う必要がある
+        UpdateSPHSimParamsCB(); // SPHシミュレーションパラメータの更新
+        m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_SPH, m_cbSPHParams); // SPHシミュレーションパラメータの定数バッファをバインド
+
 	}
 	else                        
     {
+        UpdateSPHSimParamsCB(); // SPHシミュレーションパラメータの更新
+        m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_SPH, m_cbSPHParams); // SPHシミュレーションパラメータの定数バッファをバインド
+
         // 密なグリッドを使用する場合
         SwapGridBuffers(); // グリッドバッファをスワップ
         BindResources_BuildGrid(); // グリッド構築用リソースをバインド
@@ -196,7 +200,20 @@ void SPHSystem::UpdateSPHSimParamsCB(void)
     params->acceleration = m_config.acceleration;
     params->deltaTime = m_timer.GetDeltaTime();
 	params->totalPageHeaderCount = m_gridUploader.GetTotalGridPageHeaderSize();
-    //params->padding = 0.0f;
+
+	params->kernelScaleFactor = m_kernelScaleFactor; // カーネルスケール係数を設定
+	params->taitExponent = m_taitExponent; // Tait 式の指数を設定
+	params->maxPressure = m_maxPressure; // 最大圧力制限を設定
+	params->xsphFactor = m_xsphFactor; // XSPH 粘性補正係数を設定
+
+	params->friction = m_config.friction; // 摩擦係数を設定
+	params->restitution = m_config.restitution; // 反発係数を設定
+	params->pressureForceScale = PRESSURE_FORCE_SCALE; // 圧力力のスケールを設定
+	params->viscosityForceScale = VISCOSITY_FORCE_SCALE; // 粘性力のスケールを設定
+
+	params->maxAccel = m_maxAccel; // 最大加速度を設定
+	params->maxVelocity = m_maxVelocity; // 最大速度を設定
+    params->padding = XMFLOAT2{}; // 16バイトアライメント用のパディング
 
     m_context->Unmap(m_cbSPHParams, 0);
 }

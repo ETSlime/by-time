@@ -3,7 +3,26 @@
 //
 //  [SPHSystem.h]
 // Author : 
+// 
+//=============================================================================
+// 
+// 【SPH 粒子グリッド構築と検索の流れ】
 //
+// 1. CPU 側で ReadBack により、前フレームの生存パーティクルを取得。
+// 2. 各パーティクルの位置から、空間グリッドを構築（gridMin を更新し、負の座標を防ぐ）。
+// 3. グリッド上の各セルに対し、Morton 番号を計算し、mortonMap にパーティクル ID を蓄積。
+// 4. mortonMap の全要素を TempTriplet に変換し、Morton 番号でソート。
+// 5. ソート済みの Triplet を元に、SPHIndexTriplet を構築。
+// 6. SPHIndexTriplet から PagedIndexTripletBuffer を生成し、GPU にアップロード。
+// 
+// ─ 次フレーム以降 ─
+// 
+// 7. 各パーティクルは、前フレームの prevPosition を用いて、周囲セルの Morton 番号を取得。
+// 8. PagedIndexTripletBuffer を用いて Morton 番号で近傍セルを探索（FindGridPageHeader）。
+// 9. 対象セルに含まれるパーティクル ID を g_SortedIndicesSRV から参照し、
+//    g_ParticlesUAV で情報を取得して近傍粒子との相互作用を計算する。
+//
+// ※ gridMin は BuildGrid 実行後に確定し、CBuffer に反映される必要がある点に注意！
 //=============================================================================
 #include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/SPHGridUploader.h"
@@ -11,7 +30,15 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_PARTICLES_PER_CELL      64
+#define MAX_PARTICLES_PER_CELL      64          // 1 セルあたりの最大パーティクル数（SPH 粒子グリッドのセルあたりの最大粒子数）
+#define KERNEL_SCALE_FACTOR         1000.0f     // カーネルスケール係数（SPH カーネルのスケーリング）
+#define PRESSURE_FORCE_SCALE        100.0f      // 圧力力スケール係数（圧力計算に使用されるスケーリング係数）100.0f      // 圧力力スケール係数（圧力計算に使用されるスケーリング係数）
+#define VISCOSITY_FORCE_SCALE       0.25f      // 粘性力スケール係数（粘性力の計算に使用されるスケーリング係数）
+#define TAIT_EXPONENT               7.0f        // Tait 式の指数（圧力計算用）
+#define MAX_PRESSURE                10000.0f    // 最大圧力制限（過度な圧力を防ぐため）
+#define XSPH_FACTOR                 0.05f       // XSPH 粘性補正係数（0.0f で無効化）
+#define MAX_ACCELERATION            500.0f      // 最大加速度（過度な加速度を防ぐため）
+#define MAX_VELOCITY                300.0f      // 最大速度（過度な速度を防ぐため）
 
 //*********************************************************
 // 構造体
@@ -37,7 +64,21 @@ struct CBSPHSimParams
 
 	float    deltaTime;                 // タイムステップ (Δt)
 	UINT     totalPageHeaderCount;      // グリッドページヘッダの総数
-	//float    padding;                   // 16バイトアライメント用のパディング
+
+	float    kernelScaleFactor;         // カーネルスケール係数 (SPH カーネルのスケーリング)
+    float    taitExponent;              // Tait 式の指数（圧力計算用）
+    float    maxPressure;               // 最大圧力制限（過度な圧力を防ぐため）
+	float    xsphFactor;                // XSPH 粘性補正係数（0.0f で無効化）
+
+    float    restitution;               // 反発係数（衝突時の挙動制御用）
+    float    friction;                  // 摩擦係数（衝突時の摩擦挙動制御用）
+	float    pressureForceScale;        // 圧力力スケール係数（圧力計算に使用されるスケーリング係数）
+	float    viscosityForceScale;       // 粘性力スケール係数（粘性力の計算に使用されるスケーリング係数）
+
+	float    maxAccel;                  // 最大加速度（過度な加速度を防ぐため）
+	float    maxVelocity;               // 最大速度（過度な速度を防ぐため）
+
+    XMFLOAT2       padding;                // 16バイトアライメント用のパディング
 };
 
 // SPH シミュレーションの設定
@@ -54,6 +95,8 @@ struct SPHConfig
     float    restDensity = 1.0f; // 静止時の密度
     float    pressureMultiplier = 0.1f; // 圧力係数
     float    viscosity = 0.01f; // 粘性係数
+	float    friction = 0.1f; // 摩擦係数   
+	float    restitution = 0.5f; // 反発係数
     XMFLOAT3 acceleration = { 0.0f, -9.81f, 0.0f }; // 重力などの外力
 };
 
@@ -78,6 +121,13 @@ private:
 
     SPHConfig m_config;             // SPH シミュレーション設定
 	SPHGridUploader m_gridUploader; // グリッドアップローダー
+
+	float m_kernelScaleFactor = KERNEL_SCALE_FACTOR; // カーネルスケール係数
+    float m_taitExponent = TAIT_EXPONENT;// Tait 式の指数（圧力計算用）
+	float m_maxPressure = MAX_PRESSURE; // 最大圧力制限（過度な圧力を防ぐため）
+	float m_xsphFactor = XSPH_FACTOR; // XSPH 粘性補正係数（0.0f で無効化）
+	float m_maxAccel = MAX_ACCELERATION; // 最大加速度（過度な加速度を防ぐため）
+	float m_maxVelocity = MAX_VELOCITY; // 最大速度（過度な速度を防ぐため）
 
 	SimpleArray<WaterFluidParticle> m_prevFrameAliveListCPU;    // 前フレームの生存パーティクルリスト (CPU側)
 

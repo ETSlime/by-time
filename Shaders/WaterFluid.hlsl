@@ -13,9 +13,11 @@
 // 粒子構造体
 struct WaterFluidParticle
 {
+    uint particleID; // パーティクルID（ユニークな識別子）
     float3 position; // 現在位置
     float3 prevPosition; // 前フレーム位置
     float density; // 密度（周囲の粒子から算出）
+    
 
     float3 velocity; // 速度
     float lambda; // 拘束条件解（位置補正のための係数）
@@ -29,9 +31,14 @@ struct WaterFluidParticle
     float size; // サイズ
     
     uint debug_mortonIndex;
+    uint2 debug_mortonIndex64;
     uint debug_voxelX;
     uint debug_voxelY;
     uint debug_voxelZ;
+    uint debug_neighborX;
+    uint debug_neighborY;
+    uint debug_neighborZ;
+    uint debug_neighborID;
     int debug_foundTripletIndex;
     uint debug_triCheckCount;
     uint debug_hit;
@@ -47,7 +54,17 @@ struct WaterFluidParticle
     float3 debug_pressureForce;
     float3 debug_viscosityForce;
     float3 debug_gridCoord;
-    
+    uint debug_left;
+    uint debug_right;
+    float debug_w;
+    float debug_dist;
+    uint debug_cellCount;
+    uint debug_neighborCount;
+    uint debug_allParticleCount;
+    uint debug_neighborIDcount;
+    uint debug_distCheckCount;
+    float3 debug_accel;
+    float3 debug_rawVelocity;
     float3 padding;
 };
 
@@ -256,6 +273,7 @@ void EmitCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     uint seed = asuint(g_TotalTime * 1000.0f) + dispatchThreadID.x;
     float3 offset = RandomInsideUnitSphere(seed);
+    offset.y = 0;
     p.position = g_EmitCenter + offset * g_EmitRadius;
     p.velocity = float3(0, 0, 0);
     p.predictedPosition = p.position;
