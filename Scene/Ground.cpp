@@ -23,7 +23,7 @@
 
 #define TREE_SIZE			(350.0f)
 #define FIELD_SIZE			(46850.0f)
-#define TERRAIN_SIZE		(11111)
+#define TERRAIN_SIZE		(111)
 #define BONFIRE_SIZE		(12.0f)
 
 #define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
@@ -285,11 +285,12 @@ void Ground::LoadScene1(void)
 
 	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
 	GameObjectConfig bonfireConfig{};
-	bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
-	bonfireConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
-	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE);
-	bonfireConfig.position = XMFLOAT3(12582.0f, -2051.0f, -19485.0f);
-	bonfireConfig.drawWorldAABB = true;
+	//bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
+	bonfireConfig.modelPath = "data/MODEL/Level/terrain_prototype3.obj";
+	bonfireConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE * 1, BONFIRE_SIZE * 1, BONFIRE_SIZE * 1);
+	bonfireConfig.position = XMFLOAT3(-5371.67f, -5775.0f, -1895.0f);
+	bonfireConfig.drawWorldAABB = false;
 	bonfireGO->Instantiate(bonfireConfig);
 	m_staticGOs.push_back(bonfireGO);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
