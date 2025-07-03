@@ -60,6 +60,12 @@ public:
 
 	void PickItem(Item* obj);
 
+	int GetCurrentHP() const { return m_currentHP; }
+	int GetMaxHP() const { return m_maxHP; }
+
+	void TakeDamage(int damage);
+	void Heal(int amount);
+
 private:
 
 	void UpdateActionQueue(void);
@@ -92,4 +98,8 @@ private:
 	InputManager& m_inputManager = InputManager::get_instance();
 
 	bool m_hasWeapon = false;
+
+	int m_currentHP = 100;    // åªç›HP
+	int m_maxHP = 100;        // ç≈ëÂHP
+
 };

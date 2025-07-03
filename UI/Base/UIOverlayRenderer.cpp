@@ -1,12 +1,13 @@
-//=============================================================================
+Ôªø//=============================================================================
 //
-// UIOverlayRendererèàóù [UIOverlayRenderer.cpp]
+// UIOverlayRendererÂá¶ÁêÜ [UIOverlayRenderer.cpp]
 // Author : 
 //
 //=============================================================================
 #include "UI/Base/UIOverlayRenderer.h"
 #include "UI/Base/UISpriteRenderer.h"
 #include "Core/TextureMgr.h"
+#include <algorithm>
 
 bool UIOverlayRenderer::Initialize(ID3D11Buffer* vertexBuffer)
 {
@@ -22,15 +23,15 @@ bool UIOverlayRenderer::Initialize(ID3D11Buffer* vertexBuffer)
 
 void UIOverlayRenderer::Draw(ID3D11DeviceContext* ctx, float x, float y, float width, float height, XMFLOAT4 color)
 {
-    // ÉAÉjÉÅÅ[ÉVÉáÉìíÜÇ≈Ç†ÇÍÇŒÅAÉAÉãÉtÉ@ílÇï‚ä‘Ç∑ÇÈ
+    // „Ç¢„Éã„É°„Éº„Ç∑„Éß„É≥‰∏≠„Åß„ÅÇ„Çå„Å∞„ÄÅ„Ç¢„É´„Éï„Ç°ÂÄ§„ÇíË£úÈñì„Åô„Çã
     if (m_isFading)
     {
         color.w = ComputeAlpha();
     }
 
-    // ÉeÉNÉXÉ`ÉÉÇÉoÉCÉìÉh
+    // „ÉÜ„ÇØ„Çπ„ÉÅ„É£„Çí„Éê„Ç§„É≥„Éâ
     m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, m_whiteTextureSRV);
-    // í∏ì_ÉoÉbÉtÉ@ÇçXêV
+    // È†ÇÁÇπ„Éê„ÉÉ„Éï„Ç°„ÇíÊõ¥Êñ∞
     UISpriteRenderer::SetSpriteWithColor(m_vertexBuffer, x, y, width, height, 0, 0, 1, 1, color);
 
     UINT stride = sizeof(UIVertex);
@@ -38,7 +39,7 @@ void UIOverlayRenderer::Draw(ID3D11DeviceContext* ctx, float x, float y, float w
     m_renderer.GetDeviceContext()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
     m_renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    // ï`âÊ
+    // ÊèèÁîª
     m_renderer.GetDeviceContext()->Draw(4, 0);
 }
 
@@ -78,4 +79,36 @@ float UIOverlayRenderer::ComputeAlpha() const
     float t = m_fadeTime / m_fadeDuration;
     t = (t > 1.0f) ? 1.0f : t;
     return m_fadeIn ? (t * m_targetColor.w) : ((1.0f - t) * m_targetColor.w);
+}
+
+void UIOverlayRenderer::DrawHPBar(
+    ID3D11DeviceContext* ctx,
+    float x, float y,
+    float width, float height,
+    float hpRatio,
+    DirectX::XMFLOAT4 barColor,
+    DirectX::XMFLOAT4 bgColor)
+{
+    hpRatio = (hpRatio < 0.0f) ? 0.0f : ((hpRatio > 1.0f) ? 1.0f : hpRatio);
+
+     //„Éï„Çß„Éº„ÉâÁä∂ÊÖã„Çí‰∏ÄÊôÇÈÄÄÈÅø„Åó„Å¶ÁÑ°ÂäπÂåñ
+     bool originalIsFading = m_isFading;
+     float originalAlpha = 1.0f;
+     if (originalIsFading)
+     {
+         originalAlpha = ComputeAlpha();
+         m_isFading = false;  // „Éï„Çß„Éº„ÉâÁÑ°ÂäπÂåñ
+     }
+
+    // ËÉåÊôØ„Éê„ÉºÔºàÂÖ®Èù¢Ôºâ
+    Draw(ctx, x + width * 0.5f, y + height * 0.5f, width, height, bgColor);
+
+    // HP„Éê„ÉºÔºàÂ∑¶Á´ØÂõ∫ÂÆöÔºâ
+    float hpWidth = width * hpRatio;
+    if (hpWidth > 0.0f)
+    {
+        float hpX = x + hpWidth * 0.5f;
+        float hpY = y + height * 0.5f;
+        Draw(ctx, hpX, hpY, hpWidth, height, barColor);
+    }
 }

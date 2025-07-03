@@ -44,6 +44,9 @@ public:
     ID3D11Buffer* GetSpriteVertexBuffer(void) const { return m_spriteVB; }
     ScreenFader& GetFader(void) { return m_screenFader; }
 
+    UIOverlayRenderer& GetOverlayRenderer();
+    Renderer& GetRenderer() { return m_renderer; }
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     SimpleArray<UIElement*> m_modals; // モーダルUIの保持
@@ -52,4 +55,5 @@ private:
     ID3D11Buffer* m_spriteVB = nullptr;
 	TweenManager& m_tweenManager = TweenManager::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
+
 };

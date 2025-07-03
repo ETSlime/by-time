@@ -13,6 +13,7 @@
 #include "Collision/OctreeNode.h"
 #include "Core/CursorManager.h"
 #include "Scene/Weapon/ProjectileManager.h"
+#include "Core/GameSystem.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`
@@ -358,4 +359,22 @@ void Player::UpdateActionQueue(void)
 	{
 		m_playerAttr.actionQueueStart = m_playerAttr.actionQueueEnd = 0;
 	}
+}
+
+void Player::TakeDamage(int damage)
+{
+	m_currentHP -= damage;
+	if (m_currentHP < 0) m_currentHP = 0;
+
+	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
+	GameSystem::get_instance().SetPlayerHP(hpRatio);
+}
+
+void Player::Heal(int amount)
+{
+	m_currentHP += amount;
+	if (m_currentHP > m_maxHP) m_currentHP = m_maxHP;
+
+	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
+	GameSystem::get_instance().SetPlayerHP(hpRatio);
 }

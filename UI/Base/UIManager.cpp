@@ -92,6 +92,15 @@ void UIManager::Draw(void)
 
 void UIManager::AddElement(UIElement* element)
 {
+    if (element == nullptr)
+        return;
+
+    for (auto* e : m_elements)
+    {
+        if (e == element)
+            return; // Ç∑Ç≈Ç…ìoò^çœÇ›Ç»ÇÁâΩÇ‡ÇµÇ»Ç¢
+    }
+
     m_elements.push_back(element);
 }
 
@@ -141,4 +150,9 @@ void UIManager::Clear(void)
     }
 
     m_elements.clear();
+}
+
+UIOverlayRenderer& UIManager::GetOverlayRenderer()
+{
+    return m_overlay;
 }

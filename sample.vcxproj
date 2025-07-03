@@ -188,6 +188,7 @@
     <ClInclude Include="Scene\Environment.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Ground.h" />
+    <ClInclude Include="Scene\HPBarUI.h" />
     <ClInclude Include="Scene\Item.h" />
     <ClInclude Include="Scene\ItemManager.h" />
     <ClInclude Include="Scene\Item\Sword.h" />
@@ -269,6 +270,7 @@
     <ClCompile Include="Scene\Environment.cpp" />
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Ground.cpp" />
+    <ClCompile Include="Scene\HPBarUI.cpp" />
     <ClCompile Include="Scene\Item.cpp" />
     <ClCompile Include="Scene\ItemManager.cpp" />
     <ClCompile Include="Scene\Item\Sword.cpp" />

@@ -23,6 +23,7 @@
 #include "Scene/ItemManager.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
+#include "Scene/HPBarUI.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
 #include "Utility/SingletonBase.h"
@@ -96,6 +97,11 @@ public:
     GameMode GetMode() const { return m_mode; }
 
 	Ground* GetGround(void) const { return m_ground; } // 地面オブジェクト取得
+
+    void SetPlayerHP(float hpRatio) {
+        if (m_hpBar)
+            m_hpBar->SetHP(hpRatio);
+    }
 
 protected:
     // プライベートコンストラクタ
@@ -187,6 +193,7 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
 	TweenManager& m_tweenManager;
+    HPBarUI* m_hpBar = nullptr;
 };
 
 void OnSceneSwitchClicked(void* userData);

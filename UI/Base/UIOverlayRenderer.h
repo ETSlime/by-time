@@ -30,6 +30,9 @@ public:
     void Update(float deltaTime);
     bool IsFading() const { return m_isFading; }
 
+    // HPバー専用描画（右端固定で左から縮む）
+    void DrawHPBar(ID3D11DeviceContext* ctx, float x, float y, float width, float height, float hpRatio, DirectX::XMFLOAT4 barColor, DirectX::XMFLOAT4 bgColor);
+
 private:
     // 現在のアルファ値を取得
     float ComputeAlpha() const;
