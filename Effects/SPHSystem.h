@@ -31,9 +31,10 @@
 // マクロ定義
 //*****************************************************************************
 #define MAX_PARTICLES_PER_CELL      64          // 1 セルあたりの最大パーティクル数（SPH 粒子グリッドのセルあたりの最大粒子数）
-#define KERNEL_SCALE_FACTOR         1000.0f     // カーネルスケール係数（SPH カーネルのスケーリング）
+#define PRESSURE_KERNEL_SCALE       1200.0f     // カーネルスケール係数（SPH カーネルのスケーリング）
+#define VISCOSITY_KERNEL_SCALE      500.0f       // 粘性カーネルスケール係数（SPH 粘性カーネルのスケーリング）
 #define PRESSURE_FORCE_SCALE        100.0f      // 圧力力スケール係数（圧力計算に使用されるスケーリング係数）100.0f      // 圧力力スケール係数（圧力計算に使用されるスケーリング係数）
-#define VISCOSITY_FORCE_SCALE       0.25f      // 粘性力スケール係数（粘性力の計算に使用されるスケーリング係数）
+#define VISCOSITY_FORCE_SCALE       0.25f       // 粘性力スケール係数（粘性力の計算に使用されるスケーリング係数）
 #define TAIT_EXPONENT               7.0f        // Tait 式の指数（圧力計算用）
 #define MAX_PRESSURE                10000.0f    // 最大圧力制限（過度な圧力を防ぐため）
 #define XSPH_FACTOR                 0.05f       // XSPH 粘性補正係数（0.0f で無効化）
@@ -65,7 +66,8 @@ struct CBSPHSimParams
 	float    deltaTime;                 // タイムステップ (Δt)
 	UINT     totalPageHeaderCount;      // グリッドページヘッダの総数
 
-	float    kernelScaleFactor;         // カーネルスケール係数 (SPH カーネルのスケーリング)
+	float    pressureKernelScale;       // 圧力カーネルスケール係数（SPH カーネルのスケーリング）
+	float    viscosityKernelScale;      // 粘性カーネルスケール係数（SPH 粘性カーネルのスケーリング）
     float    taitExponent;              // Tait 式の指数（圧力計算用）
     float    maxPressure;               // 最大圧力制限（過度な圧力を防ぐため）
 	float    xsphFactor;                // XSPH 粘性補正係数（0.0f で無効化）
@@ -78,7 +80,7 @@ struct CBSPHSimParams
 	float    maxAccel;                  // 最大加速度（過度な加速度を防ぐため）
 	float    maxVelocity;               // 最大速度（過度な速度を防ぐため）
 
-    XMFLOAT2       padding;                // 16バイトアライメント用のパディング
+    float       padding;                // 16バイトアライメント用のパディング
 };
 
 // SPH シミュレーションの設定
@@ -109,6 +111,9 @@ public:
     void Shutdown(void);
     void SetConfig(const SPHConfig& config); // 設定を更新
     void SwapGridBuffers(void) { m_currentGridIndex = 1 - m_currentGridIndex; }
+	const SimpleArray<WaterFluidParticle>& GetAliveParticles(void) const { return m_prevFrameAliveListCPU; }
+    const BOUNDING_BOX& ComputeBoundsFromAliveParticles(void); // 粒子のAABBを計算する関数（CPU側）
+	const float GetCellSize(void) const { return m_config.cellSize; } // セルサイズを取得
 
 private:
 	bool CreateConstantBuffer(void);    // 定数バッファの作成
@@ -122,7 +127,9 @@ private:
     SPHConfig m_config;             // SPH シミュレーション設定
 	SPHGridUploader m_gridUploader; // グリッドアップローダー
 
-	float m_kernelScaleFactor = KERNEL_SCALE_FACTOR; // カーネルスケール係数
+	BOUNDING_BOX m_bounds; // 粒子のAABB（Axis-Aligned Bounding Box）
+	float m_pressureKernelScale = PRESSURE_KERNEL_SCALE; // 圧力カーネルスケール係数（SPH カーネルのスケーリング）
+	float m_viscosityKernelScale = VISCOSITY_KERNEL_SCALE; // 粘性カーネルスケール係数（SPH 粘性カーネルのスケーリング）
     float m_taitExponent = TAIT_EXPONENT;// Tait 式の指数（圧力計算用）
 	float m_maxPressure = MAX_PRESSURE; // 最大圧力制限（過度な圧力を防ぐため）
 	float m_xsphFactor = XSPH_FACTOR; // XSPH 粘性補正係数（0.0f で無効化）

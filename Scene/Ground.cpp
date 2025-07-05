@@ -236,7 +236,7 @@ void Ground::LoadScene1(void)
 	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
 	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
 	waterParams.numParticles = 10000; // 最大粒子数
-	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 1.0f); // 水色
+	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
 	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
 
 	// エミット制御（あまり使わないが、baseクラス必須）
@@ -251,7 +251,7 @@ void Ground::LoadScene1(void)
 	waterParams.particleMass = 15.0f;		// 粒子質量
 	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
 	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
-	waterParams.viscosity = 0.0f;			// 粘性係数（流体の粘り気）
+	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
 	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
 	IEffectRenderer* waterFluid = EffectSystem::get_instance().SpawnParticleEffect(waterParams);

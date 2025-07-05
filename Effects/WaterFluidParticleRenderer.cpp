@@ -47,6 +47,8 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	sphConfig.restitution = m_restitution; // 反発係数（デフォルト値）
 	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
+    m_surfaceMesh.Initialize();
+
     return true;
 }
 
@@ -105,6 +107,9 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
 
     // Emit処理（新しい水の注入）を基底クラスに任せる
     DispatchEmitParticlesCS();
+
+	// SPHシステムから流体表面メッシュを更新
+	UpdateSurfaceMeshFromSPH();
 }
 
 void WaterFluidParticleRenderer::DrawParticles(void)
@@ -118,6 +123,9 @@ void WaterFluidParticleRenderer::DrawParticles(void)
 
     // DrawIndirect によって粒子を一括描画（PointSprite or Billboard）
     DrawIndirect();
+
+	// 水粒子のメッシュを描画
+    m_surfaceMesh.Draw();
 }
 
 void WaterFluidParticleRenderer::DispatchEmitParticlesCS(void)
@@ -208,4 +216,31 @@ void WaterFluidParticleRenderer::UploadEmitCB(void)
 
     // CSにバインド
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_EMIT, m_cbEmit);
+}
+
+void WaterFluidParticleRenderer::UpdateSurfaceMeshFromSPH(void)
+{
+    // 生存パーティクルのAABBを計算
+    BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
+
+    // SPHシステムからセルサイズを取得
+    float cellSize = m_sphSystem.GetCellSize();
+    // AABBをマージンで拡張
+    bounds.Expand(cellSize * 2.5f);
+
+    // AABBの最小点をセルサイズの倍数に調整
+    bounds.minPoint.x = floor(bounds.minPoint.x / cellSize) * cellSize;
+    bounds.minPoint.z = floor(bounds.minPoint.z / cellSize) * cellSize;
+
+    // HeightField を構築
+    float heightCellSize = cellSize * 0.5f;
+    m_heightBuilder.Initialize(bounds, heightCellSize);
+
+    // 水粒子の高さフィールドを更新
+    m_heightBuilder.Clear(); // 高さフィールドをクリア
+    m_heightBuilder.AccumulateParticles(m_sphSystem.GetAliveParticles()); // 生存パーティクルの高さを蓄積
+    m_heightBuilder.Finalize(); // 高さフィールドの最終化
+
+    // 高さフィールドからメッシュを生成
+    m_surfaceMesh.GenerateSurfaceMesh(m_heightBuilder);
 }

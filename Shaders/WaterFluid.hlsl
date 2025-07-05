@@ -68,6 +68,22 @@ struct WaterFluidParticle
     float3 padding;
 };
 
+struct GS_OUTPUT_FLUID
+{
+    float4 PosH : SV_POSITION;
+    float2 TexCoord : TEXCOORD;
+    float4 Color : COLOR0;
+    float3 ViewDir : TEXCOORD1;
+};
+
+struct PS_INPUT_FLUID
+{
+    float4 PosH : SV_POSITION;
+    float2 TexCoord : TEXCOORD;
+    float4 Color : COLOR0;
+    float3 ViewDir : TEXCOORD1;
+};
+
 //*****************************************************************************
 // 定数バッファ
 //*****************************************************************************
@@ -80,7 +96,7 @@ cbuffer CBWaterFluid : register(SLOT_CB_EFFECT_PARTICLE)
     float g_ParticleMass;
     float g_Stiffness;
     float g_Friction;
-    float3 padding;
+    float3 waterFluidPadding;
 };
 
 // パーティクルエミット用の定数バッファ
@@ -307,7 +323,7 @@ VS_OUTPUT VS(VS_INPUT input)
 // ジオメトリシェーダ：粒子をビルボード化して四角形に展開
 //=============================================================================
 [maxvertexcount(6)]
-void GS(point GS_INPUT input[1], inout TriangleStream<GS_OUTPUT> stream)
+void GS(point GS_INPUT input[1], inout TriangleStream<GS_OUTPUT_FLUID> stream)
 {
     WaterFluidParticle p = g_ParticlesSRV[input[0].ParticleID];
 
@@ -344,11 +360,13 @@ void GS(point GS_INPUT input[1], inout TriangleStream<GS_OUTPUT> stream)
     for (int i = 0; i < 6; ++i)
     {
         int idx = triangleIndices[i];
-        GS_OUTPUT o;
+        GS_OUTPUT_FLUID o;
         float4 worldPos = mul(float4(corners[idx], 1.0f), g_World);
         o.PosH = mul(worldPos, g_ViewProj);
         o.TexCoord = texcoords[idx];
         o.Color = p.color;
+        float3 viewDir = normalize(g_CameraPos - pos);
+        o.ViewDir = viewDir;
         stream.Append(o);
 
         // 3個ごとにRestartStrip()
@@ -362,7 +380,26 @@ void GS(point GS_INPUT input[1], inout TriangleStream<GS_OUTPUT> stream)
 //=============================================================================
 // ピクセルシェーダ：ノイズで破れた煙を表現
 //=============================================================================
-float4 PS(PS_INPUT input) : SV_Target
-{
-    return input.Color;
+float4 PS(PS_INPUT_FLUID input) : SV_Target
+{    
+    // UV座標を [-1,1] 範囲に変換
+    float2 uv = input.TexCoord * 2.0f - 1.0f; // [0,1] → [-1,1]
+    float distSq = dot(uv, uv);
+
+    // 中心からの距離が1.0以上なら破棄（透明化）
+    if (distSq > 1.0f)
+        discard;
+
+    // 透明度を距離に基づいて計算
+    float alpha = smoothstep(1.0f, 0.0f, distSq);
+    alpha = saturate(alpha * 0.3);
+    float3 baseColor = input.Color.rgb;
+    
+    // フレネル効果を追加
+    float3 normal = float3(0, 0, 1);
+    float3 viewDir = normalize(input.ViewDir);
+    float fresnel = pow(1.0f - abs(dot(viewDir, normal)), 4.0f);
+    float3 finalColor = baseColor + fresnel * 0.5;
+
+    return float4(finalColor, alpha * input.Color.a);
 }

@@ -39,6 +39,7 @@
 #define SLOT_CB_EFFECT_EMIT                 10
 #define SLOT_CB_BONE_MATRIX_ARRAY           11 
 #define SLOT_CB_INSTANCED_DATA              12
+#define SLOT_CB_FLUID_SURFACE               12
 #define SLOT_CB_RENDER_PROGRESS             13
 #define SLOT_CB_VOXEL_META                  13
 

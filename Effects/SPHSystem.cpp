@@ -132,6 +132,27 @@ void SPHSystem::SetConfig(const SPHConfig& config)
     m_totalGridCells = m_config.gridDim.x * m_config.gridDim.y * m_config.gridDim.z; // グリッドセルの総数を計算
 }
 
+const BOUNDING_BOX& SPHSystem::ComputeBoundsFromAliveParticles(void)
+{
+    if (m_prevFrameAliveListCPU.empty()) return m_bounds;
+
+    m_bounds.minPoint = m_prevFrameAliveListCPU[0].position;
+    m_bounds.maxPoint = m_prevFrameAliveListCPU[0].position;
+
+    for (UINT i = 1; i < m_prevFrameAliveListCPU.getSize(); ++i)
+    {
+        const XMFLOAT3& p = m_prevFrameAliveListCPU[i].position;
+        m_bounds.minPoint.x = min(m_bounds.minPoint.x, p.x);
+        m_bounds.minPoint.y = min(m_bounds.minPoint.y, p.y);
+        m_bounds.minPoint.z = min(m_bounds.minPoint.z, p.z);
+        m_bounds.maxPoint.x = max(m_bounds.maxPoint.x, p.x);
+        m_bounds.maxPoint.y = max(m_bounds.maxPoint.y, p.y);
+        m_bounds.maxPoint.z = max(m_bounds.maxPoint.z, p.z);
+    }
+
+    return m_bounds;
+}
+
 bool SPHSystem::CreateConstantBuffer(void)
 {
     D3D11_BUFFER_DESC cbDesc = {};
@@ -201,7 +222,8 @@ void SPHSystem::UpdateSPHSimParamsCB(void)
     params->deltaTime = m_timer.GetDeltaTime();
 	params->totalPageHeaderCount = m_gridUploader.GetTotalGridPageHeaderSize();
 
-	params->kernelScaleFactor = m_kernelScaleFactor; // カーネルスケール係数を設定
+	params->pressureKernelScale = m_pressureKernelScale; // 圧力カーネルスケールを設定
+	params->viscosityKernelScale = m_viscosityKernelScale; // 粘性カーネルスケールを設定
 	params->taitExponent = m_taitExponent; // Tait 式の指数を設定
 	params->maxPressure = m_maxPressure; // 最大圧力制限を設定
 	params->xsphFactor = m_xsphFactor; // XSPH 粘性補正係数を設定
@@ -213,7 +235,7 @@ void SPHSystem::UpdateSPHSimParamsCB(void)
 
 	params->maxAccel = m_maxAccel; // 最大加速度を設定
 	params->maxVelocity = m_maxVelocity; // 最大速度を設定
-    params->padding = XMFLOAT2{}; // 16バイトアライメント用のパディング
+    params->padding = 0; // 16バイトアライメント用のパディング
 
     m_context->Unmap(m_cbSPHParams, 0);
 }

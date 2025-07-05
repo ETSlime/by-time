@@ -302,6 +302,12 @@
     <ClInclude Include="Effects\SPHGridUploader.h">
       <Filter>Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\FluidSurfaceMesh.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\FluidHeightFieldBuilder.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -489,6 +495,12 @@
       <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Effects\SPHGridUploader.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\FluidHeightFieldBuilder.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\FluidSurfaceMesh.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
   </ItemGroup>

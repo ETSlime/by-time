@@ -43,6 +43,9 @@ cbuffer CBParticleDraw : register(SLOT_CB_EFFECT_DRAW)
     matrix g_World;
     matrix g_WorldInv;
     matrix g_ViewProj;
+    
+    float3 g_CameraPos;
+    float  particleDrawPadding;
 };
 
 cbuffer ViewBuffer : register(SLOT_CB_VIEW_MATRIX)

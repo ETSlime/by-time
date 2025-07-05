@@ -127,3 +127,11 @@ struct InstanceData
 		OffsetPosition(offset), Rotation(rot), initialBillboardRot(billboardRot), Scale(scl), Type(type) {
 	}
 };
+
+// 流体シミュレーション用の頂点構造体
+struct FluidSurfaceVertex
+{
+	XMFLOAT3 position;
+	XMFLOAT3 normal;
+	XMFLOAT2 texcoord;
+};

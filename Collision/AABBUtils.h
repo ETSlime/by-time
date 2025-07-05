@@ -82,6 +82,24 @@ struct BOUNDING_BOX
         maxPoint = max;
     }
 
+    float GetWidth(void) const
+    {
+        return maxPoint.x - minPoint.x;
+    }
+
+    float GetDepth(void) const
+    {
+        return maxPoint.z - minPoint.z;
+    }
+
+    void Expand(float margin)
+    {
+        minPoint.x -= margin;
+        minPoint.z -= margin;
+        maxPoint.x += margin;
+        maxPoint.z += margin;
+    }
+
     // éwíËÇµÇΩì_Ç™Ç±ÇÃ AABB ì‡Ç…ä‹Ç‹ÇÍÇÈÇ©îªíËÇ∑ÇÈä÷êî
     bool contains(const XMFLOAT3& point) const
     {

@@ -33,6 +33,7 @@ enum class ShaderSetID : uint64_t
     FireEffect,
     FireBallEffect,
     SmokeEffect,
+    FluidSurface,
     UI,
     Debug,
 };
@@ -79,6 +80,7 @@ enum class VertexLayoutID : uint64_t
     Instanced,
     Skybox,
     VFX,
+    FluidSurface,
     UI,
     Debug,
 

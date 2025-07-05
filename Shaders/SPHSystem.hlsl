@@ -120,7 +120,8 @@ struct SPHSimParams
     float deltaTime; // タイムステップ (Δt)
     uint totalPageHeaderCount; // SPH グリッドページヘッダーの総数
     
-    float kernelScaleFactor; // カーネルスケール係数（Poly6, Spiky, Viscosity カーネルのスケーリング用）
+    float pressureKernelScale; // 圧力カーネルスケール係数（圧力計算に使用されるスケーリング係数）
+    float viscosityKernelScale; // 粘性カーネルスケール係数
     float taitExponent; // Tait 式の指数（圧力計算用）
     float maxPressure; // 最大圧力制限（過度な圧力を防ぐため）
     float xsphFactor; // XSPH 粘性項の係数（0.0f で無効化、1.0f で有効化）
@@ -132,7 +133,7 @@ struct SPHSimParams
     
     float maxAccel; // 最大加速度制限（過度な加速度を防ぐため）
     float maxVelocity; // 最大速度制限（過度な速度を防ぐため）
-    float2 padding; // パディング（アライメント用）
+    float padding; // パディング（アライメント用）
 };
 
 // IndexTripletPageHeader：IndexTripletのページヘッダー
@@ -373,7 +374,7 @@ void SimulateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                         float dist = length(r);
                         if (dist < SPHParams.smoothingRadius && dist > EPSILON)
                         {
-                            float W = SPHParams.kernelScaleFactor * W_poly6(dist, SPHParams.smoothingRadius);
+                            float W = SPHParams.pressureKernelScale * W_poly6(dist, SPHParams.smoothingRadius);
                             density += SPHParams.particleMass * W;
                         }
                     }
@@ -436,16 +437,16 @@ void SimulateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                             
                             // 圧力項
                             float3 dir = (dist > EPSILON) ? r / dist : float3(0, 0, 0);
-                            float W_spiky = SPHParams.kernelScaleFactor * W_spiky_grad(dist, SPHParams.smoothingRadius);
+                            float W_spiky = SPHParams.pressureKernelScale * W_spiky_grad(dist, SPHParams.smoothingRadius);
                             float avgPressure = (p.pressure + q.pressure) / 2.0f;
                             pressureForce -= dir * avgPressure * W_spiky * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
 
                             // 粘性項
                             float3 velDiff = q.velocity - p.velocity;
                             float viscosity = SPHParams.viscosity;
-                            float W_visc = SPHParams.kernelScaleFactor * W_visc_laplacian(dist, SPHParams.smoothingRadius);
+                            float W_visc = SPHParams.viscosityKernelScale * W_visc_laplacian(dist, SPHParams.smoothingRadius);
                             viscosityForce += viscosity * velDiff * W_visc * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
-                            float Wxshp = SPHParams.kernelScaleFactor * W_poly6(dist, SPHParams.smoothingRadius);
+                            float Wxshp = SPHParams.viscosityKernelScale * W_poly6(dist, SPHParams.smoothingRadius);
                             xsphVel += SPHParams.xsphFactor * velDiff * Wxshp * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
                         }
                     }
@@ -675,7 +676,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
 
                         //float W = SPHParams.kernelScaleFactor * W_poly6(dist, SPHParams.smoothingRadius);
-                        float W_density = SPHParams.kernelScaleFactor * W_wendland(dist, SPHParams.smoothingRadius);
+                        float W_density = SPHParams.pressureKernelScale * W_wendland(dist, SPHParams.smoothingRadius);
                         density += SPHParams.particleMass * W_density;
                         cellCheckCount++;
                     }
@@ -736,23 +737,23 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
                         if (q.density <= 0.0f || isnan(q.density))
                             continue;
-                        float invDensityQ = 1.0f / max(q.density, EPSILON);
+                        float invDensityQ = 1.0f / max(q.density, SPHParams.restDensity);
                             
                         if (p.density <= 0.0f || isnan(p.density))
                             continue;
-                        float invDensityP = 1.0f / max(p.density, EPSILON);
+                        float invDensityP = 1.0f / max(p.density, SPHParams.restDensity);
                         
                         // 圧力項
                         float3 dir = (dist > EPSILON) ? r / dist : float3(0, 0, 0);
-                        float avgP = (p.pressure + SPHParams.pressureMultiplier * max(q.density - SPHParams.restDensity - 1.0f, 0.0)) * 0.5f;
                         //float Wspiky = SPHParams.kernelScaleFactor * W_spiky_grad(dist, SPHParams.smoothingRadius);
-                        float W_grad = SPHParams.kernelScaleFactor * W_wendland_grad(dist, SPHParams.smoothingRadius);
+                        float W_grad = W_wendland_grad(dist, SPHParams.smoothingRadius);
+                        float W_pressure = SPHParams.pressureKernelScale * W_grad;
                         p.debug_w = W_grad;
                         //pressureForce -= dir * avgP * W_grad * SPHParams.particleMass * invDensityQ;
-                        float avgPressure = (p.pressure + q.pressure) / 2.0f;
+                        float avgPressure = (p.pressure + q.pressure) * 0.5f;
                         float avgDensity = (p.density + q.density) * 0.5f;
                         float invAvgDensity = 1.0f / max(avgDensity, EPSILON);
-                        pressureForce -= dir * avgPressure * W_grad * SPHParams.particleMass * SPHParams.particleMass * invAvgDensity;
+                        pressureForce -= dir * avgPressure * W_pressure * SPHParams.particleMass * SPHParams.particleMass * invAvgDensity;
 
                         // 粘性項
                         float3 velDiff = q.velocity - p.velocity;
@@ -761,8 +762,9 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                         ////float Wxshp = SPHParams.kernelScaleFactor * W_poly6(dist, SPHParams.smoothingRadius);
                         //float Wxshp = SPHParams.kernelScaleFactor * W_wendland(dist, SPHParams.smoothingRadius);
                         //xsphVel += SPHParams.xsphFactor * velDiff * Wxshp * SPHParams.particleMass * invDensity;
-                        viscosityForce += SPHParams.viscosity * velDiff * W_grad * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
-                        float Wxshp = SPHParams.kernelScaleFactor * W_poly6(dist, SPHParams.smoothingRadius);
+                        float W_visc = SPHParams.viscosityKernelScale * W_grad;
+                        viscosityForce += SPHParams.viscosity * velDiff * W_visc * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
+                        float Wxshp = SPHParams.viscosityKernelScale * W_wendland(dist, SPHParams.smoothingRadius);
                         xsphVel += SPHParams.xsphFactor * velDiff * Wxshp * SPHParams.particleMass * SPHParams.particleMass * invDensityQ * invDensityP;
 
                     }
@@ -785,7 +787,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         
         p.velocity += accel * g_DeltaTime;
         xsphVel /= max(p.density, EPSILON); // XSPH 力の平均化
-        //p.velocity += xsphVel * g_DeltaTime; // XSPH 力を速度に加える
+        p.velocity += xsphVel * g_DeltaTime; // XSPH 力を速度に加える
         if (length(p.velocity) > SPHParams.maxVelocity)
             p.velocity = normalize(p.velocity) * SPHParams.maxVelocity; // 過度な速度を制限
         p.debug_rawVelocity = p.velocity;
@@ -810,7 +812,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
             float4 rayDirWS = mul(float4(deltaPos, 0.0), g_World);
             float3 rayDir = normalize(rayDirWS.xyz);
             float rayLength = length(rayDirWS.xyz);
-            float3 rayStart = rayStartWS.xyz + rayDir * 0.001f;
+            float3 rayStart = rayStartWS.xyz + rayDir * 0.0001f;
 
             [allow_uav_condition]
             for (uint i = 0; i < trip.count; ++i)
@@ -828,12 +830,11 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
             if (closestDist < 1e19)
             {
                 float3 normal = normalize(bestNormal);
-                float3 correction = normal * (0.01f + (rayLength - closestDist));
-                p.predictedPosition = p.position + correction;
-                //p.predictedPosition = mul(float4(bestHit + normal * 0.01f, 1.0), g_WorldInv).xyz;
+                float3 corrected = rayStart + rayDir * closestDist + normal;
+                p.predictedPosition = mul(float4(corrected, 1.0f), g_WorldInv).xyz;
                 // 速度を法線に投影して滑りを適用
                 p.velocity = ApplyCollisionResponseVelocity(p.velocity, normal, SPHParams.restitution, SPHParams.friction, 0.01f);
-                p.color = float4(1, 0, 0, 1);
+                p.debug_hit = 1;
             }
         }
 

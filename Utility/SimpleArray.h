@@ -168,6 +168,10 @@ public:
         return size;
     }
 
+	UINT getCapacity() const {
+		return capacity;
+	}
+
     void resize(UINT newCapacity) {
         if (newCapacity < size) {
             return;
@@ -180,6 +184,20 @@ public:
         delete[] array;
         array = newArray;
         capacity = newCapacity;
+    }
+
+    void setSize(UINT newSize)
+    {
+        assert(newSize <= capacity);
+        if (newSize < size)
+        {
+            if (!std::is_trivially_destructible<T>::value)
+            {
+                for (UINT i = newSize; i < size; ++i)
+                    array[i].~T();
+            }
+        }
+        size = newSize;
     }
 
     void reserve(UINT newCapacity, bool forceShrink = false)

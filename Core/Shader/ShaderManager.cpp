@@ -84,6 +84,9 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "VS",
         "Shaders/WaterFluid.hlsl", "PS",
         "Shaders/WaterFluid.hlsl", "GS", false);
+    RegisterShaderSource(ShaderSetID::FluidSurface, VertexLayoutID::FluidSurface,
+        "Shaders/FluidSurface.hlsl", "VS",
+        "Shaders/FluidSurface.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::UI, VertexLayoutID::UI,
         "Shaders/UI.hlsl", "VS",
         "Shaders/UI.hlsl", "PS");

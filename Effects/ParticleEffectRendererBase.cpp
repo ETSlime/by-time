@@ -704,6 +704,8 @@ void ParticleEffectRendererBase::UpdateParticleDrawCB(void)
         cb->world = XMMatrixTranspose(worldMatrix);
 		cb->worldInv = XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix));
         cb->viewProj = XMMatrixTranspose(viewProj);
+		cb->cameraPos = m_camera.GetPosition();
+        cb->padding = 0.0f;
         m_context->Unmap(m_cbParticleDraw, 0);
     }
 }

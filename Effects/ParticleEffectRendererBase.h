@@ -45,6 +45,10 @@ struct CBParticleDraw
     XMMATRIX world;
     XMMATRIX worldInv;
     XMMATRIX viewProj;
+
+	// ƒJƒƒ‰î•ñ
+    XMFLOAT3 cameraPos;
+    float padding;
 };
 
 struct DrawArgs

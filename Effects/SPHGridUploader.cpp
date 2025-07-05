@@ -89,8 +89,8 @@ void SPHGridUploader::BuildGrid(const SimpleArray<WaterFluidParticle>& particles
 	// グリッドの最小座標をパーティクルの位置から計算
     XMFLOAT3 newGridMin = *m_gridMin;
 
-    //XMFLOAT3 rawMin = { FLT_MAX, FLT_MAX, FLT_MAX };
-    XMFLOAT3 rawMin = { -2222, -2222, -2222};
+    XMFLOAT3 rawMin = { FLT_MAX, FLT_MAX, FLT_MAX };
+    //XMFLOAT3 rawMin = { -2222, -2222, -2222};
     for (UINT i = 0; i < numParticles; ++i)
     {
         const auto& p = particles[i];
