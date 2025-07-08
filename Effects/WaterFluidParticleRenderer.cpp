@@ -47,7 +47,7 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	sphConfig.restitution = m_restitution; // 反発係数（デフォルト値）
 	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
-    m_surfaceMesh.Initialize();
+	m_surfaceMesh.Initialize(); // 流体表面メッシュの初期化
 
     return true;
 }
@@ -110,6 +110,15 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
 
 	// SPHシステムから流体表面メッシュを更新
 	UpdateSurfaceMeshFromSPH();
+
+    ID3D11UnorderedAccessView* nullUAV = nullptr;
+    m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_ALIVE_LIST, nullUAV);
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::CS, SLOT_SRV_ALIVE_LIST, m_aliveListBufferSet.srv);
+    m_renderer.BindViewBuffer(ShaderStage::CS);
+    // SPHシステムの描画
+    m_sphSystem.Draw();
+    ID3D11ShaderResourceView* nullSRV = nullptr;
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::CS, SLOT_SRV_ALIVE_LIST, nullSRV);
 }
 
 void WaterFluidParticleRenderer::DrawParticles(void)
@@ -125,6 +134,7 @@ void WaterFluidParticleRenderer::DrawParticles(void)
     DrawIndirect();
 
 	// 水粒子のメッシュを描画
+	m_surfaceMesh.SetThicknessSRV(m_sphSystem.GetThicknessSRV());
     m_surfaceMesh.Draw();
 }
 
@@ -223,8 +233,8 @@ void WaterFluidParticleRenderer::UpdateSurfaceMeshFromSPH(void)
     // 生存パーティクルのAABBを計算
     BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
 
-    // SPHシステムからセルサイズを取得
-    float cellSize = m_sphSystem.GetCellSize();
+    // セルサイズをスケールの半分に設定
+	float cellSize = m_scale * 0.5;
     // AABBをマージンで拡張
     bounds.Expand(cellSize * 2.5f);
 
@@ -233,8 +243,10 @@ void WaterFluidParticleRenderer::UpdateSurfaceMeshFromSPH(void)
     bounds.minPoint.z = floor(bounds.minPoint.z / cellSize) * cellSize;
 
     // HeightField を構築
-    float heightCellSize = cellSize * 0.5f;
-    m_heightBuilder.Initialize(bounds, heightCellSize);
+    const int fixedGridX = 128;
+    const int fixedGridZ = 128;
+    //m_heightBuilder.Initialize(bounds, cellSize);
+    m_heightBuilder.InitializeBySlidingWindow(bounds, cellSize, fixedGridX, fixedGridZ);
 
     // 水粒子の高さフィールドを更新
     m_heightBuilder.Clear(); // 高さフィールドをクリア

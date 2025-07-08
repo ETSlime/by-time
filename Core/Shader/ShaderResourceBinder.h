@@ -35,6 +35,7 @@
 #define SLOT_CB_CASCADE_DATA                8
 #define SLOT_CB_SKYBOX                      9  
 #define SLOT_CB_DEBUG_BOUNDING_BOX          9  
+#define SLOT_CB_FLUID_THICKNESS             9
 #define SLOT_CB_LIGHT_MODE                  10 
 #define SLOT_CB_EFFECT_EMIT                 10
 #define SLOT_CB_BONE_MATRIX_ARRAY           11 
@@ -73,6 +74,7 @@
 #define SLOT_SRV_GRID_COUNTER               14  // グリッドカウンター
 #define SLOT_SRV_SPH_GRID_PAGE_HEADER       15  // SPHグリッドページヘッダ
 #define SLOT_SRV_SPH_INDEX_TRIPLETS         16  // SPHインデックストリプレット
+#define SLOT_SRV_FLUID_THICKNESS            17  // 流体の厚み計算用SRV
 
 // ===== RWストラクチャードバッファ定義 =====
 #define SLOT_UAV_PARTICLE           0   // パーティクル更新バッファ
@@ -82,6 +84,7 @@
 #define SLOT_UAV_SORTED_INDICES     4   // ソートされたパーティクルインデックス
 #define SLOT_UAV_GRID_START_INDEX   5   // グリッド開始インデックス
 #define SLOT_UAV_GRID_COUNTER       6   // グリッドカウンター
+#define SLOT_UAV_FLUID_THICKNESS    7   // 流体厚み計算用UAV
 
 // ===== シェーダーステージ定義 =====
 enum class ShaderStage

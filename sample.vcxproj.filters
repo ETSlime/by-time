@@ -308,6 +308,12 @@
     <ClInclude Include="Effects\FluidHeightFieldBuilder.h">
       <Filter>Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Core\Graphics\RenderTexture.h">
+      <Filter>Core\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\FluidThicknessRenderer.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -501,6 +507,12 @@
       <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Effects\FluidSurfaceMesh.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Graphics\RenderTexture.cpp">
+      <Filter>Core\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\FluidThicknessRenderer.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
   </ItemGroup>

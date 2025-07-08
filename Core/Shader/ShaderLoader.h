@@ -69,6 +69,7 @@ enum class ComputePassType : uint64_t
     SPH_BuildGrid,
     SPH_Simulate_Dense_Grid,
 	SPH_Simulate_Sparse_Grid,
+	Particle_Thickness,
     PreIntegration,
 };
 

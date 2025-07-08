@@ -58,6 +58,9 @@ bool SPHSystem::Initialize(ID3D11Device* device,
             return false;
     }
 
+    // 流体の厚みレンダラー初期化
+    m_thicknessRenderer.Initialize(SCREEN_WIDTH, SCREEN_HEIGHT);
+
     return true;
 }
 
@@ -99,6 +102,12 @@ void SPHSystem::Update(void)
 	m_context->Dispatch(threadGroupCount, 1, 1); // SPHシミュレーションのディスパッチ
 
     UpdateAliveList(); // 生存パーティクルリストの更新
+}
+
+void SPHSystem::Draw(void)
+{
+    // 流体の厚みを描画
+    m_thicknessRenderer.Draw(m_prevFrameAliveListCPU.getSize()); // 生存パーティクル数を渡してレンダリング
 }
 
 void SPHSystem::Shutdown(void)

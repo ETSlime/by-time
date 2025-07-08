@@ -26,6 +26,7 @@
 //=============================================================================
 #include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/SPHGridUploader.h"
+#include "Effects/FluidThicknessRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -108,12 +109,14 @@ public:
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context, const SPHConfig& config, 
         ParticleBufferSet particleBufferSet, ParticleBufferSet aliveListBufferSet);
     void Update(void);
+	void Draw(void);
     void Shutdown(void);
     void SetConfig(const SPHConfig& config); // 設定を更新
     void SwapGridBuffers(void) { m_currentGridIndex = 1 - m_currentGridIndex; }
 	const SimpleArray<WaterFluidParticle>& GetAliveParticles(void) const { return m_prevFrameAliveListCPU; }
     const BOUNDING_BOX& ComputeBoundsFromAliveParticles(void); // 粒子のAABBを計算する関数（CPU側）
 	const float GetCellSize(void) const { return m_config.cellSize; } // セルサイズを取得
+	ID3D11ShaderResourceView* GetThicknessSRV(void) const { return m_thicknessRenderer.GetSRV(); } // 流体の厚みを描画するためのSRVを取得
 
 private:
 	bool CreateConstantBuffer(void);    // 定数バッファの作成
@@ -142,6 +145,7 @@ private:
 	ID3D11Buffer* m_aliveListReadbackBuffer = nullptr;  // 生存パーティクルリストの読み取り用バッファ
 	ID3D11Buffer* m_particleReadbackBuffer = nullptr;   // パーティクルデータの読み取り用バッファ
 
+    FluidThicknessRenderer m_thicknessRenderer; // 流体の厚みを描画するためのレンダラー
     // GPU Alive Count
     ID3D11Buffer* m_aliveCountBuffer = nullptr;   // CopyStructureCount 用
 	UINT m_aliveListCount = 0;          // 生存パーティクルの数

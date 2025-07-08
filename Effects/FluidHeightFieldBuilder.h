@@ -14,9 +14,9 @@
 //*********************************************************
 struct Cell
 {
-	float heightSum = 0.0f;
-	int count = 0;
-	float finalHeight = 0.0f;
+	float heightSum = 0.0f; // 粒子の高さの合計
+	float weightSum = 0.0f; // 粒子の重みの合計
+	float finalHeight = NAN;
 };
 
 class FluidHeightFieldBuilder
@@ -27,6 +27,7 @@ public:
 
 	void Initialize(float minX, float maxX, float minZ, float maxZ, int gridX, int gridZ);
 	void Initialize(const BOUNDING_BOX& bounds, float cellSize);
+	void InitializeBySlidingWindow(const BOUNDING_BOX& particleBounds, float cellSize, int fixedGridX, int fixedGridZ);
 	
 	void Clear(void);
 
@@ -50,8 +51,11 @@ public:
 	float GetCellSizeZ(void) const { return m_cellSizeZ; }
 
 private:
+	bool IsEdgeCell(int gx, int gz) const;
+	void ApplyGaussianSmoothingToEdges(void);
 
 	SimpleArray<SimpleArray<Cell>> m_grid;
+	SimpleArray<SimpleArray<float>> m_smoothBuffer;
 	int m_gridX = 0, m_gridZ = 0;
 	float m_minX = FLT_MAX, m_maxX = FLT_MIN;
 	float m_minZ = FLT_MAX, m_maxZ = FLT_MIN;

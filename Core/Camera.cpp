@@ -444,6 +444,40 @@ void Camera::SetCameraAT(XMFLOAT3 pos)
 
 }
 
+XMFLOAT3 Camera::GetForward(void) const
+{
+	XMVECTOR pos = XMLoadFloat3(&m_pos);
+	XMVECTOR at = XMLoadFloat3(&m_at);
+
+	XMVECTOR forward = XMVector3Normalize(at - pos);
+
+	XMFLOAT3 result;
+	XMStoreFloat3(&result, forward);
+	return result;
+}
+
+XMFLOAT3 Camera::GetRight(void) const
+{
+	XMVECTOR forward = XMLoadFloat3(&GetForward());
+	XMVECTOR up = XMLoadFloat3(&m_up);
+	XMVECTOR right = XMVector3Normalize(XMVector3Cross(up, forward));
+
+	XMFLOAT3 result;
+	XMStoreFloat3(&result, right);
+	return result;
+}
+
+XMFLOAT3 Camera::GetUp(void) const
+{
+	XMVECTOR right = XMLoadFloat3(&GetRight());
+	XMVECTOR forward = XMLoadFloat3(&GetForward());
+	XMVECTOR up = XMVector3Normalize(XMVector3Cross(forward, right));
+
+	XMFLOAT3 result;
+	XMStoreFloat3(&result, up);
+	return result;
+}
+
 void Camera::SetCameraType(CameraType type)
 {
 	m_CameraType = type;

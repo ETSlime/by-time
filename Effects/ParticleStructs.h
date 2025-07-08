@@ -99,5 +99,9 @@ struct WaterFluidParticle
 	UINT     debug_distCheckCount = 0;          // デバッグ用：距離チェック回数
     XMFLOAT3 debug_accel = { 0.0f, 0.0f, 0.0f };
 	XMFLOAT3 debug_rawVelocity = { 0.0f, 0.0f, 0.0f }; // デバッグ用：速度
+	XMUINT2 debug_ipos = { 12345, 255 };           // デバッグ用：整数位置（2Dモートンコード用）
+	float debug_dist2 = 12123.0f;                // デバッグ用：距離の二乗（平方根計算回避用）
+	int debug_radius = 0;                // デバッグ用：半径（距離計算用）
+	XMFLOAT2 debug_screenPos = { 0.0f, 0.0f }; // デバッグ用：スクリーン座標
 	XMFLOAT3 padding;              // パディング（16バイト境界調整用）
 };

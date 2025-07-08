@@ -4,7 +4,9 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
+#define SLOT_CB_FLUID_THICKNESS             b9
 #define SLOT_CB_EFFECT_EMIT                 b10
+#define SLOT_UAV_FLUID_THICKNESS            u7
 
 //*****************************************************************************
 // 構造体定義
@@ -65,6 +67,10 @@ struct WaterFluidParticle
     uint debug_distCheckCount;
     float3 debug_accel;
     float3 debug_rawVelocity;
+    uint2 debug_ipos;
+    float debug_dist2;
+    int debug_radius;
+    float2 debug_screenPos;
     float3 padding;
 };
 
@@ -108,6 +114,13 @@ cbuffer CBEmit : register(SLOT_CB_EFFECT_EMIT)
     float3 _padding;
 };
 
+cbuffer CBFluidThickness : register(SLOT_CB_FLUID_THICKNESS)
+{
+    float g_ThicknessPerParticle; // 粒子1つあたりの厚度値
+    float2 g_ScreenSize; // スクリーンサイズ
+    float thicknessPadding;
+};
+
 //*****************************************************************************
 // グローバル変数
 //*****************************************************************************
@@ -115,7 +128,7 @@ cbuffer CBEmit : register(SLOT_CB_EFFECT_EMIT)
 // バッファ
 RWStructuredBuffer<WaterFluidParticle> g_ParticlesUAV : register(SLOT_UAV_PARTICLE); // 書き込み用パーティクルデータバッファ
 StructuredBuffer<WaterFluidParticle> g_ParticlesSRV : register(SLOT_SRV_PARTICLE); // 読み取り用パーティクルデータバッファ
-
+RWTexture2D<uint> g_ThicknessUAV : register(SLOT_UAV_FLUID_THICKNESS); // 厚度図出力
 
 //=============================================================================
 // コンピュートシェーダ
@@ -304,6 +317,84 @@ void EmitCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 
     g_ParticlesUAV[slotID] = p;
     g_AliveListUAV.Append(slotID);
+}
+
+[numthreads(THREAD_COUNT, 1, 1)]
+void FluidThicknessCS(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    // ディスパッチIDから粒子インデックスを取得
+    uint aliveID = dispatchThreadId.x;
+    // アライブリストから粒子インデックスを取得
+    uint particleIndex = g_AliveListSRV[aliveID];
+    // パーティクルデータを取得
+    WaterFluidParticle p = g_ParticlesUAV[particleIndex];
+    float3 pos = p.position;
+    float size = p.size;
+
+    // View行列からright/upベクトルを取得
+    float3 right = normalize(float3(g_View._11, g_View._21, g_View._31));
+    float3 up = normalize(float3(g_View._12, g_View._22, g_View._32));
+
+    // ワールド空間でのビルボード中央と右上コーナーの座標を計算
+    float3 cornerWS = mul(float4(pos + (right + up) * size, 1.0f), g_World).xyz;
+    float3 centerWS = mul(float4(pos, 1.0f), g_World).xyz;
+
+    // クリップ空間に変換
+    float4 clipA = mul(float4(centerWS, 1.0f), g_ViewProj);
+    float4 clipB = mul(float4(cornerWS, 1.0f), g_ViewProj);
+
+    if (clipA.w <= 0.0f || clipB.w <= 0.0f)
+        return;
+    
+    // w=0 or 負は無効（除算を防ぐ）
+    if (clipA.w <= 1e-6f || clipB.w <= 1e-6f)
+        return;
+
+    // NDC 変換
+    float2 ndcA = clipA.xy / clipA.w;
+    float2 ndcB = clipB.xy / clipB.w;
+
+    // NDC [-1,1] → [0,1]
+    float2 uv = ndcA * 0.5f + 0.5f;
+    if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f)
+        return;
+    
+    // スクリーン空間に変換
+    float2 screenPos = uv * g_ScreenSize;
+    float2 screenCorner = (ndcB * 0.5f + 0.5f) * g_ScreenSize;
+    
+    // 粒子の半径をピクセル単位で計算
+    float radius = length(screenCorner - screenPos);
+    // 整数に丸めた半径
+    int radiusPixels = int(radius + 0.5f);
+    
+    // 厚度を加算する
+    [allow_uav_condition]
+    for (int dy = -radiusPixels; dy <= radiusPixels; ++dy)
+    {
+        [allow_uav_condition]
+        for (int dx = -radiusPixels; dx <= radiusPixels; ++dx)
+        {
+            int2 ipos = int2(screenPos) + int2(dx, dy);
+            
+            // 範囲外はスキップ
+            if (ipos.x < 0 || ipos.y < 0 || ipos.x >= (int) g_ScreenSize.x || ipos.y >= (int) g_ScreenSize.y)
+                continue;
+
+            float2 offset = float2(dx, dy);
+            float dist2 = dot(offset, offset);
+            
+            // 円形の範囲内のみ影響を与える
+            if (dist2 > radius * radius)
+                continue;
+            
+            // 厚度を累加（簡易に一定値）
+            InterlockedAdd(g_ThicknessUAV[ipos], asuint(g_ThicknessPerParticle));
+        }
+    }
+    
+    // データ書き戻し
+    g_ParticlesUAV[particleIndex] = p;
 }
 
 //=============================================================================

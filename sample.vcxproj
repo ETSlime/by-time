@@ -157,6 +157,7 @@
     <ClInclude Include="Core\Graphics\CascadedShadowMap.h" />
     <ClInclude Include="Core\Graphics\ConstantBufferStructs.h" />
     <ClInclude Include="Core\Graphics\Renderer.h" />
+    <ClInclude Include="Core\Graphics\RenderTexture.h" />
     <ClInclude Include="Core\Graphics\ShadowMapRenderer.h" />
     <ClInclude Include="Core\Graphics\ShadowMeshCollector.h" />
     <ClInclude Include="Core\Graphics\ShadowMeshCollector.hpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Effects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\FluidHeightFieldBuilder.h" />
     <ClInclude Include="Effects\FluidSurfaceMesh.h" />
+    <ClInclude Include="Effects\FluidThicknessRenderer.h" />
     <ClInclude Include="Effects\IEffectRenderer.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
     <ClInclude Include="Effects\ParticleStructs.h" />
@@ -241,6 +243,7 @@
     <ClCompile Include="Core\GameSystem.cpp" />
     <ClCompile Include="Core\Graphics\CascadedShadowMap.cpp" />
     <ClCompile Include="Core\Graphics\Renderer.cpp" />
+    <ClCompile Include="Core\Graphics\RenderTexture.cpp" />
     <ClCompile Include="Core\Graphics\ShadowMapRenderer.cpp" />
     <ClCompile Include="Core\Light.cpp" />
     <ClCompile Include="Core\LightManager.cpp" />
@@ -254,6 +257,7 @@
     <ClCompile Include="Effects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\FluidHeightFieldBuilder.cpp" />
     <ClCompile Include="Effects\FluidSurfaceMesh.cpp" />
+    <ClCompile Include="Effects\FluidThicknessRenderer.cpp" />
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SmokeEffectRenderer.cpp" />

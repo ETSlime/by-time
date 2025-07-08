@@ -116,6 +116,8 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Emit,
         "Shaders/WaterFluid.hlsl", "EmitCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Particle_Thickness,
+        "Shaders/WaterFluid.hlsl", "FluidThicknessCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
         "Shaders/SPHSystem.hlsl", "BuildGirdCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,

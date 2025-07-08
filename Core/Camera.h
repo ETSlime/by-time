@@ -63,6 +63,9 @@ public:
 	XMFLOAT4X4 GetProjMatrix(void) { return m_mtxProjection; }
 	XMFLOAT3 GetRotation(void) { return m_rot; }
 	XMFLOAT3 GetPosition(void) { return m_pos; }
+	XMFLOAT3 GetForward(void) const;
+	XMFLOAT3 GetRight(void) const;
+	XMFLOAT3 GetUp(void) const;
 	XMMATRIX GetViewProjMtx(void) { return XMLoadFloat4x4(&m_mtxView) * XMLoadFloat4x4(&m_mtxProjection); }
 
 	void SetCameraType(CameraType type);
