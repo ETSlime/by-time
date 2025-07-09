@@ -135,3 +135,10 @@ struct FluidSurfaceVertex
 	XMFLOAT3 normal;
 	XMFLOAT2 texcoord;
 };
+
+// マーチングキューブ用の頂点構造体
+struct MarchingCubesVertex
+{
+	XMFLOAT3 position; // 頂点位置
+	XMFLOAT3 normal;   // 法線ベクトル
+};

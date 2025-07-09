@@ -34,6 +34,7 @@ enum class ShaderSetID : uint64_t
     FireBallEffect,
     SmokeEffect,
     FluidSurface,
+    FluidMarchingCube,
     UI,
     Debug,
 };

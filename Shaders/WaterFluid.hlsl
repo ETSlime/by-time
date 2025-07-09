@@ -392,9 +392,6 @@ void FluidThicknessCS(uint3 dispatchThreadId : SV_DispatchThreadID)
             InterlockedAdd(g_ThicknessUAV[ipos], asuint(g_ThicknessPerParticle));
         }
     }
-    
-    // ƒf[ƒ^‘‚«–ß‚µ
-    g_ParticlesUAV[particleIndex] = p;
 }
 
 //=============================================================================

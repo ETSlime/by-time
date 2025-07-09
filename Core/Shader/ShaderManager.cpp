@@ -87,6 +87,9 @@ void ShaderManager::RegisterShaderSourcePaths(void)
     RegisterShaderSource(ShaderSetID::FluidSurface, VertexLayoutID::FluidSurface,
         "Shaders/FluidSurface.hlsl", "VS",
         "Shaders/FluidSurface.hlsl", "PS");
+    RegisterShaderSource(ShaderSetID::FluidMarchingCube, VertexLayoutID::FluidSurface,
+        "Shaders/FluidMarchingCube.hlsl", "VS",
+        "Shaders/FluidMarchingCube.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::UI, VertexLayoutID::UI,
         "Shaders/UI.hlsl", "VS",
         "Shaders/UI.hlsl", "PS");

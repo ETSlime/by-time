@@ -1,0 +1,108 @@
+//=============================================================================
+//
+// [SPHVolumeBuilder.cpp]
+// Author : 
+//
+//=============================================================================
+#include "SPHVolumeBuilder.h"
+
+void SPHVolumeBuilder::Initialize(const VolumeReconstructionParams& params)
+{
+    m_params = params;
+    m_volume.resize(m_params.gridX);
+    for (int x = 0; x < m_params.gridX; ++x)
+    {
+        m_volume[x].resize(m_params.gridY);
+        for (int y = 0; y < m_params.gridY; ++y)
+        {
+            m_volume[x][y].resize(m_params.gridZ);
+			for (int z = 0; z < m_params.gridZ; ++z)
+			{
+				m_volume[x][y][z] = 0.0f; // 初期化
+			}
+        }
+    }
+}
+
+void SPHVolumeBuilder::Clear(void)
+{
+    for (int x = 0; x < m_params.gridX; ++x)
+    {
+        for (int y = 0; y < m_params.gridY; ++y)
+        {
+			for (int z = 0; z < m_params.gridZ; ++z)
+			{
+				m_volume[x][y][z] = 0.0f; // 各ボクセルをクリア
+			}
+        }
+    }
+}
+
+VolumeReconstructionParams SPHVolumeBuilder::ComputeVolumeParamsFromParticles(const BOUNDING_BOX& aabb, 
+    float particleRadius, float densityScale, float isoLevel, float cellSize)
+{
+    VolumeReconstructionParams params;
+
+	// AABBを拡張（iso surfaceのためのマージン）
+    BOUNDING_BOX bounds = aabb;
+	bounds.Expand(cellSize * 2.5f); 
+
+	// AABBの最小点をセルサイズの倍数に調整
+    bounds.minPoint.x = floor(bounds.minPoint.x / cellSize) * cellSize;
+    bounds.minPoint.y = floor(bounds.minPoint.y / cellSize) * cellSize;
+    bounds.minPoint.z = floor(bounds.minPoint.z / cellSize) * cellSize;
+
+	// グリッドサイズを計算
+    XMFLOAT3 size = bounds.GetSize();
+    params.gridX = static_cast<int>(ceil(size.x / cellSize));
+    params.gridY = static_cast<int>(ceil(size.y / cellSize));
+    params.gridZ = static_cast<int>(ceil(size.z / cellSize));
+
+	// パラメータを設定
+    params.origin = bounds.minPoint;
+    params.cellSize = cellSize;
+    params.radius = particleRadius;
+    params.densityScale = densityScale;
+    params.isoLevel = isoLevel;
+
+    return params;
+}
+
+void SPHVolumeBuilder::AccumulateFromParticles(const SimpleArray<WaterFluidParticle>& particles)
+{
+    const float radius2 = m_params.radius * m_params.radius;
+    const float invRadius = 1.0f / m_params.radius;
+
+    for (const auto& p : particles)
+    {
+        const XMFLOAT3& pos = p.position;
+
+        int minX = max(0, int((pos.x - m_params.radius - m_params.origin.x) / m_params.cellSize));
+        int maxX = min(m_params.gridX - 1, int((pos.x + m_params.radius - m_params.origin.x) / m_params.cellSize));
+        int minY = max(0, int((pos.y - m_params.radius - m_params.origin.y) / m_params.cellSize));
+        int maxY = min(m_params.gridY - 1, int((pos.y + m_params.radius - m_params.origin.y) / m_params.cellSize));
+        int minZ = max(0, int((pos.z - m_params.radius - m_params.origin.z) / m_params.cellSize));
+        int maxZ = min(m_params.gridZ - 1, int((pos.z + m_params.radius - m_params.origin.z) / m_params.cellSize));
+
+        for (int x = minX; x <= maxX; ++x)
+            for (int y = minY; y <= maxY; ++y)
+                for (int z = minZ; z <= maxZ; ++z)
+                {
+                    float cx = m_params.origin.x + x * m_params.cellSize;
+                    float cy = m_params.origin.y + y * m_params.cellSize;
+                    float cz = m_params.origin.z + z * m_params.cellSize;
+
+                    float dx = pos.x - cx;
+                    float dy = pos.y - cy;
+                    float dz = pos.z - cz;
+
+                    float dist2 = dx * dx + dy * dy + dz * dz;
+                    if (dist2 > radius2) continue;
+
+                    float q = sqrtf(dist2) * invRadius;
+                    float weight = powf(1.0f - q, 4.0f) * (1.0f + 4.0f * q); // Wendland C2 カーネル
+
+                    m_volume[x][y][z] += weight * m_params.densityScale;
+                }
+    }
+}

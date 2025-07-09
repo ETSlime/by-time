@@ -92,11 +92,23 @@ struct BOUNDING_BOX
         return maxPoint.z - minPoint.z;
     }
 
+	float GetHeight(void) const
+	{
+		return maxPoint.y - minPoint.y;
+	}
+
+	XMFLOAT3 GetSize(void) const
+	{
+		return XMFLOAT3(GetWidth(), GetHeight(), GetDepth());
+	}
+
     void Expand(float margin)
     {
         minPoint.x -= margin;
+        minPoint.y -= margin;
         minPoint.z -= margin;
         maxPoint.x += margin;
+        maxPoint.y += margin;
         maxPoint.z += margin;
     }
 

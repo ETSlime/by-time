@@ -8,6 +8,8 @@
 #include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/SPHSystem.h"
 #include "Effects/FluidSurfaceMesh.h"
+#include "Effects/MarchingCubesSurfaceMesh.h"
+#include "Effects/SPHVolumeBuilder.h"
 #include "Collision/VoxelBufferUploader.h"
 
 
@@ -35,13 +37,13 @@ struct EmitCB
     XMFLOAT3 _padding; // 16byte alignment
 };
 
-class WaterFluidParticleRenderer : public ParticleEffectRendererBase
+class WaterFluidParticleRenderer : public ParticleEffectRendererBase, IDebugUI
 {
 public:
     // 初期化処理
 	virtual bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context) override;
     // シャットダウン処理
-	virtual void Shutdown(void) override { ParticleEffectRendererBase::Shutdown(); };
+    virtual void Shutdown(void) override;
     // エフェクトの種類を返す
 	EffectType GetEffectType() const override { return EffectType::WaterFluid; }
     // 描画はIndirectで行う
@@ -66,6 +68,10 @@ private:
 	bool CreateEmitCB(void); // パーティクル放出用の定数バッファを作成
 	void UploadEmitCB(void); // パーティクル放出用の定数バッファをアップロード
 	void UpdateSurfaceMeshFromSPH(void); // SPHシステムから流体表面メッシュを更新
+	void UpdateVolumMeshFromSPH(void); // SPHシステムからボリュームメッシュを更新
+
+    virtual void RenderImGui(void) override;
+    virtual const char* GetPanelName(void) const override { return "WaterFluid Renderer"; };
 
     float m_supportRadius = 15.0f;     // 近傍半径（PBF）
     float m_restDensity = 300.0f;       // 静止時の密度
@@ -75,9 +81,17 @@ private:
 	float m_viscosity = 0.01f;        // 粘性係数（SPH用）
 	float m_restitution = 0.5f; // 反発係数（衝突時の挙動制御用）
 
+	float m_volumeMeshScale = 1.2f; // ボリュームメッシュのスケール
+	float m_volumeCellScale = 0.35f; // ボリュームメッシュのセルサイズ（ボリュームメッシュ生成用）
+	float m_densityScale = 4.0f; // 密度スケール（ボリュームメッシュ生成用）
+	float m_isoLevel = 0.5f; // 等値面のしきい値（ボリュームメッシュ生成用）
+
 	SPHSystem m_sphSystem; // SPHシステム（PBF用）
 	FluidHeightFieldBuilder m_heightBuilder; // 流体の高さフィールドを構築するためのヘルパー
     FluidSurfaceMesh m_surfaceMesh; // 流体表面メッシュ生成用
+
+	SPHVolumeBuilder m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
+	MarchingCubesSurfaceMesh m_volumeMesh; // ボリュームメッシュ生成用
 
 	EmitCB m_emitCBData;              // パーティクル放出用の定数バッファデータ
     ID3D11ShaderResourceView* m_waterDotTextureSRV = nullptr;

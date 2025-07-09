@@ -7,9 +7,14 @@
 #include "Effects/WaterFluidParticleRenderer.h"
 #include "Effects/EffectSystem.h"
 #include "Effects/ParticleStructs.h"
+#include "Utility/Debugproc.h"
 
 bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
 {
+#ifdef _DEBUG
+	DebugProc::get_instance().Register(this);
+#endif // _DEBUG
+
     // ブレンドモードをアルファブレンドに設定
     m_blendMode = BLEND_MODE_ALPHABLEND;
 
@@ -47,9 +52,18 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	sphConfig.restitution = m_restitution; // 反発係数（デフォルト値）
 	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
-	m_surfaceMesh.Initialize(); // 流体表面メッシュの初期化
+	m_volumeMesh.Initialize(); // ボリュームメッシュの初期化
 
     return true;
+}
+
+void WaterFluidParticleRenderer::Shutdown(void)
+{
+#ifdef _DEBUG
+    DebugProc::get_instance().Unregister(this);
+#endif // _DEBUG
+
+    ParticleEffectRendererBase::Shutdown();
 }
 
 void WaterFluidParticleRenderer::ConfigureEffect(const ParticleEffectParams& params)
@@ -109,7 +123,10 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
     DispatchEmitParticlesCS();
 
 	// SPHシステムから流体表面メッシュを更新
-	UpdateSurfaceMeshFromSPH();
+	//UpdateSurfaceMeshFromSPH();
+
+	// SPHシステムからボリュームメッシュを更新
+	UpdateVolumMeshFromSPH();
 
     ID3D11UnorderedAccessView* nullUAV = nullptr;
     m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_ALIVE_LIST, nullUAV);
@@ -134,8 +151,8 @@ void WaterFluidParticleRenderer::DrawParticles(void)
     DrawIndirect();
 
 	// 水粒子のメッシュを描画
-	m_surfaceMesh.SetThicknessSRV(m_sphSystem.GetThicknessSRV());
-    m_surfaceMesh.Draw();
+    m_volumeMesh.SetThicknessSRV(m_sphSystem.GetThicknessSRV());
+    m_volumeMesh.Draw();
 }
 
 void WaterFluidParticleRenderer::DispatchEmitParticlesCS(void)
@@ -234,7 +251,7 @@ void WaterFluidParticleRenderer::UpdateSurfaceMeshFromSPH(void)
     BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
 
     // セルサイズをスケールの半分に設定
-	float cellSize = m_scale * 0.5;
+	float cellSize = m_scale * 0.5f;
     // AABBをマージンで拡張
     bounds.Expand(cellSize * 2.5f);
 
@@ -255,4 +272,41 @@ void WaterFluidParticleRenderer::UpdateSurfaceMeshFromSPH(void)
 
     // 高さフィールドからメッシュを生成
     m_surfaceMesh.GenerateSurfaceMesh(m_heightBuilder);
+}
+
+void WaterFluidParticleRenderer::UpdateVolumMeshFromSPH(void)
+{
+	const auto& particles = m_sphSystem.GetAliveParticles(); // 生存パーティクルのリスト
+	if (particles.empty())
+		return; // パーティクルが存在しない場合は何もしない
+
+    // 生存パーティクルのAABBを計算
+    BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
+
+	float particleRadius = m_scale * m_volumeMeshScale; // 粒子の半径をスケールに基づいて計算
+    float cellSize = particleRadius * m_volumeCellScale; // セルサイズを平滑化半径の半分に設定
+    float densityScale = m_densityScale; // 密度スケール（必要に応じて調整）
+	float isoLevel = m_isoLevel; // 等値面レベル（0.5は一般的な値）
+
+    VolumeReconstructionParams volumeParams = m_volumeBuilder.ComputeVolumeParamsFromParticles(
+        bounds, particleRadius, densityScale, isoLevel, cellSize);
+
+	// ボリュームビルダーを初期化
+    m_volumeBuilder.Initialize(volumeParams);
+	m_volumeBuilder.Clear(); // ボリュームをクリア
+    m_volumeBuilder.AccumulateFromParticles(particles);
+
+	// ボリュームメッシュを構築
+    m_volumeMesh.UpdateMesh(m_volumeBuilder.GetVolume(), volumeParams);
+}
+
+void WaterFluidParticleRenderer::RenderImGui(void)
+{
+    if (ImGui::CollapsingHeader("Marching Cubes Settings"))
+    {
+        ImGui::SliderFloat("Particle Radius: ", &m_volumeMeshScale, 0.5f, 1.5f, "%.01f");
+        ImGui::SliderFloat("Cell Size: ", &m_volumeCellScale, 0.05f, 0.75f, "%.05f");
+        ImGui::SliderFloat("Density Scale: ", &m_densityScale, 0.0f, 5.0f, "%.1f");
+        ImGui::SliderFloat("Iso Level: ", &m_isoLevel, 0.0f, 1.0f, "%.1f");
+    }
 }

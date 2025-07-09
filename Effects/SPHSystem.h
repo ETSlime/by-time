@@ -116,6 +116,7 @@ public:
 	const SimpleArray<WaterFluidParticle>& GetAliveParticles(void) const { return m_prevFrameAliveListCPU; }
     const BOUNDING_BOX& ComputeBoundsFromAliveParticles(void); // 粒子のAABBを計算する関数（CPU側）
 	const float GetCellSize(void) const { return m_config.cellSize; } // セルサイズを取得
+	const float GetSmoothingRadius(void) const { return m_config.smoothingRadius; } // 平滑化半径を取得
 	ID3D11ShaderResourceView* GetThicknessSRV(void) const { return m_thicknessRenderer.GetSRV(); } // 流体の厚みを描画するためのSRVを取得
 
 private:
