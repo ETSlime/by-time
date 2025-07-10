@@ -253,6 +253,20 @@ void Player::Update(void)
 	Camera::get_instance().SetCameraAT(pos);
 	Camera::get_instance().SetCamera();
 
+	// デバッグ用：自動HP減少（毎秒1）
+	if (m_autoHPDrain)
+	{
+		float deltaTime = 1.0f / 60.0f; // 仮想フレームレート（必要に応じてGameSystemからもらうとより良い）
+		m_hpDrainTimer += deltaTime;
+
+		if (m_hpDrainTimer >= 1.0f)
+		{
+			TakeDamage(1);
+			m_hpDrainTimer = 0.0f;
+		}
+	}
+
+
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", transform.pos.x, transform.pos.y, transform.pos.z);
 #endif
@@ -361,13 +375,44 @@ void Player::UpdateActionQueue(void)
 	}
 }
 
+void Player::InitHPBar(UIManager* uiManager)
+{
+	if (m_hpBar)
+	{
+		delete m_hpBar;
+		m_hpBar = nullptr;
+	}
+
+	m_hpBar = new HPBarUI();
+
+	// HPバーの位置・サイズは適宜調整してください
+	m_hpBar->SetPosition({ 50.0f, 40.0f });
+	m_hpBar->SetSize({ 400.0f, 35.0f });
+	m_hpBar->SetHP(1.0f);
+	m_hpBar->SetBarColor({ 0.0f, 1.0f, 0.0f, 1.0f });       // 緑色
+	m_hpBar->SetBackgroundColor({ 0.1f, 0.1f, 0.1f, 0.5f }); // 半透明の背景
+
+	if (uiManager)
+	{
+		uiManager->AddElement(m_hpBar);
+	}
+}
+
+void Player::SetHP(float hp)
+{
+	if (m_hpBar)
+	{
+		m_hpBar->SetHP(hp);
+	}
+}
+
 void Player::TakeDamage(int damage)
 {
 	m_currentHP -= damage;
 	if (m_currentHP < 0) m_currentHP = 0;
 
 	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
-	GameSystem::get_instance().SetPlayerHP(hpRatio);
+	SetHP(hpRatio);  // HPバー更新
 }
 
 void Player::Heal(int amount)
@@ -376,5 +421,5 @@ void Player::Heal(int amount)
 	if (m_currentHP > m_maxHP) m_currentHP = m_maxHP;
 
 	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
-	GameSystem::get_instance().SetPlayerHP(hpRatio);
+	SetHP(hpRatio);  // HPバー更新
 }

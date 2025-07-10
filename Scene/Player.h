@@ -15,6 +15,8 @@
 #include "Scene/Item.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
+#include "Scene/HPBarUI.h"
+#include "UI/Base/UIManager.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -66,6 +68,9 @@ public:
 	void TakeDamage(int damage);
 	void Heal(int amount);
 
+	void InitHPBar(UIManager* uiManager);
+	void SetHP(float hp);
+
 private:
 
 	void UpdateActionQueue(void);
@@ -101,5 +106,10 @@ private:
 
 	int m_currentHP = 100;    // 現在HP
 	int m_maxHP = 100;        // 最大HP
+
+	HPBarUI* m_hpBar = nullptr;
+
+	float m_hpDrainTimer = 0.0f; // 自動HP減少タイマー
+	bool m_autoHPDrain = true;   // 自動でHPを減らすかどうか（デバッグ用）
 
 };

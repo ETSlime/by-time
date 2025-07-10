@@ -34,8 +34,6 @@ void GameSystem::Init(void)
 
 void GameSystem::Shutdown(void)
 {
-    m_hpBar = nullptr;
-
     SAFE_DELETE(m_player); // プレイヤーの解放
 
     SAFE_DELETE(m_ground); // 地面の解放
@@ -134,27 +132,10 @@ void GameSystem::InitGame(void)
 {
     ResumeGame();
 
-    if (m_hpBar)
+    if (m_player)
     {
-        printf("[Debug] m_hpBar already exists, deleting old instance.\n");
-        delete m_hpBar;
-        m_hpBar = nullptr;
+        m_player->InitHPBar(&m_UIManager);
     }
-    
-    // HPバーUI作成
-    m_hpBar = new HPBarUI();
-
-    // 位置・サイズを設定（例：画面左上50,50に幅200高さ25のバー）
-    m_hpBar->SetPosition({ 50.0f, 40.0f });
-    m_hpBar->SetSize({ 400.0f, 35.0f });
-    m_hpBar->SetHP(1.0f);
-
-    // 色をカスタマイズ
-    m_hpBar->SetBarColor({ 0.0f, 1.0f, 0.0f, 1.0f });       // 赤いHPバー
-    m_hpBar->SetBackgroundColor({ 0.1f, 0.1f, 0.1f, 0.5f }); // 半透明の暗い背景
-
-    // UIManagerに登録
-    m_UIManager.AddElement(m_hpBar);
 }
 
 void GameSystem::InitResult(void)
@@ -424,23 +405,7 @@ void GameSystem::UpdateGame(void)
     if (m_isPaused)
         return;
 
-    // ↓ここから自動でHPを減らすテスト処理（秒間0.1ずつ減少）
-    static float timer = 0.0f;
-    static float hpValue = 1.0f;
-
-    float deltaTime = 1.0f / 60.0f;  // フレーム時間（仮想で60FPS固定）
-
-    timer += deltaTime;
-    if (timer >= 0.1f)  // 0.1秒毎にHPを減らす
-    {
-        hpValue -= 0.01f;  // HPを1%減らす
-        if (hpValue < 0.0f)
-            hpValue = 0.0f;
-        m_hpBar->SetHP(hpValue);
-
-        timer = 0.0f;
-    }
-    // ↑テスト用HP減少ここまで
+    m_player->Update();
 
     m_isAltDown = m_inputManager.GetKeyboardPress(DIK_LALT) || m_inputManager.GetKeyboardPress(DIK_RALT);
 
