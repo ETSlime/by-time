@@ -424,10 +424,6 @@ void GameSystem::UpdateGame(void)
     if (m_isPaused)
         return;
 
-    // 例: プレイヤーのHPに追従してHPバー更新
-    float hpRatio = static_cast<float>(m_player->GetCurrentHP()) / m_player->GetMaxHP();
-    m_hpBar->SetHP(hpRatio);
-
     // ↓ここから自動でHPを減らすテスト処理（秒間0.1ずつ減少）
     static float timer = 0.0f;
     static float hpValue = 1.0f;
