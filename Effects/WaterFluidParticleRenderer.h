@@ -8,8 +8,8 @@
 #include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/SPHSystem.h"
 #include "Effects/FluidSurfaceMesh.h"
-#include "Effects/MarchingCubesSurfaceMesh.h"
-#include "Effects/SPHVolumeBuilder.h"
+#include "Effects/MarchingCubesSurfaceMeshGPU.h"
+#include "Effects/SPHVolumeBuilderGPU.h"
 #include "Collision/VoxelBufferUploader.h"
 
 
@@ -90,8 +90,10 @@ private:
 	FluidHeightFieldBuilder m_heightBuilder; // 流体の高さフィールドを構築するためのヘルパー
     FluidSurfaceMesh m_surfaceMesh; // 流体表面メッシュ生成用
 
-	SPHVolumeBuilder m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
-	MarchingCubesSurfaceMesh m_volumeMesh; // ボリュームメッシュ生成用
+	//SPHVolumeBuilder m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
+    SPHVolumeBuilderGPU m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
+	//MarchingCubesSurfaceMesh m_volumeMesh; // ボリュームメッシュ生成用
+    MarchingCubesSurfaceMeshGPU m_volumeMesh; // ボリュームメッシュ生成用
 
 	EmitCB m_emitCBData;              // パーティクル放出用の定数バッファデータ
     ID3D11ShaderResourceView* m_waterDotTextureSRV = nullptr;

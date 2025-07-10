@@ -14,7 +14,7 @@
 #define SLOT_SAMPLER_DEFAULT        s0
 #define SLOT_CB_VIEW_MATRIX         b1
 
-#define THREAD_COUNT                64
+#define THREAD_COUNT                256
 
 //*****************************************************************************
 // 定数バッファ

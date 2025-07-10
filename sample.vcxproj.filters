@@ -326,6 +326,12 @@
     <ClInclude Include="Effects\OptimizedMarchingCubesMesher.h">
       <Filter>Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\SPHVolumeBuilderGPU.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\MarchingCubesSurfaceMeshGPU.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -537,5 +543,7 @@
     <ClCompile Include="Effects\OptimizedMarchingCubesMesher.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
+    <ClCompile Include="Effects\SPHVolumeBuilderGPU.cpp" />
+    <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp" />
   </ItemGroup>
 </Project>

@@ -21,6 +21,9 @@
 #define INITIAL_VERTEX_CAPACITY		20000								// 初期頂点バッファの容量
 #define INITIAL_INDEX_CAPACITY		INITIAL_VERTEX_CAPACITY * 6			// 初期インデックスバッファの容量
 
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
 struct CBMarchingCubes
 {
     XMFLOAT3	shallowColor;	// 浅い水の色
@@ -54,19 +57,27 @@ private:
     bool LoadShaders(void); // シェーダーの読み込み
     void CreateBuffers(void); // 頂点バッファとインデックスバッファの作成
     void UpdateBuffers(void); // GPUにアップロード
-    void UpdateCBMarchingCubes(void); // 定数バッファの更新
     void ReleaseBuffers(void); // バッファを解放
     void EnsureBufferCapacity(UINT requiredVertexCount, UINT requiredIndexCount); // バッファの容量を確保
 
-    ShaderSet m_shaderSet;
     OptimizedMarchingCubesMesher m_mesher; // Marching Cubes メッシャー
     SimpleArray<MarchingCubesVertex> m_vertices;
     SimpleArray<UINT> m_indices;
 
+    ID3D11Buffer* m_vertexBuffer = nullptr;
+    ID3D11Buffer* m_indexBuffer = nullptr;
+
+protected:
+	void SetupPipeline(void); // パイプラインのセットアップ
+    void UpdateCBMarchingCubes(void); // 定数バッファの更新
+
+    ShaderSet m_shaderSet;
     UINT m_vertexCapacity = INITIAL_VERTEX_CAPACITY;
     UINT m_indexCapacity = INITIAL_INDEX_CAPACITY;
+    ID3D11Buffer* m_cbMarchingCubes = nullptr;
 
-	float m_isoLevel = ISO_LEVEL_DEFAULT; // 等値面のしきい値
+	bool m_buildOnGPU = false; // GPU上でメッシュを生成するかどうか
+    float m_isoLevel = ISO_LEVEL_DEFAULT; // 等値面のしきい値
     XMFLOAT3 m_shallowColor = SHALLOW_COLOR_DEFAULT; // 浅い水の色
     XMFLOAT3 m_deepColor = DEEP_COLOR_DEFAULT; // 深い水の色
     float m_fresnelPower = FRESHENEL_POWER_DEFAULT; // フレネル効果の強さ
@@ -75,11 +86,8 @@ private:
     float m_thicknessBias = THICKNESS_BIAS_DEFAULT; // 流体の厚みバイアス
 
     ID3D11ShaderResourceView* m_thicknessSRV = nullptr; // 流体の厚みを表すテクスチャのSRV
-    ID3D11Buffer* m_vertexBuffer = nullptr;
-    ID3D11Buffer* m_indexBuffer = nullptr;
-    ID3D11Buffer* m_cbMarchingCubes = nullptr;
-    ID3D11Device* m_device = nullptr;
-    ID3D11DeviceContext* m_context = nullptr;
+    ID3D11Device* m_device = Renderer::get_instance().GetDevice();
+    ID3D11DeviceContext* m_context = Renderer::get_instance().GetDeviceContext();
 
     ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
 };

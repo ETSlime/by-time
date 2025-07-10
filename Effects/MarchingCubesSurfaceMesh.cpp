@@ -6,13 +6,7 @@
 //=============================================================================
 #include "Effects/MarchingCubesSurfaceMesh.h"
 
-MarchingCubesSurfaceMesh::MarchingCubesSurfaceMesh() : 
-    m_device(Renderer::get_instance().GetDevice()),
-m_context(Renderer::get_instance().GetDeviceContext()) 
-{
-    m_vertices.reserve(m_vertexCapacity);
-    m_indices.reserve(m_indexCapacity);
-}
+MarchingCubesSurfaceMesh::MarchingCubesSurfaceMesh() {}
 
 MarchingCubesSurfaceMesh::~MarchingCubesSurfaceMesh()
 {
@@ -28,8 +22,16 @@ void MarchingCubesSurfaceMesh::Initialize(void)
         return;
     }
 
-    // 頂点バッファとインデックスバッファの初期化
-    CreateBuffers();
+    if (!m_buildOnGPU)
+    {
+		// CPU上でのメッシュ生成の場合、頂点とインデックスの初期化
+        m_vertices.reserve(m_vertexCapacity);
+        m_indices.reserve(m_indexCapacity);
+
+        // 頂点バッファとインデックスバッファの初期化
+        CreateBuffers();
+    }
+
 
     HRESULT hr = S_OK;
 
@@ -72,6 +74,38 @@ void MarchingCubesSurfaceMesh::UpdateBuffers(void)
     UpdateCBMarchingCubes();
 }
 
+void MarchingCubesSurfaceMesh::SetupPipeline(void)
+{
+    // InputLayout と Shader を切り替える（他の粒子と違うから！）
+    m_context->VSSetShader(m_shaderSet.vs, nullptr, 0);
+    m_context->GSSetShader(nullptr, nullptr, 0); // 必ず GS は切る
+    m_context->PSSetShader(m_shaderSet.ps, nullptr, 0);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    if (m_buildOnGPU)
+    {
+        // GPU 構築モード（DrawIndirect + SRV デコード）
+        m_context->IASetInputLayout(nullptr); // InputLayout 不要
+
+        m_context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+        m_context->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    }
+    else
+    {
+        // CPU 構築モード（IA 経由描画）
+        m_context->IASetInputLayout(m_shaderSet.inputLayout);
+
+        UINT stride = sizeof(MarchingCubesVertex);
+        UINT offset = 0;
+        m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+        m_context->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    }
+
+    // シェーダーリソースのバインド
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_SRV_FLUID_THICKNESS, m_thicknessSRV);
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_FLUID_SURFACE, m_cbMarchingCubes);
+    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_FLUID_SURFACE, m_cbMarchingCubes);
+}
+
 void MarchingCubesSurfaceMesh::UpdateCBMarchingCubes(void)
 {
     D3D11_MAPPED_SUBRESOURCE mapped{};
@@ -104,23 +138,8 @@ void MarchingCubesSurfaceMesh::Draw()
     if (!m_vertexBuffer || !m_indexBuffer || m_indices.empty())
         return;
 
-    // InputLayout と Shader を切り替える（他の粒子と違うから！）
-    m_context->IASetInputLayout(m_shaderSet.inputLayout);
-    m_context->VSSetShader(m_shaderSet.vs, nullptr, 0);
-    m_context->GSSetShader(nullptr, nullptr, 0); // 必ず GS は切る
-    m_context->PSSetShader(m_shaderSet.ps, nullptr, 0);
-
-    // シェーダーリソースのバインド
-	m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_SRV_FLUID_THICKNESS, m_thicknessSRV);
-    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_FLUID_SURFACE, m_cbMarchingCubes);
-    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_FLUID_SURFACE, m_cbMarchingCubes);
-
-    // 頂点バッファとインデックスバッファの設定
-    UINT stride = sizeof(MarchingCubesVertex);
-    UINT offset = 0;
-    m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
-    m_context->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// パイプラインのセットアップ
+	SetupPipeline();
 
     // 描画実行
     m_context->DrawIndexed(static_cast<UINT>(m_indices.getSize()), 0, 0);

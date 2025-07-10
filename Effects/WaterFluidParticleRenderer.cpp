@@ -53,6 +53,7 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
 	m_volumeMesh.Initialize(); // ボリュームメッシュの初期化
+	m_volumeBuilder.Initialize(); // SPHボリュームビルダーの初期化
 
     return true;
 }
@@ -126,7 +127,7 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
 	//UpdateSurfaceMeshFromSPH();
 
 	// SPHシステムからボリュームメッシュを更新
-	UpdateVolumMeshFromSPH();
+	//UpdateVolumMeshFromSPH();
 
     ID3D11UnorderedAccessView* nullUAV = nullptr;
     m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_ALIVE_LIST, nullUAV);
@@ -140,6 +141,9 @@ void WaterFluidParticleRenderer::DispatchComputeShader(void)
 
 void WaterFluidParticleRenderer::DrawParticles(void)
 {
+    // SPHシステムからボリュームメッシュを更新
+    UpdateVolumMeshFromSPH();
+
     // デバッグ用の水粒子テクスチャをピクセルシェーダーにバインド
     // 例：ぼやけた半透明な青い円形テクスチャ
     m_shaderResourceBinder.BindShaderResource(ShaderStage::PS, SLOT_TEX_DIFFUSE, m_waterDotTextureSRV);
@@ -288,16 +292,19 @@ void WaterFluidParticleRenderer::UpdateVolumMeshFromSPH(void)
     float densityScale = m_densityScale; // 密度スケール（必要に応じて調整）
 	float isoLevel = m_isoLevel; // 等値面レベル（0.5は一般的な値）
 
-    VolumeReconstructionParams volumeParams = m_volumeBuilder.ComputeVolumeParamsFromParticles(
+    VolumeReconstructionParams volumeParams = SPHVolumeBuilder::ComputeVolumeParamsFromParticles(
         bounds, particleRadius, densityScale, isoLevel, cellSize);
 
-	// ボリュームビルダーを初期化
-    m_volumeBuilder.Initialize(volumeParams);
-	m_volumeBuilder.Clear(); // ボリュームをクリア
-    m_volumeBuilder.AccumulateFromParticles(particles);
+	// ボリュームパラメータを更新
+    m_volumeBuilder.BuildScalarField(m_particleBufferSet.srv, volumeParams);
+    // ボリュームビルダーを初期化
+	//m_volumeBuilder.BuildScalarField(volumeParams);
+    //m_volumeBuilder.Initialize(volumeParams);
+	//m_volumeBuilder.Clear(); // ボリュームをクリア
+    //m_volumeBuilder.AccumulateFromParticles(particles);
 
 	// ボリュームメッシュを構築
-    m_volumeMesh.UpdateMesh(m_volumeBuilder.GetVolume(), volumeParams);
+    m_volumeMesh.UpdateMesh(m_volumeBuilder.GetScalarFieldSRV(), volumeParams);
 }
 
 void WaterFluidParticleRenderer::RenderImGui(void)

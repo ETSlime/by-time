@@ -179,6 +179,7 @@
     <ClInclude Include="Effects\FluidThicknessRenderer.h" />
     <ClInclude Include="Effects\IEffectRenderer.h" />
     <ClInclude Include="Effects\MarchingCubesSurfaceMesh.h" />
+    <ClInclude Include="Effects\MarchingCubesSurfaceMeshGPU.h" />
     <ClInclude Include="Effects\MarchingCubesTables.h" />
     <ClInclude Include="Effects\OptimizedMarchingCubesMesher.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
@@ -188,6 +189,7 @@
     <ClInclude Include="Effects\SPHGridUploader.h" />
     <ClInclude Include="Effects\SPHSystem.h" />
     <ClInclude Include="Effects\SPHVolumeBuilder.h" />
+    <ClInclude Include="Effects\SPHVolumeBuilderGPU.h" />
     <ClInclude Include="Effects\SwordTrail.h" />
     <ClInclude Include="Effects\WaterFluidParticleRenderer.h" />
     <ClInclude Include="main.h" />
@@ -263,6 +265,7 @@
     <ClCompile Include="Effects\FluidSurfaceMesh.cpp" />
     <ClCompile Include="Effects\FluidThicknessRenderer.cpp" />
     <ClCompile Include="Effects\MarchingCubesSurfaceMesh.cpp" />
+    <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp" />
     <ClCompile Include="Effects\MarchingCubesTables.cpp" />
     <ClCompile Include="Effects\OptimizedMarchingCubesMesher.cpp" />
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
@@ -271,6 +274,7 @@
     <ClCompile Include="Effects\SPHGridUploader.cpp" />
     <ClCompile Include="Effects\SPHSystem.cpp" />
     <ClCompile Include="Effects\SPHVolumeBuilder.cpp" />
+    <ClCompile Include="Effects\SPHVolumeBuilderGPU.cpp" />
     <ClCompile Include="Effects\SwordTrail.cpp" />
     <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp" />
     <ClCompile Include="main.cpp" />

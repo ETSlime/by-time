@@ -39,6 +39,7 @@
 #define SLOT_CB_LIGHT_MODE                  10 
 #define SLOT_CB_EFFECT_EMIT                 10
 #define SLOT_CB_BONE_MATRIX_ARRAY           11 
+#define SLOT_CB_SPH_VOLUM_PARAMS            11
 #define SLOT_CB_INSTANCED_DATA              12
 #define SLOT_CB_FLUID_SURFACE               12
 #define SLOT_CB_RENDER_PROGRESS             13
@@ -75,16 +76,21 @@
 #define SLOT_SRV_SPH_GRID_PAGE_HEADER       15  // SPHグリッドページヘッダ
 #define SLOT_SRV_SPH_INDEX_TRIPLETS         16  // SPHインデックストリプレット
 #define SLOT_SRV_FLUID_THICKNESS            17  // 流体の厚み計算用SRV
+#define SLOT_SRV_VOLUME_SCALAR_FIELD        18  // ボリュームスカラー場StructuredBuffer
 
 // ===== RWストラクチャードバッファ定義 =====
-#define SLOT_UAV_PARTICLE           0   // パーティクル更新バッファ
-#define SLOT_UAV_ALIVE_LIST         1   // パーティクル生存リスト
-#define SLOT_UAV_FREE_LIST          2   // パーティクルフリーリスト
-#define SLOT_UAV_FREE_LIST_CONSUME  3   // フリーリスト消費用UAV
-#define SLOT_UAV_SORTED_INDICES     4   // ソートされたパーティクルインデックス
-#define SLOT_UAV_GRID_START_INDEX   5   // グリッド開始インデックス
-#define SLOT_UAV_GRID_COUNTER       6   // グリッドカウンター
-#define SLOT_UAV_FLUID_THICKNESS    7   // 流体厚み計算用UAV
+#define SLOT_UAV_PARTICLE                   0   // パーティクル更新バッファ
+#define SLOT_UAV_ALIVE_LIST                 1   // パーティクル生存リスト
+#define SLOT_UAV_FREE_LIST                  2   // パーティクルフリーリスト
+#define SLOT_UAV_FREE_LIST_CONSUME          3   // フリーリスト消費用UAV
+#define SLOT_UAV_SORTED_INDICES             4   // ソートされたパーティクルインデックス
+#define SLOT_UAV_GRID_START_INDEX           5   // グリッド開始インデックス
+#define SLOT_UAV_GRID_COUNTER               6   // グリッドカウンター
+#define SLOT_UAV_FLUID_THICKNESS            7   // 流体厚み計算用UAV
+#define SLOT_UAV_VOLUME_SCALAR_FIELD        8   // ボリュームスカラー場RWStructuredBuffer
+#define SLOT_UAV_MARCHING_CUBES_VERTEX      9   // マーチングキューブ頂点バッファ
+#define SLOT_UAV_MARCHING_CUBES_INDEX       10  // マーチングキューブインデックス
+#define SLOT_UAV_MARCHING_CUBES_DRAWARGS    11  // マーチングキューブ描画引数
 
 // ===== シェーダーステージ定義 =====
 enum class ShaderStage
