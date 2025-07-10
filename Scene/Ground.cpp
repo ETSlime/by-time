@@ -23,11 +23,11 @@
 
 #define TREE_SIZE			(350.0f)
 #define FIELD_SIZE			(46850.0f)
-#define TERRAIN_SIZE		(111)
+#define TERRAIN_SIZE		(15.0f)
 #define BONFIRE_SIZE		(12.0f)
 
 #define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
-
+#define TERRAIN_POS			XMFLOAT3(-5371.67f, -5775.0f, -1895.0f)
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -66,51 +66,53 @@ Ground::Ground(Skybox* skybox)
 	//	m_persistentModelLoadCnt++;
 	//}
 
-	SkinnedGameObjectConfig config;
-	config.modelPath = MODEL_TERRAIN_PATH;
-	config.modelName = MODEL_TERRAIN_NAME;
-	config.modelType = SkinnedModelType::Field;
-	config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
-	config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
-	config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
-	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
+	InitTerrain();
 
-	fieldGO->SetPostInitCallback([](void* userData) {
-		// 遅延用コンテキスト構築
-		auto* go = static_cast<GameObject<SkinnedMeshModelInstance>*>(userData);
-		auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ go };
+	//SkinnedGameObjectConfig config;
+	//config.modelPath = MODEL_TERRAIN_PATH;
+	//config.modelName = MODEL_TERRAIN_NAME;
+	//config.modelType = SkinnedModelType::Field;
+	//config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
+	//config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
+	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	//GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
 
-		DeferredTaskOptions options{};
-		options.async = true; // 非同期実行
-		options.debugName = "AsyncFbxModelLoader_InitializeAnim_Ground"; // デバッグ用の名前
-		// タスクを DeferredTaskSystem に登録
-		RawDeferredTask::Add(
-			ctx,
-			[](void* ptr)
-			{
-				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+	//fieldGO->SetPostInitCallback([](void* userData) {
+	//	// 遅延用コンテキスト構築
+	//	auto* go = static_cast<GameObject<SkinnedMeshModelInstance>*>(userData);
+	//	auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ go };
 
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
-				ctx->owner->SetPostInit(true);
-			},
-			nullptr,
-			options
-		);
-		}, fieldGO);
+	//	DeferredTaskOptions options{};
+	//	options.async = true; // 非同期実行
+	//	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Ground"; // デバッグ用の名前
+	//	// タスクを DeferredTaskSystem に登録
+	//	RawDeferredTask::Add(
+	//		ctx,
+	//		[](void* ptr)
+	//		{
+	//			auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
 
-	fieldGO->Instantiate(config);
-	m_persistentSkinnedGOs.push_back(fieldGO);
-	m_fieldGO = fieldGO; 
+	//			ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
+	//			ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
+	//			ctx->owner->SetPostInit(true);
+	//		},
+	//		nullptr,
+	//		options
+	//	);
+	//	}, fieldGO);
+
+	//fieldGO->Instantiate(config);
+	//m_persistentSkinnedGOs.push_back(fieldGO);
+	//m_fieldGO = fieldGO; 
 
 
-	if (!m_modelLoadMap.contains(config.modelName))
-	{
-		m_modelLoadMap[config.modelName] = 0;
-		m_totalModelLoadCnt++;
-		m_persistentModelLoadCnt++;
-	}
+	//if (!m_modelLoadMap.contains(config.modelName))
+	//{
+	//	m_modelLoadMap[config.modelName] = 0;
+	//	m_totalModelLoadCnt++;
+	//	m_persistentModelLoadCnt++;
+	//}
 
 	//GameObjectConfig config{};
 	//config.modelPath = MODEL_LAND_PATH;
@@ -256,6 +258,79 @@ void Ground::LoadScene(SceneID sceneID)
 	}
 }
 
+void Ground::InitTerrain(void)
+{
+	GameObject<ModelInstance>* terrainGO = new GameObject<ModelInstance>();
+	GameObjectConfig terrainBuildConfig{};
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/ground.obj";
+	terrainBuildConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	terrainBuildConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	terrainBuildConfig.position = TERRAIN_POS;
+	terrainBuildConfig.drawWorldAABB = false;
+	terrainBuildConfig.flip = AxisFlip::FlipX;
+	terrainBuildConfig.loadAsync = false;
+	terrainGO->Instantiate(terrainBuildConfig);
+	m_persistentStaticGOs.push_back(terrainGO);
+	m_fieldGO = terrainGO;
+
+	if (!m_modelLoadMap.contains(terrainBuildConfig.modelPath))
+	{
+		m_modelLoadMap[terrainBuildConfig.modelPath] = 0;
+		m_totalModelLoadCnt++;
+		m_persistentModelLoadCnt++;
+	}
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/house.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/bridge1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge2.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/CD1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/cubes.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/lines.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain2.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/tree.obj";
+	CreateTerrainGO(terrainBuildConfig);
+}
+
+void Ground::CreateTerrainGO(GameObjectConfig config)
+{
+	GameObject<ModelInstance>* terrainGO = new GameObject<ModelInstance>();
+	terrainGO->Instantiate(config);
+	m_persistentStaticGOs.push_back(terrainGO);
+
+	if (!m_modelLoadMap.contains(config.modelPath))
+	{
+		m_modelLoadMap[config.modelPath] = 0;
+		m_totalModelLoadCnt++;
+		m_persistentModelLoadCnt++;
+	}
+}
+
 void Ground::InitSceneLoadMap(void)
 {
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
@@ -283,23 +358,23 @@ void Ground::LoadScene1(void)
 	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(params);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(effect);
 
-	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
-	GameObjectConfig bonfireConfig{};
-	//bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
-	bonfireConfig.modelPath = "data/MODEL/Level/terrain_prototype3.obj";
-	bonfireConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE * 1, BONFIRE_SIZE * 1, BONFIRE_SIZE * 1);
-	bonfireConfig.position = XMFLOAT3(-5371.67f, -5775.0f, -1895.0f);
-	bonfireConfig.drawWorldAABB = false;
-	bonfireGO->Instantiate(bonfireConfig);
-	m_staticGOs.push_back(bonfireGO);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
+	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
+	//GameObjectConfig bonfireConfig{};
+	////bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
+	//bonfireConfig.modelPath = "data/MODEL/Level/terrain_prototype3.obj";
+	//bonfireConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	//bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE * 1, BONFIRE_SIZE * 1, BONFIRE_SIZE * 1);
+	//bonfireConfig.position = XMFLOAT3(-5371.67f, -5775.0f, -1895.0f);
+	//bonfireConfig.drawWorldAABB = false;
+	//bonfireGO->Instantiate(bonfireConfig);
+	//m_staticGOs.push_back(bonfireGO);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
 
-	if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
-	{
-		m_modelLoadMap[bonfireConfig.modelPath] = 0;
-		m_totalModelLoadCnt++;
-	}
+	//if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
+	//{
+	//	m_modelLoadMap[bonfireConfig.modelPath] = 0;
+	//	m_totalModelLoadCnt++;
+	//}
 }
 
 void Ground::LoadScene2(void)
@@ -374,7 +449,7 @@ void Ground::GenerateEnvironmentObj(void*)
 	{
 		m_environment->GenerateInstanceByParams(
 			instanceParams,
-			m_fieldGO->GetSkinnedMeshModel(),
+			m_fieldGO->GetModel(),
 			m_fieldGO->GetBoundingBoxWorld());
 	}
 	else // モデルがロードされていない場合は非同期でロードしてから実行
@@ -395,12 +470,12 @@ void Ground::GenerateEnvironmentObj(void*)
 			[](void* ptr)
 			{
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
-				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
 				if (!fieldGO) return;
 				// 環境オブジェクトのインスタンスを生成
 				ctx->environment->GenerateInstanceByParams(
 					ctx->instanceParams,
-					fieldGO->GetSkinnedMeshModel(),
+					fieldGO->GetModel(),
 					ctx->fieldGO->GetBoundingBoxWorld()
 				);
 			},
@@ -408,7 +483,7 @@ void Ground::GenerateEnvironmentObj(void*)
 			{
 				// モデルのロード要求を発行（非同期ロードを開始）
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
-				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
 				Model* instanceModel = Model::StoreModel(ctx->modelPath);
 				return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
 			},

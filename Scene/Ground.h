@@ -64,13 +64,15 @@ public:
 	SceneID GetCurrentScene(void) { return m_currentScene; }
 
 private:
+	void InitTerrain(void);
+	void CreateTerrainGO(GameObjectConfig config);
 	void InitSceneLoadMap(void);
 	// シーンロード関数
 	void LoadScene1(void);
 	void LoadScene2(void);
 
 	void GenerateEnvironmentObj(void*);
-	bool DeferredIsFieldReady(void*) { return m_fieldGO->GetSkinnedMeshModel(); }
+	bool DeferredIsFieldReady(void*) { return m_fieldGO->GetModel(); }
 
 	template<typename T>
 	void UpdateGameObjectArray(const SimpleArray<T*>& array);
@@ -89,7 +91,7 @@ private:
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>	m_skinnedGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>  m_persistentSkinnedGOs;
 
-	GameObject<SkinnedMeshModelInstance>* m_fieldGO = nullptr;
+	GameObject<ModelInstance>* m_fieldGO = nullptr;
 	bool m_drawBoundingBox = true;
 
 	Town* m_town = nullptr;

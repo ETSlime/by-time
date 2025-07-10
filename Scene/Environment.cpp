@@ -811,7 +811,7 @@ bool Environment::GenerateRandomInstances(EnvironmentObjectType type, const Mode
 
 }
 
-bool Environment::GenerateInstanceByParams(const InstanceParams& params, const SkinnedMeshModel* fieldModel, BOUNDING_BOX fieldBBox)
+bool Environment::GenerateInstanceByParams(const InstanceParams& params, const Model* fieldModel, BOUNDING_BOX fieldBBox)
 {
     EnvironmentObject* obj = InitializeEnvironmentObj(params.type);
     if (obj == nullptr)

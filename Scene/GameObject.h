@@ -197,6 +197,8 @@ struct GameObjectConfig
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
 	ColliderTag			colliderTag = ColliderTag::DEFAULT;
 	ModelType modelType = ModelType::Static;
+	bool loadAsync = true;
+	AxisFlip flip = AxisFlip::None;
 };
 
 struct SkinnedGameObjectConfig
@@ -497,7 +499,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 	}
 
 	if (!instance.pModel)
-		instance.pModel = Model::StoreModel(config.modelPath);
+		instance.pModel = Model::StoreModel(config.modelPath, config.flip);
 
 	// モデルのビルドタスクを登録
 	if (!instance.modelBuildTaskRegistered)
@@ -540,7 +542,10 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		}
 
 		// 非同期で実行するかどうかを決定
-		options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
+		if (config.loadAsync)
+			options.async = instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX ? true : false;
+		else
+			options.async = false;
 		options.debugName = "GameObject_InstantiateGameObject_Collision";
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
