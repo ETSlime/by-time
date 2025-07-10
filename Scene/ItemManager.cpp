@@ -1,6 +1,7 @@
 #include "ItemManager.h"
 #include "Scene/Item/Sword.h"
 #include "Scene/Ground.h"
+#include "Scene/Item/Interactable.h"
 
 void ItemManager::Init(void)
 {
@@ -94,6 +95,9 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 	{
 	case ItemType::Weapon:
 		item = new Sword(trans);
+		break;
+	case  ItemType::Interactable:
+		item = new Interactable(trans);
 		break;
 	default:
 		return nullptr;

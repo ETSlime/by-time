@@ -41,6 +41,11 @@ void Item::SetActive(bool enable)
 	instance.attributes.use = enable;
 }
 
+void Item::Interact()
+{
+
+}
+
 void Item::Update(void)
 {
 	if (!instance.load)

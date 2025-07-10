@@ -19,7 +19,7 @@
 //*****************************************************************************
 
 // è’ìÀäÌÇÃéÌóﬁÇï\Ç∑óÒãìå^
-enum class ColliderTag 
+enum class ColliderTag
 {
     DEFAULT,
     PLAYER,
@@ -31,7 +31,8 @@ enum class ColliderTag
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
-    PLAYER_PROJECTILE
+    PLAYER_PROJECTILE,
+    INTERACTABLE
 };
 
 //*****************************************************************************

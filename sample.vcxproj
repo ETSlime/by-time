@@ -190,6 +190,7 @@
     <ClInclude Include="Scene\Ground.h" />
     <ClInclude Include="Scene\Item.h" />
     <ClInclude Include="Scene\ItemManager.h" />
+    <ClInclude Include="Scene\Item\Interactable.h" />
     <ClInclude Include="Scene\Item\Sword.h" />
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\Scene.h" />
@@ -271,6 +272,7 @@
     <ClCompile Include="Scene\Ground.cpp" />
     <ClCompile Include="Scene\Item.cpp" />
     <ClCompile Include="Scene\ItemManager.cpp" />
+    <ClCompile Include="Scene\Item\Interactable.cpp" />
     <ClCompile Include="Scene\Item\Sword.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />

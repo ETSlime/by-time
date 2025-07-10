@@ -112,6 +112,13 @@ Ground::Ground(Skybox* skybox)
 		m_persistentModelLoadCnt++;
 	}
 
+	Transform trans;
+	trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1095.0f);
+	trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+	trans.scl = SWORD_SIZE;
+
+	ItemManager::get_instance().SpawnItem(ItemType::Interactable, trans);
+
 	//GameObjectConfig config{};
 	//config.modelPath = MODEL_LAND_PATH;
 	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);

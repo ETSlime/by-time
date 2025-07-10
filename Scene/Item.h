@@ -9,6 +9,7 @@ enum class ItemType
 	Weapon,
 	GB,
 	Key,
+	Interactable,// Interactable‚Ì•û‚ÍŽè‚É“ü‚ê‚È‚¢
 	Max
 };
 
@@ -38,6 +39,7 @@ public:
 
 	void SetActive(bool enable);
 
+	virtual void Interact();
 
 protected:
 
