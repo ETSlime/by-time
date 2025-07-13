@@ -13,6 +13,7 @@
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/Mitachurl.h"
 #include "Scene/Item.h"
+#include "Scene/Item/Interactable.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 
@@ -42,7 +43,6 @@ struct PlayerAttributes
 	UINT			actionQueueEnd;
 };
 
-
 class Player : public IDebugUI
 {
 public:
@@ -59,6 +59,8 @@ public:
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
 
 	void PickItem(Item* obj);
+
+	void LinkInteractable(Interactable* interactable);
 
 private:
 
@@ -90,6 +92,8 @@ private:
 
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
+
+	Interactable*   m_linkedInteractable = nullptr;
 
 	bool m_hasWeapon = false;
 };

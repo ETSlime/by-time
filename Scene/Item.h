@@ -37,11 +37,15 @@ public:
 
 	void Use(void);
 
-	void SetActive(bool enable);
+	virtual void SetActive(bool enable);
 
 	virtual void Interact();
 
 protected:
+
+	struct InitContext {
+		Item* owner;
+	};
 
 	ItemAttributes m_itemAttributes;
 

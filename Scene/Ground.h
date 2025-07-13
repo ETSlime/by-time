@@ -121,6 +121,7 @@ private:
 		);
 
 	Item* m_sceneSword = nullptr;
+	Item* m_p1SeedCont = nullptr;
 	Skybox* m_skybox = nullptr;
 };
 

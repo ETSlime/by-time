@@ -112,13 +112,6 @@ Ground::Ground(Skybox* skybox)
 		m_persistentModelLoadCnt++;
 	}
 
-	Transform trans;
-	trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1095.0f);
-	trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
-	trans.scl = SWORD_SIZE;
-
-	ItemManager::get_instance().SpawnItem(ItemType::Interactable, trans);
-
 	//GameObjectConfig config{};
 	//config.modelPath = MODEL_LAND_PATH;
 	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
@@ -277,6 +270,22 @@ void Ground::LoadScene1(void)
 	if (m_skybox != nullptr)
 		m_skybox->SetCurrentTime(DAY_TIME);
 
+	if (m_p1SeedCont == nullptr) {
+
+		Transform trans;
+		trans.pos = XMFLOAT3(-4371.0f, -4670.0f, -1595.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.scl = SWORD_SIZE;
+
+		m_p1SeedCont = ItemManager::get_instance().SpawnItem(ItemType::Interactable, trans);
+
+		m_p1SeedCont->Initialize();
+
+	}
+
+	if(m_p1SeedCont->GetLoad())
+		m_p1SeedCont->SetActive(true);
+
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;
 	params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
@@ -324,6 +333,9 @@ void Ground::LoadScene2(void)
 	}
 
 	m_sceneSword->SetActive(true);
+
+	if (m_p1SeedCont != nullptr)
+		m_p1SeedCont->SetActive(false);
 
 	if (m_skybox != nullptr) 
 		m_skybox->SetCurrentTime(NIGHT_TIME);

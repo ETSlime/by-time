@@ -40,6 +40,7 @@ Player::Player()
 	//klee =  new Klee();
 
 	lumine = new Lumine();
+	lumine->SetPlayerComponent(this);
 
 	//hilichurl = new Hilichurl();
 
@@ -144,6 +145,16 @@ void Player::Update(void)
 		m_attributes.isJumping = true;
 	}
 
+	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
+		if (m_linkedInteractable != nullptr)
+		{
+			//m_linkedInteractable->Use();
+			//m_linkedInteractable->SetActive(false);
+			transform.pos.y += 500;
+		}
+		m_linkedInteractable = nullptr;
+	}
+
 	// ˆÚ“®‚³‚¹‚¿‚á‚¤
 	if (!m_attributes.isAttacking && !m_attributes.isAttacking2 && !m_attributes.isAttacking3 && !m_attributes.isHit1)
 	{
@@ -204,7 +215,7 @@ void Player::Update(void)
 	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
 
-		if (m_attributes.hasWeapon) {
+		if (m_attributes.hasWeapon || m_hasWeapon) {
 
 			Transform trans;
 			trans.pos = m_playerGO->GetTransform().pos;
@@ -331,6 +342,11 @@ void Player::PickItem(Item* obj)
 
 	obj->Use();
 
+}
+
+void Player::LinkInteractable(Interactable* interactable)
+{
+	m_linkedInteractable = interactable;
 }
 
 void Player::UpdateActionQueue(void)

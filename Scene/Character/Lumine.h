@@ -16,6 +16,7 @@
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
 public:
+
 	Lumine();
 	~Lumine();
 
@@ -60,6 +61,9 @@ public:
 	virtual void OnAttackAnimationEnd(void) override;
 	virtual void OnHitAnimationEnd(void) override;
 	virtual void OnJumpAnimationEnd(void) override;
+	
+	void SetPlayerComponent(void* player);
+	void* GetPlayerComponent(void);
 
 private:
 	struct InitContext
@@ -86,4 +90,5 @@ private:
 	bool storeWeapon;
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
+	void* m_player;
 };

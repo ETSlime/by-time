@@ -9,6 +9,7 @@
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/Projectile.h"
+#include "Scene/Item/Interactable.h"
 #include "Utility/Debugproc.h"
 
 //*****************************************************************************
@@ -335,15 +336,28 @@ void CollisionManager::Update()
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
                 {
                     const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
-                    auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(playerCol->owner);
+                    Lumine* player = static_cast<Lumine*>(playerCol->owner);
+                    Player* playerComp = static_cast<Player*>(player->GetPlayerComponent());
 
                     const Collider* itemCol = dynamicCol->tag == ColliderTag::ITEM ? dynamicCol : dynamicCol2;
                     auto itemColOwner = static_cast<Item*>(itemCol->owner);
 
-                    //colliderOwner->PickItem(itemColOwner);
-                    colliderOwner->EnableWeapon(true);
+                    playerComp->PickItem(itemColOwner);
 
                     itemColOwner->Use();
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::INTERACTABLE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::INTERACTABLE))
+                {
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
+                    Lumine* player = static_cast<Lumine*>(playerCol->owner);
+                    Player* playerComp = static_cast<Player*>(player->GetPlayerComponent());
+
+                    const Collider* itemCol = dynamicCol->tag == ColliderTag::INTERACTABLE ? dynamicCol : dynamicCol2;
+                    auto itemColOwner = static_cast<Interactable*>(itemCol->owner);
+
+                    playerComp->LinkInteractable(itemColOwner);
+
                 }
                 else
                 {

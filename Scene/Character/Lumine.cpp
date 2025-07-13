@@ -767,3 +767,13 @@ void Lumine::OnJumpAnimationEnd(void)
 {
 	instance.attributes.isJumping = false;
 }
+
+void Lumine::SetPlayerComponent(void* player)
+{
+	m_player = player;
+}
+
+void* Lumine::GetPlayerComponent(void)
+{
+	return m_player;
+}

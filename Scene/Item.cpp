@@ -8,6 +8,42 @@ Item::Item(ItemType itemType, Transform trans)
 	m_itemAttributes.initTrans.pos = trans.pos;
 	m_itemAttributes.initTrans.rot = trans.rot;
 	m_itemAttributes.initTrans.scl = trans.scl;
+
+	// ユニックID制作処理
+	std::random_device rd;
+
+	std::mt19937 gen(rd());
+
+	// １から１００までのランダム数字制作
+	std::uniform_int_distribution<> distrib(1, 100);
+
+	int randomNumber = distrib(gen);
+
+	//　IDは現在のチック×ランダム数字
+	m_id = GetTickCount64() * randomNumber;
+
+	// 遅延用コンテキスト構築
+	auto* ctx = new InitContext{
+		this,
+	};
+	DeferredTaskOptions options{};
+	options.async = true; // 非同期実行
+	options.debugName = "AsyncFbxModelLoader_Item"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	RawDeferredTask::Add(
+		ctx,
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			ctx->owner->SetActive(true);
+		},
+		[](void* ptr)
+		{
+			auto* ctx = static_cast<InitContext*>(ptr);
+			return ctx->owner->GetLoad();
+		},
+		options
+	);
 }
 
 Item::~Item()
