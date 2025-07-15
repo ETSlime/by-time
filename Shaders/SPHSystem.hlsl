@@ -152,6 +152,7 @@ struct IndexTripletPageHeaderVec2
 
 struct SPHIndexTriplet
 {
+    uint3 gridCoord;    // 明示的ボクセル座標（decode 不要）
     uint2 mortonIndex;  // 64-bit Morton（下位: x, 上位: y）
     uint startOffset;   // g_GridSortedIndices[] の開始位置
     uint count;         // そのセルに含まれる粒子数
@@ -168,6 +169,7 @@ cbuffer CBSPHParams : register(SLOT_CB_EFFECT_SPH)
 
 // バッファ
 RWStructuredBuffer<WaterFluidParticle> g_ParticlesUAV               : register(SLOT_UAV_PARTICLE); // 書き込み用パーティクルデータバッファ
+StructuredBuffer<WaterFluidParticle> g_ParticlesSRV                 : register(SLOT_SRV_PARTICLE); // 読み取り用パーティクルデータバッファ
 RWStructuredBuffer<uint> g_SortedIndicesUAV                         : register(SLOT_UAV_SORTED_INDICES); // 書き込み用ソート済みインデックス
 StructuredBuffer<uint> g_SortedIndicesSRV                           : register(SLOT_SRV_SORTED_INDICES); // 読み取り用ソート済みインデックス
 RWStructuredBuffer<uint> g_GridStartIndexUAV                        : register(SLOT_UAV_GRID_START_INDEX); // 書き込み用グリッド開始位置
@@ -274,6 +276,28 @@ uint2 EncodeMorton3_64_GPU(uint x, uint y, uint z)
     result.y = (yy.x >> 31) | (zz.x >> 30); // これで上位bit補完（3方向の合成）
     return result;
 }
+
+// 64ビットMortonコードをコンパクト化する関数
+uint Compact1By2_64_HLSL(uint n)
+{
+    n &= 0x09249249;
+    n = (n ^ (n >> 2)) & 0x030C30C3;
+    n = (n ^ (n >> 4)) & 0x0300F00F;
+    n = (n ^ (n >> 8)) & 0x030000FF;
+    n = (n ^ (n >> 16)) & 0x000003FF;
+    return n;
+}
+
+// 64ビットMortonコードをデコードする関数
+uint3 DecodeMorton3_64_GPU(uint2 morton)
+{
+    uint x = Compact1By2_64_HLSL(morton.x);
+    uint y = Compact1By2_64_HLSL(morton.x >> 1);
+    uint z = Compact1By2_64_HLSL(morton.x >> 2);
+    return uint3(x, y, z);
+}
+
+
 
 // ------------------------------
 // BuildGridCS
@@ -539,7 +563,7 @@ void SimulateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
 }
 
 // 64-bit Morton に対応した FindGridPageHeader 関数
-int FindGridPageHeader(uint2 morton, inout WaterFluidParticle p)
+int FindGridPageHeader(uint2 morton)
 {
     if (SPHParams.totalPageHeaderCount == 0)
         return -1; // ページヘッダーがない場合はエラー
@@ -647,7 +671,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                     p.debug_neighborY = neighborCoord.y;
                     p.debug_neighborZ = neighborCoord.z;
                     p.debug_mortonIndex64 = morton;
-                    int found = FindGridPageHeader(morton, p);
+                    int found = FindGridPageHeader(morton);
                     p.debug_foundTripletIndex = found;
                     if (found < 0)
                         continue;
@@ -719,7 +743,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                     uint3 neighborCoord = uint3(neighborCoordInt);
                     uint2 morton = EncodeMorton3_64_GPU(neighborCoord.x, neighborCoord.y, neighborCoord.z);
                     
-                    int found = FindGridPageHeader(morton, p);
+                    int found = FindGridPageHeader(morton);
                     if (found < 0)
                         continue;
                     

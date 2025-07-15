@@ -23,7 +23,12 @@ bool SPHSystem::Initialize(ID3D11Device* device,
 
     // 疎らなグリッドを使用する場合はアップローダーを初期化
     if (m_config.useSparseGrid)
-		m_gridUploader.Initialize(m_config.cellSize, m_config.maxParticles, &m_config.gridMin);
+    {
+        if (m_config.recordActiveVoxelCoords)
+            m_gridUploader.SetRecordActiveVoxelCoords(true); // アクティブなボクセル座標を記録する場合は設定
+        m_gridUploader.Initialize(m_config.cellSize, m_config.maxParticles, &m_config.gridMin);
+    }
+
 
     // シェーダー読み込み
     if (!LoadComputeShaders())

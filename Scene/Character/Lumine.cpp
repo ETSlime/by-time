@@ -8,6 +8,8 @@
 #include "Utility/Debugproc.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
+#include "Effects/EffectSystem.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -52,6 +54,8 @@ Lumine::Lumine()
 	swordTrail->SetTrailFrames(5);
 
 	InitializeStatus();
+
+	InitEffect();
 }
 
 Lumine::~Lumine()
@@ -213,6 +217,14 @@ void Lumine::Update(void)
 
 	if (instance.attributes.isAttacking || instance.attributes.isAttacking2 || instance.attributes.isAttacking3)
 		swordTrail->Update();
+
+	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
+	{
+		XMFLOAT3 pos = instance.transform.pos;
+		pos.y += 200.0f; // 水の位置を少し上に設定	
+		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+			m_waterFluid->EmitWater(35.0f, 5, pos);
+	}
 }
 
 void Lumine::Draw(void)
@@ -523,6 +535,35 @@ void Lumine::PlayHitAnim(void)
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_HIT_REACTION_1)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
 	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.2f);
+}
+
+void Lumine::InitEffect(void)
+{
+	WaterFluidParams waterParams;
+	waterParams.type = EffectType::WaterFluid;
+	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
+	waterParams.position = XMFLOAT3(0.0f, 0.0f, 0.0f);//XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
+	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
+	waterParams.numParticles = 300; // 最大粒子数
+	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
+	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
+
+	// エミット制御（あまり使わないが、baseクラス必須）
+	waterParams.spawnRateMin = 0;
+	waterParams.spawnRateMax = 0;
+	waterParams.lifeMin = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+
+	// 水の物理パラメータ
+	waterParams.supportRadius = 15.0f;		// サポート半径（粒子影響範囲）
+	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
+	waterParams.particleMass = 15.0f;		// 粒子質量
+	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
+	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
+	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
+	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
+
+	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
 }
 
 void Lumine::FaceToNearestEnemy(void)

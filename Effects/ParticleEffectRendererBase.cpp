@@ -297,7 +297,8 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
     ID3D11ShaderResourceView** ppSRV, 
     ID3D11UnorderedAccessView** ppUAV,
     bool allowAppendUAV,
-    bool cpuWritable)
+    bool cpuWritable,
+    bool useCounterUAV)
 {
     HRESULT hr = S_OK;
 
@@ -337,7 +338,18 @@ void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
         uavDesc.Buffer.NumElements = count;
         uavDesc.Format = DXGI_FORMAT_UNKNOWN;
         uavDesc.Buffer.FirstElement = 0;
-        uavDesc.Buffer.Flags = allowAppendUAV ? D3D11_BUFFER_UAV_FLAG_APPEND : 0;
+        if (allowAppendUAV)
+        {
+            uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND;
+        }
+        else if (useCounterUAV)
+        {
+            uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_COUNTER;
+        }
+        else
+        {
+            uavDesc.Buffer.Flags = 0;
+        }
         hr = device->CreateUnorderedAccessView(*ppBuffer, &uavDesc, ppUAV);
         assert(SUCCEEDED(hr));
     }
@@ -490,6 +502,9 @@ void ParticleEffectRendererBase::UnbindAllShaderSRVs(void)
 
     // GSのパーティクルSRVを解除
     m_shaderResourceBinder.BindShaderResource(ShaderStage::GS, SLOT_SRV_PARTICLE, nullSRV);
+
+	// CSのパーティクルSRVを解除
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::CS, SLOT_SRV_PARTICLE, nullSRV);
 
 }
 

@@ -332,6 +332,9 @@
     <ClInclude Include="Effects\MarchingCubesSurfaceMeshGPU.h">
       <Filter>Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\MCVoxelClusterUploader.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -544,6 +547,9 @@
       <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Effects\SPHVolumeBuilderGPU.cpp" />
-    <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp" />
+    <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\MCVoxelClusterUploader.cpp" />
   </ItemGroup>
 </Project>

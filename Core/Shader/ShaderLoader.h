@@ -35,6 +35,7 @@ enum class ShaderSetID : uint64_t
     SmokeEffect,
     FluidSurface,
     FluidMarchingCube,
+    FluidMarchingCubeGPU,
     UI,
     Debug,
 };
@@ -70,8 +71,13 @@ enum class ComputePassType : uint64_t
     SPH_BuildGrid,
     SPH_Simulate_Dense_Grid,
 	SPH_Simulate_Sparse_Grid,
-    SPH_Volume_Field,
     MarchingCubes,
+    GenerateScalarField,
+    MCVoxelLabelPropagation,
+    MCVoxelClusterPartition,
+    MCVoxelPrefixSumLocal,
+    MCVoxelPrefixSumGlobal,
+    MCVoxelPrefixSumAddOffset,
 	Particle_Thickness,
     PreIntegration,
 };

@@ -82,7 +82,6 @@ private:
 	float m_restitution = 0.5f; // 反発係数（衝突時の挙動制御用）
 
 	float m_volumeMeshScale = 1.2f; // ボリュームメッシュのスケール
-	float m_volumeCellScale = 0.35f; // ボリュームメッシュのセルサイズ（ボリュームメッシュ生成用）
 	float m_densityScale = 4.0f; // 密度スケール（ボリュームメッシュ生成用）
 	float m_isoLevel = 0.5f; // 等値面のしきい値（ボリュームメッシュ生成用）
 
@@ -90,10 +89,10 @@ private:
 	FluidHeightFieldBuilder m_heightBuilder; // 流体の高さフィールドを構築するためのヘルパー
     FluidSurfaceMesh m_surfaceMesh; // 流体表面メッシュ生成用
 
-	//SPHVolumeBuilder m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
-    SPHVolumeBuilderGPU m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
-	//MarchingCubesSurfaceMesh m_volumeMesh; // ボリュームメッシュ生成用
-    MarchingCubesSurfaceMeshGPU m_volumeMesh; // ボリュームメッシュ生成用
+	SPHVolumeBuilder m_volumeBuilder; // SPHボリュームビルダー（高さフィールドの生成用）
+    SPHVolumeBuilderGPU m_volumeBuilderGPU; // SPHボリュームビルダー（高さフィールドの生成用）
+	MarchingCubesSurfaceMesh m_volumeMesh; // ボリュームメッシュ生成用
+    MarchingCubesSurfaceMeshGPU m_volumeMeshGPU; // ボリュームメッシュ生成用
 
 	EmitCB m_emitCBData;              // パーティクル放出用の定数バッファデータ
     ID3D11ShaderResourceView* m_waterDotTextureSRV = nullptr;

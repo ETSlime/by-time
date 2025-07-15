@@ -7,6 +7,29 @@
 #include "Effects/OptimizedMarchingCubesMesher.h"
 #include "Effects/MarchingCubesTables.h"
 
+void OptimizedMarchingCubesMesher::Initialize(UINT maxParticles)
+{
+    m_edgeVertexCacheSparse = HashMap<EdgeCacheKey, int, HashEdgeCacheKey, EqualEdgeCacheKey>(
+            maxParticles * ACTIVE_VOXEL_FACTOR, // 初期バケット数
+            HashEdgeCacheKey(), // ハッシュ関数
+            EqualEdgeCacheKey() // 等価比較関数
+        );
+
+	m_keysInsertedThisFrame.reserve(maxParticles * ACTIVE_VOXEL_FACTOR);
+}
+
+void OptimizedMarchingCubesMesher::Clear(void)
+{
+    // エッジキャッシュ初期化（ラージマップに対応）
+	UINT size = m_keysInsertedThisFrame.getSize();
+    for (int i = 0; i < size; ++i)
+    {
+        m_edgeVertexCacheSparse.remove(m_keysInsertedThisFrame[i]);
+    }
+    m_keysInsertedThisFrame.clear();
+
+}
+
 void OptimizedMarchingCubesMesher::BuildMesh(const SimpleArray<SimpleArray<SimpleArray<float>>>& scalarField, const VolumeReconstructionParams& params)
 {
     // 安全チェック（外部バッファ未設定時）
@@ -122,7 +145,129 @@ void OptimizedMarchingCubesMesher::BuildMesh(const SimpleArray<SimpleArray<Simpl
     }
 }
 
-void OptimizedMarchingCubesMesher::ComputeMeshRequirements(const SimpleArray<SimpleArray<SimpleArray<float>>>& scalarField, const VolumeReconstructionParams& params, UINT* outVertexCount, UINT* outIndexCount)
+void OptimizedMarchingCubesMesher::BuildMesh(const HashMap<VoxelCoord, float, HashVoxelKey64, EqualVoxelKey64>& scalarFieldMap, const VolumeReconstructionParams& params)
+{
+    if (!m_targetVertices || !m_targetIndices)
+        return;
+
+    m_targetVertices->clear();
+    m_targetIndices->clear();
+
+    const float cellSize = params.cellSize;
+    const XMFLOAT3 origin = params.origin;
+    const float isoLevel = params.isoLevel;
+
+
+    for (const auto& entry : scalarFieldMap)
+    {
+        const VoxelCoord& coord = entry.key;
+
+        // キューブ形成に必要な 8 つの voxel が存在するか確認
+        bool allCornersExist = true;
+        float cube[8] = {};
+
+        static const int offset[8][3] = {
+            {0,0,0},{1,0,0},{1,0,1},{0,0,1},
+            {0,1,0},{1,1,0},{1,1,1},{0,1,1}
+        };
+
+        for (int i = 0; i < 8; ++i)
+        {
+            VoxelCoord cornerCoord = {
+                coord.x + offset[i][0],
+                coord.y + offset[i][1],
+                coord.z + offset[i][2]
+            };
+            auto it = scalarFieldMap.find(cornerCoord);
+            if (it != scalarFieldMap.end())
+            {
+                cube[i] = it->value;
+            }
+            else
+            {
+                allCornersExist = false;
+                break;
+            }
+        }
+
+        if (!allCornersExist)
+            continue;
+
+        int cubeIndex = 0;
+        for (int i = 0; i < 8; ++i)
+        {
+            if (cube[i] < isoLevel)
+                cubeIndex |= (1 << i);
+        }
+
+        if (edgeTable[cubeIndex] == 0)
+            continue;
+
+        XMFLOAT3 corner[8];
+        for (int i = 0; i < 8; ++i)
+        {
+            corner[i] = {
+                origin.x + (coord.x + offset[i][0]) * cellSize,
+                origin.y + (coord.y + offset[i][1]) * cellSize,
+                origin.z + (coord.z + offset[i][2]) * cellSize
+            };
+        }
+
+        XMFLOAT3 vertList[12];
+
+        for (int i = 0; i < 12; ++i)
+        {
+            if (!(edgeTable[cubeIndex] & (1 << i))) continue;
+
+            static const int edgeVertexMap[12][2] = {
+                {0,1},{1,2},{2,3},{3,0},
+                {4,5},{5,6},{6,7},{7,4},
+                {0,4},{1,5},{2,6},{3,7}
+            };
+            int v0 = edgeVertexMap[i][0];
+            int v1 = edgeVertexMap[i][1];
+
+            VoxelCoord baseCoord = {
+                static_cast<uint64_t>((corner[v0].x - origin.x) / cellSize),
+                static_cast<uint64_t>((corner[v0].y - origin.y) / cellSize),
+                static_cast<uint64_t>((corner[v0].z - origin.z) / cellSize)
+            };
+
+            XMFLOAT3 pos = InterpolateVertex(corner[v0], corner[v1], cube[v0], cube[v1]);
+            XMFLOAT3 norm = ComputeSparseNormal(scalarFieldMap, baseCoord, cellSize);
+
+            // キャッシュキー作成
+            EdgeCacheKey edgeKey = { coord, i };
+            auto it = m_edgeVertexCacheSparse.find(edgeKey);
+            if (it != m_edgeVertexCacheSparse.end())
+            {
+                vertList[i] = (*m_targetVertices)[it->value].position;
+            }
+            else
+            {
+                MarchingCubesVertex vert = { pos, norm };
+                int newIndex = static_cast<int>(m_targetVertices->getSize());
+                m_targetVertices->push_back(vert);
+                m_edgeVertexCacheSparse.insert(edgeKey, newIndex);
+				m_keysInsertedThisFrame.push_back(edgeKey); // キャッシュキーを保存
+                vertList[i] = pos;
+            }
+        }
+
+        for (int i = 0; triTable[cubeIndex][i] != -1; i += 3)
+        {
+            for (int j = 0; j < 3; ++j)
+            {
+                int edgeIdx = triTable[cubeIndex][i + j];
+                EdgeCacheKey edgeKey = { coord, edgeIdx };
+                int vertIndex = m_edgeVertexCacheSparse[edgeKey];
+                m_targetIndices->push_back(vertIndex);
+            }
+        }
+    }
+}
+
+void OptimizedMarchingCubesMesher::ComputeMeshRequirements(const VolumeReconstructionParams& params, UINT* outVertexCount, UINT* outIndexCount)
 {
     // 正確な数を事前に求めるのは難しいため、最大値の概算を提供
     const int gridX = params.gridX;
@@ -180,6 +325,29 @@ XMFLOAT3 OptimizedMarchingCubesMesher::ComputeNormal(const SimpleArray<SimpleArr
         dz = (field[x][y][z + 1] - field[x][y][z - 1]) * 0.5f;
 
     XMFLOAT3 normal = { -dx, -dy, -dz }; // 密度の負勾配（外向き）
+
+    XMVECTOR n = XMVector3Normalize(XMLoadFloat3(&normal));
+    XMStoreFloat3(&normal, n);
+    return normal;
+}
+
+XMFLOAT3 OptimizedMarchingCubesMesher::ComputeSparseNormal(
+    const HashMap<VoxelCoord, float, HashVoxelKey64, EqualVoxelKey64>& scalarField,
+    const VoxelCoord& coord,
+    float cellSize)
+{
+    auto getField = [&](int px, int py, int pz) -> float
+        {
+            VoxelCoord key{ px, py, pz };
+            auto it = scalarField.find(key);
+            return (it != scalarField.end()) ? it->value : 0.0f;
+        };
+
+    float dx = (getField(coord.x + 1, coord.y, coord.z) - getField(coord.x - 1, coord.y, coord.z)) / (2.0f * cellSize);
+    float dy = (getField(coord.x, coord.y + 1, coord.z) - getField(coord.x, coord.y - 1, coord.z)) / (2.0f * cellSize);
+    float dz = (getField(coord.x, coord.y, coord.z + 1) - getField(coord.x, coord.y, coord.z - 1)) / (2.0f * cellSize);
+
+    XMFLOAT3 normal = { -dx, -dy, -dz }; // スカラー場の負勾配から外向き法線を計算するの♪
 
     XMVECTOR n = XMVector3Normalize(XMLoadFloat3(&normal));
     XMStoreFloat3(&normal, n);

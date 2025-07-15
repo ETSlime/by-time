@@ -36,7 +36,8 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 
 	// SPHシステムの初期化
 	SPHConfig sphConfig;
-    sphConfig.useSparseGrid = true;
+	sphConfig.useSparseGrid = true; // 疎なグリッドを使用
+	sphConfig.recordActiveVoxelCoords = false; // アクティブなボクセル座標を記録
 	sphConfig.maxParticles = m_maxParticles;
 	sphConfig.gridMin = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	sphConfig.cellSize = m_supportRadius * 0.5f; // SPHの平滑半径をセルサイズに設定
@@ -52,9 +53,11 @@ bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceCo
 	sphConfig.restitution = m_restitution; // 反発係数（デフォルト値）
 	m_sphSystem.Initialize(device, context, sphConfig, m_particleBufferSet, m_aliveListBufferSet);
 
-	m_volumeMesh.Initialize(); // ボリュームメッシュの初期化
-	m_volumeBuilder.Initialize(); // SPHボリュームビルダーの初期化
+	m_volumeMeshGPU.Initialize(m_maxParticles); // ボリュームメッシュの初期化
+	m_volumeBuilderGPU.Initialize(m_maxParticles); // SPHボリュームビルダーの初期化
 
+    m_volumeMesh.Initialize(m_maxParticles); // ボリュームメッシュの初期化
+    m_volumeBuilder.Initialize(m_maxParticles); // ボリュームビルダーを初期化
     return true;
 }
 
@@ -152,9 +155,12 @@ void WaterFluidParticleRenderer::DrawParticles(void)
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::GS, SLOT_CB_EFFECT_PARTICLE, m_cbWaterFluid);
 
     // DrawIndirect によって粒子を一括描画（PointSprite or Billboard）
-    DrawIndirect();
+    //DrawIndirect();
 
 	// 水粒子のメッシュを描画
+    //m_volumeMeshGPU.SetThicknessSRV(m_sphSystem.GetThicknessSRV());
+    //m_volumeMeshGPU.Draw();
+
     m_volumeMesh.SetThicknessSRV(m_sphSystem.GetThicknessSRV());
     m_volumeMesh.Draw();
 }
@@ -284,27 +290,30 @@ void WaterFluidParticleRenderer::UpdateVolumMeshFromSPH(void)
 	if (particles.empty())
 		return; // パーティクルが存在しない場合は何もしない
 
-    // 生存パーティクルのAABBを計算
-    BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
 
 	float particleRadius = m_scale * m_volumeMeshScale; // 粒子の半径をスケールに基づいて計算
-    float cellSize = particleRadius * m_volumeCellScale; // セルサイズを平滑化半径の半分に設定
+    float cellSize = particleRadius * 0.4f;// m_sphSystem.GetCellSize(); // SPHシステムのセルサイズを取得
     float densityScale = m_densityScale; // 密度スケール（必要に応じて調整）
 	float isoLevel = m_isoLevel; // 等値面レベル（0.5は一般的な値）
 
+    // 生存パーティクルのAABBを計算
+    BOUNDING_BOX bounds = m_sphSystem.ComputeBoundsFromAliveParticles();
     VolumeReconstructionParams volumeParams = SPHVolumeBuilder::ComputeVolumeParamsFromParticles(
         bounds, particleRadius, densityScale, isoLevel, cellSize);
+	volumeParams.useSparseGrid = true; // 稀疏グリッドを使用
 
 	// ボリュームパラメータを更新
-    m_volumeBuilder.BuildScalarField(m_particleBufferSet.srv, volumeParams);
-    // ボリュームビルダーを初期化
-	//m_volumeBuilder.BuildScalarField(volumeParams);
-    //m_volumeBuilder.Initialize(volumeParams);
-	//m_volumeBuilder.Clear(); // ボリュームをクリア
-    //m_volumeBuilder.AccumulateFromParticles(particles);
+    volumeParams.activeVoxelCount = m_sphSystem.GetActiveVoxelCount(); // アクティブなボクセル数を設定
+    //m_volumeBuilderGPU.BuildScalarField(m_particleBufferSet.srv, volumeParams);
+
+	m_volumeBuilder.Clear(); // ボリュームビルダーをクリア
+	m_volumeBuilder.AccumulateFromParticlesSparse(volumeParams, particles); // パーティクルからボリュームを蓄積
+    m_volumeMesh.UpdateMesh(m_volumeBuilder.GetScalarFieldMap(), volumeParams); // ボリュームメッシュを構築
 
 	// ボリュームメッシュを構築
-    m_volumeMesh.UpdateMesh(m_volumeBuilder.GetScalarFieldSRV(), volumeParams);
+    //SimpleArray<UINT>& labelBuffer = m_volumeMeshGPU.GetInitialLabelBuffer();
+	//m_sphSystem.ExportInitialClusterLabels(labelBuffer); // 初期クラスタラベルをエクスポート
+    //m_volumeMeshGPU.UpdateMesh(m_volumeBuilderGPU.GetScalarFieldSRV(), m_sphSystem.GetGridTriplets(), volumeParams);
 }
 
 void WaterFluidParticleRenderer::RenderImGui(void)
@@ -312,7 +321,6 @@ void WaterFluidParticleRenderer::RenderImGui(void)
     if (ImGui::CollapsingHeader("Marching Cubes Settings"))
     {
         ImGui::SliderFloat("Particle Radius: ", &m_volumeMeshScale, 0.5f, 1.5f, "%.01f");
-        ImGui::SliderFloat("Cell Size: ", &m_volumeCellScale, 0.05f, 0.75f, "%.05f");
         ImGui::SliderFloat("Density Scale: ", &m_densityScale, 0.0f, 5.0f, "%.1f");
         ImGui::SliderFloat("Iso Level: ", &m_isoLevel, 0.0f, 1.0f, "%.1f");
     }

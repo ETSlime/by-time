@@ -18,7 +18,7 @@
 #define ALPHA_SCALE_DEFAULT         0.5f						// アルファスケールのデフォルト値
 #define THICKNESS_SCALE_DEFAULT     3.0f						// 流体の厚みスケールのデフォルト値
 #define THICKNESS_BIAS_DEFAULT      -0.2f						// 流体の厚みバイアスのデフォルト値
-#define INITIAL_VERTEX_CAPACITY		20000								// 初期頂点バッファの容量
+#define INITIAL_VERTEX_CAPACITY		200000								// 初期頂点バッファの容量
 #define INITIAL_INDEX_CAPACITY		INITIAL_VERTEX_CAPACITY * 6			// 初期インデックスバッファの容量
 
 //*****************************************************************************
@@ -36,6 +36,8 @@ struct CBMarchingCubes
     float       isoLevel;                // 等値面のしきい値
     XMFLOAT2	screenSize;		// スクリーンサイズ（幅, 高さ）
     XMFLOAT2	invScreenSize;	// スクリーンサイズの逆数（幅, 高さ）
+	UINT        numActiveVoxels; // アクティブなボクセルの数
+	XMFLOAT3    padding;		// 16バイトアライメントのためのパディング
 };
 
 class MarchingCubesSurfaceMesh
@@ -44,11 +46,12 @@ public:
 	MarchingCubesSurfaceMesh();
     ~MarchingCubesSurfaceMesh();
 
-    void Initialize(void);
+    void Initialize(UINT maxParticles);
     void Draw(void);
 
 	// Marching Cubes メッシュを生成
     void UpdateMesh(const SimpleArray<SimpleArray<SimpleArray<float>>>& volume, const VolumeReconstructionParams& params);
+	void UpdateMesh(const HashMap<VoxelCoord, float, HashVoxelKey64, EqualVoxelKey64>& scalarFieldMap, const VolumeReconstructionParams& params);
 
     void SetThicknessSRV(ID3D11ShaderResourceView* srv);
 
@@ -74,16 +77,20 @@ protected:
     ShaderSet m_shaderSet;
     UINT m_vertexCapacity = INITIAL_VERTEX_CAPACITY;
     UINT m_indexCapacity = INITIAL_INDEX_CAPACITY;
+    XMUINT3 m_edgeCacheDim = { 0, 0, 0 }; // エッジキャッシュの次元
     ID3D11Buffer* m_cbMarchingCubes = nullptr;
+    UINT m_maxParticles; // 最大粒子数（グローバルメッシュ容量の計算に使用）
 
 	bool m_buildOnGPU = false; // GPU上でメッシュを生成するかどうか
-    float m_isoLevel = ISO_LEVEL_DEFAULT; // 等値面のしきい値
+    //float m_isoLevel = ISO_LEVEL_DEFAULT; // 等値面のしきい値
     XMFLOAT3 m_shallowColor = SHALLOW_COLOR_DEFAULT; // 浅い水の色
     XMFLOAT3 m_deepColor = DEEP_COLOR_DEFAULT; // 深い水の色
     float m_fresnelPower = FRESHENEL_POWER_DEFAULT; // フレネル効果の強さ
     float m_alphaScale = ALPHA_SCALE_DEFAULT; // アルファスケール（透明度調整）
     float m_thicknessScale = THICKNESS_SCALE_DEFAULT; // 流体の厚みスケール
     float m_thicknessBias = THICKNESS_BIAS_DEFAULT; // 流体の厚みバイアス
+
+    VolumeReconstructionParams m_lastParams;
 
     ID3D11ShaderResourceView* m_thicknessSRV = nullptr; // 流体の厚みを表すテクスチャのSRV
     ID3D11Device* m_device = Renderer::get_instance().GetDevice();

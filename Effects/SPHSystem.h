@@ -88,6 +88,7 @@ struct CBSPHSimParams
 struct SPHConfig
 {
     bool     useSparseGrid = false; // スパースグリッドを使用するかどうか
+	bool     recordActiveVoxelCoords = false; // アクティブなボクセル座標を記録するかどうか
     UINT     maxParticles = 0;  // 最大パーティクル数
     XMFLOAT3 gridMin = { -100.0f, -100.0f, -100.0f }; // グリッドの最小座標
     float    cellSize = 1.0f; // グリッドセルのサイズ
@@ -118,6 +119,9 @@ public:
 	const float GetCellSize(void) const { return m_config.cellSize; } // セルサイズを取得
 	const float GetSmoothingRadius(void) const { return m_config.smoothingRadius; } // 平滑化半径を取得
 	ID3D11ShaderResourceView* GetThicknessSRV(void) const { return m_thicknessRenderer.GetSRV(); } // 流体の厚みを描画するためのSRVを取得
+	const UINT GetActiveVoxelCount(void) { return m_gridUploader.GetActiveTripletCount(); } // アクティブなボクセル数を取得
+    const SimpleArray<SPHIndexTriplet>& GetGridTriplets(void) const { return m_gridUploader.GetGridTriplets(); }
+    void ExportInitialClusterLabels(SimpleArray<UINT>& outLabels) const { m_gridUploader.ExportInitialClusterLabels(outLabels); }
 
 private:
 	bool CreateConstantBuffer(void);    // 定数バッファの作成

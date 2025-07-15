@@ -106,7 +106,7 @@ void Ground::Update(void)
 	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
 	{
 		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(35.0f, 15);
+			m_waterFluid->EmitWater(35.0f, 1);
 	}
 
 	if (m_town)
@@ -235,7 +235,7 @@ void Ground::LoadScene1(void)
 	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
 	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
 	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
-	waterParams.numParticles = 10000; // 最大粒子数
+	waterParams.numParticles = 5000; // 最大粒子数
 	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
 	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
 
@@ -254,7 +254,7 @@ void Ground::LoadScene1(void)
 	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
 	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
-	IEffectRenderer* waterFluid = EffectSystem::get_instance().SpawnParticleEffect(waterParams);
+	IEffectRenderer* waterFluid = nullptr;// EffectSystem::get_instance().SpawnParticleEffect(waterParams);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
 	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
 

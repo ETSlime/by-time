@@ -181,6 +181,7 @@
     <ClInclude Include="Effects\MarchingCubesSurfaceMesh.h" />
     <ClInclude Include="Effects\MarchingCubesSurfaceMeshGPU.h" />
     <ClInclude Include="Effects\MarchingCubesTables.h" />
+    <ClInclude Include="Effects\MCVoxelClusterUploader.h" />
     <ClInclude Include="Effects\OptimizedMarchingCubesMesher.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
     <ClInclude Include="Effects\ParticleStructs.h" />
@@ -267,6 +268,7 @@
     <ClCompile Include="Effects\MarchingCubesSurfaceMesh.cpp" />
     <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp" />
     <ClCompile Include="Effects\MarchingCubesTables.cpp" />
+    <ClCompile Include="Effects\MCVoxelClusterUploader.cpp" />
     <ClCompile Include="Effects\OptimizedMarchingCubesMesher.cpp" />
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />

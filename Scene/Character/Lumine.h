@@ -8,6 +8,7 @@
 #include "Scene/GameObject.h"
 #include "Effects/SwordTrail.h"
 #include "Utility/InputManager.h"
+#include "Effects/WaterFluidParticleRenderer.h"
 
 //*****************************************************************************
 // ç\ë¢ëÃíËã`
@@ -48,6 +49,8 @@ public:
 
 	void PlayHitAnim(void) override;
 
+	void InitEffect(void);
+
 	virtual bool CanWalk(void) const override;
 	virtual bool CanStopMoving(void) const override;
 	virtual bool CanAttack(void) const override;
@@ -75,6 +78,7 @@ private:
 	void UpdateWeapon(void);
 
 	SwordTrail* swordTrail;
+	WaterFluidParticleRenderer* m_waterFluid = nullptr;
 
 	GameObject<SkinnedMeshModelInstance> m_weapon;
 	AnimStateMachine* m_stateMachine;

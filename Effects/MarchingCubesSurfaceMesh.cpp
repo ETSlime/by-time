@@ -14,8 +14,10 @@ MarchingCubesSurfaceMesh::~MarchingCubesSurfaceMesh()
 	SafeRelease(&m_cbMarchingCubes);
 }
 
-void MarchingCubesSurfaceMesh::Initialize(void)
+void MarchingCubesSurfaceMesh::Initialize(UINT maxParticles)
 {
+    m_maxParticles = maxParticles; // 最大粒子数を設定
+
     if (!LoadShaders())
     {
         assert(false && "Failed to load shaders for MarchingCubesSurfaceMesh");
@@ -43,6 +45,8 @@ void MarchingCubesSurfaceMesh::Initialize(void)
     cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     hr = m_device->CreateBuffer(&cbDesc, nullptr, &m_cbMarchingCubes);
     assert(SUCCEEDED(hr));
+
+    m_mesher.Initialize(maxParticles);
 }
 
 void MarchingCubesSurfaceMesh::UpdateBuffers(void)
@@ -71,6 +75,7 @@ void MarchingCubesSurfaceMesh::UpdateBuffers(void)
     else
         return;
 
+	// 定数バッファの更新
     UpdateCBMarchingCubes();
 }
 
@@ -113,7 +118,7 @@ void MarchingCubesSurfaceMesh::UpdateCBMarchingCubes(void)
     {
         CBMarchingCubes* cb = reinterpret_cast<CBMarchingCubes*>(mapped.pData);
 
-        cb->isoLevel = m_isoLevel;
+        cb->isoLevel = m_lastParams.isoLevel;
         cb->shallowColor = m_shallowColor;
         cb->deepColor = m_deepColor;
         cb->fresnelPower = m_fresnelPower;
@@ -123,7 +128,17 @@ void MarchingCubesSurfaceMesh::UpdateCBMarchingCubes(void)
         cb->thicknessNormalizeFactor = 1.0f / 255.0f; // テクスチャの最大値で割る
         cb->screenSize = XMFLOAT2(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT));
         cb->invScreenSize = XMFLOAT2(1.0f / SCREEN_WIDTH, 1.0f / SCREEN_HEIGHT);
-
+		if (m_buildOnGPU)
+		{
+            cb->numActiveVoxels = m_lastParams.activeVoxelCount; // GPU 構築モードではアクティブなボクセル数を設定
+			//cb->edgeCacheDim = m_edgeCacheDim; // エッジキャッシュの次元を設定
+		}
+        else
+        {
+            cb->numActiveVoxels = 0; // CPU 構築モードではアクティブなボクセル数は 0
+			//cb->edgeCacheDim = XMUINT3(0, 0, 0); // エッジキャッシュの次元は無効
+        }
+		cb->padding = XMFLOAT3(0.0f, 0.0f, 0.0f); // パディングを追加して構造体のサイズを16バイト境界に揃える
         m_context->Unmap(m_cbMarchingCubes, 0);
     }
 }
@@ -149,9 +164,19 @@ bool MarchingCubesSurfaceMesh::LoadShaders(void)
 {
     bool loadShaders = true;
 
-    loadShaders &= ShaderManager::get_instance().HasShaderSet(ShaderSetID::FluidMarchingCube);
-    if (loadShaders)
-        m_shaderSet = ShaderManager::get_instance().GetShaderSet(ShaderSetID::FluidMarchingCube);
+    if (m_buildOnGPU)
+    {
+        loadShaders &= ShaderManager::get_instance().HasShaderSet(ShaderSetID::FluidMarchingCubeGPU);
+        if (loadShaders)
+            m_shaderSet = ShaderManager::get_instance().GetShaderSet(ShaderSetID::FluidMarchingCubeGPU);
+    }
+    else
+    {
+        loadShaders &= ShaderManager::get_instance().HasShaderSet(ShaderSetID::FluidMarchingCube);
+        if (loadShaders)
+            m_shaderSet = ShaderManager::get_instance().GetShaderSet(ShaderSetID::FluidMarchingCube);
+    }
+
 
     return loadShaders;
 }
@@ -189,7 +214,7 @@ void MarchingCubesSurfaceMesh::UpdateMesh(const SimpleArray<SimpleArray<SimpleAr
 {
     // 必要な頂点数とインデックス数を計算
 	UINT requiredVertexCount, requiredIndexCount;
-    m_mesher.ComputeMeshRequirements(volume, params, &requiredVertexCount, &requiredIndexCount);
+    m_mesher.ComputeMeshRequirements(params, &requiredVertexCount, &requiredIndexCount);
 
 	// バッファの容量を確認し、必要なら拡張
     EnsureBufferCapacity(requiredVertexCount, requiredIndexCount);
@@ -199,6 +224,21 @@ void MarchingCubesSurfaceMesh::UpdateMesh(const SimpleArray<SimpleArray<SimpleAr
 	m_mesher.BuildMesh(volume, params);
 
 	// 頂点とインデックスの数を更新
+    UpdateBuffers();
+}
+
+void MarchingCubesSurfaceMesh::UpdateMesh(const HashMap<VoxelCoord, float, HashVoxelKey64, EqualVoxelKey64>& scalarFieldMap, const VolumeReconstructionParams& params)
+{
+    // 必要な頂点数とインデックス数を計算
+    UINT requiredVertexCount, requiredIndexCount;
+    m_mesher.ComputeMeshRequirements(params, &requiredVertexCount, &requiredIndexCount);
+
+    // 頂点とインデックスの数をリセット
+    m_mesher.SetTargetBuffer(m_vertices, m_indices);
+    m_mesher.Clear();
+    m_mesher.BuildMesh(scalarFieldMap, params);
+
+    // 頂点とインデックスの数を更新
     UpdateBuffers();
 }
 

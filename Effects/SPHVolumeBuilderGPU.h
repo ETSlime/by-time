@@ -9,16 +9,20 @@
 #include "Effects/SPHVolumeBuilder.h"
 #include "Effects/ParticleEffectRendererBase.h"
 
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
 struct CBVolumeParams
 {
     XMFLOAT3 volumeOrigin;
     float cellSize;
 
     XMUINT3 gridDim;
-    float radius;
-
     float densityScale;
-    XMFLOAT3 padding;
+
+    float isoRadius;
+	float invIsoRadius;
+    XMFLOAT2 padding;
 };
 
 class SPHVolumeBuilderGPU
@@ -27,7 +31,7 @@ public:
     SPHVolumeBuilderGPU() {};
     ~SPHVolumeBuilderGPU() { Release(); }
 
-    void Initialize(void);
+    void Initialize(UINT maxParticles);
     void Release(void);
     void ReleaseScalarFieldBuffer(void);
 
@@ -37,14 +41,15 @@ public:
     ID3D11ShaderResourceView* GetScalarFieldSRV(void) const { return m_scalarFieldBufferSet.srv; }
 
 private:
-    void CreateResources(const VolumeReconstructionParams& params);
+    void EnsureScalarFieldBufferCapacity(const VolumeReconstructionParams& params);
     void UpdateVolumeParamsCB(void);
 	bool m_isInitialized = false;
 
     ParticleBufferSet m_scalarFieldBufferSet;
 
     ID3D11Buffer* m_cbVolumeParams = nullptr;
-
+    UINT m_scalarFieldCapacity = 0;
+	UINT m_maxParticles = 0; // 最大パーティクル数
     ComputeShaderSet m_shaderSet;
 
     VolumeReconstructionParams m_lastParams;
