@@ -28,9 +28,11 @@ void UIManager::Init(void)
 
 void UIManager::Update(void)
 {
-    if (m_modal)
+	// UI要素の更新
+    if (IsModalActive())
     {
-        m_modal->Update(); // モーダルだけ更新
+        for (auto* modal : m_modals)
+            modal->Update(); // モーダルがアクティブな場合はモーダルだけ更新
     }
     else
     {
@@ -63,20 +65,26 @@ void UIManager::Draw(void)
     for (auto& e : m_elements)
         e->Draw();
 
-    if (m_modal)
+	// モーダルが存在する場合はモーダルを描画
+    for (UINT i = 0; i < m_modals.getSize(); ++i)
     {
-        if (m_modal->HasCustomOverlay())
+        UIElement* modal = m_modals[i];
+
+        if (modal->HasCustomOverlay())
         {
             // カスタムオーバーレイを描画
-            m_modal->DrawCustomOverlay();
+            modal->DrawCustomOverlay();
         }
-        else if (m_modal->NeedsOverlay())
+        else if (modal->NeedsOverlay())
         {
             // 半透明の黒い背景
-            DrawOverlay(SCREEN_CENTER_X, SCREEN_CENTER_Y, SCREEN_WIDTH, SCREEN_HEIGHT, { 0, 0, 0, 0.5f });
+            DrawOverlay(
+                SCREEN_CENTER_X, SCREEN_CENTER_Y,
+                SCREEN_WIDTH, SCREEN_HEIGHT,
+                { 0, 0, 0, 0.5f });
         }
 
-        m_modal->Draw();
+        modal->Draw();
     }
 
     m_screenFader.Draw();
@@ -87,22 +95,37 @@ void UIManager::AddElement(UIElement* element)
     m_elements.push_back(element);
 }
 
-void UIManager::SetModal(UIElement* modal)
+void UIManager::PopModal(void)
 {
-    // 既存のモーダルを削除
-    SAFE_DELETE(m_modal);
-    // 新しいモーダルを設定
-    m_modal = modal;
+    if (!m_modals.empty())
+    {
+		UIElement* modal = m_modals.back();
+
+        SimpleArray<ISpriteTransformable*> targets;
+        modal->CollectTweenTargets(targets);
+		for (auto* target : targets)
+            m_tweenManager.RemoveTweensForTarget(target); // TweenManager に通知して、対象の Tween を全部消す
+		
+        // モーダルの解放
+        SAFE_DELETE(modal);
+        m_modals.pop_back();
+    }
 }
 
-bool UIManager::IsModalActive() const
+void UIManager::PopAllModals(void)
 {
-    return m_modal != nullptr;
-}
+    for (auto* modal : m_modals)
+    {
+        SimpleArray<ISpriteTransformable*> targets;
+        modal->CollectTweenTargets(targets);
+        for (auto* target : targets)
+            m_tweenManager.RemoveTweensForTarget(target); // TweenManager に通知して、対象の Tween を全部消す
+		
+        // モーダルの解放
+        SAFE_DELETE(modal);
+    }
 
-void UIManager::ClearModal(void)
-{
-    SAFE_DELETE(m_modal);
+    m_modals.clear();
 }
 
 void UIManager::DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color)

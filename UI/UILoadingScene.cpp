@@ -1,10 +1,7 @@
 //=============================================================================
 //
-// 読み込みシーン用 UI 管理クラス [UILoadingScene.cpp]
+//  [UILoadingScene.cpp]
 // Author : 
-// これはゲーム中の「ローディング画面」を管理する UIElement の子クラスだよ～っ
-// 黒背景フェード + アニメーション + プログレスバーで、
-// 見た目も快適さも可愛さも全部守ってくれる守護精霊ちゃんなのっ
 //
 //=============================================================================
 #include "UI/UILoadingScene.h"
@@ -12,11 +9,12 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define LOADING_ANIM_TILE_X         1
-#define LOADING_ANIM_TILE_Y         1
-#define LOADING_ANIM_SPD            0.1f
-#define LOADING_SMOOTH_SPD          2.0f
-#define LOADING_FAST_SPD            4.0f
+#define LOADING_ANIM_TILE_X       3
+#define LOADING_ANIM_TILE_Y       4
+#define LOADING_ANIM_SPD          1.5f
+#define LOADING_SMOOTH_DAMP       0.2f // 緩やかな（未完成時）
+#define LOADING_FAST_DAMP         0.05f  // 急激な（完成時）
+constexpr float ANIM_PROGRESS_EPSILON = 0.09f;
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
@@ -24,11 +22,15 @@ void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 
     // ローディングアニメーション用スプライト
     m_loadingAnim = new UIAnimatedSprite();
-    m_loadingAnim->Init(tex, 
-        m_UIManager.GetSpriteVertexBuffer(), 
-        LOADING_ANIM_TILE_X, 
-        LOADING_ANIM_TILE_Y, 
-        LOADING_ANIM_SPD);
+    m_loadingAnim->Init(tex,
+        m_UIManager.GetSpriteVertexBuffer(),
+        LOADING_ANIM_TILE_X,
+        LOADING_ANIM_TILE_Y,
+        LOADING_ANIM_SPD,
+        false
+    );
+
+    //m_loadingAnim->SetPlaybackSpeed(0.6f);
 
     // 表示位置とサイズを設定
     m_loadingAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
@@ -46,27 +48,24 @@ void UILoadingScene::Update(void)
     // 読み込み完了前までは進行度に合わせて滑らかにアニメバー更新
     if (!m_resourceLoaded)
     {
-        m_animProgress += (m_loadProgress - m_animProgress) * m_timer.GetDeltaTime() * LOADING_SMOOTH_SPD;
+        float alpha = 1.0f - powf(LOADING_SMOOTH_DAMP, m_timer.GetDeltaTime());
+        if (m_loadProgress != 0)
+            m_animProgress += (m_loadProgress - m_animProgress) * alpha;
     }
     else
     {
         // 読み込み完了後は一気にゴールへ進める
-        m_animProgress += (1.0f - m_animProgress) * m_timer.GetDeltaTime() * LOADING_FAST_SPD;
+        float alpha = 1.0f - powf(LOADING_FAST_DAMP, m_timer.GetDeltaTime());
+        m_animProgress += (1.0f - m_animProgress) * alpha;
+
+        if ((1.0f - m_animProgress) <= ANIM_PROGRESS_EPSILON)
+            m_animProgress = 1.0f;
     }
 
     // アニメーション更新
     if (m_loadingAnim)
     {
-        if (!m_resourceLoaded) 
-        {
-            // 読み込み未完了 → プログレスに応じて手動でフレーム指定（進行度バーと連動）
-            m_loadingAnim->SetFrameDirectly(m_animProgress);
-        }
-        else 
-        {
-            // 読み込み完了後 → 通常再生でアニメーションを進行（速度制御も可能）
-            m_loadingAnim->Update();
-        }
+        m_loadingAnim->SetFrameDirectly(m_animProgress);
     }
 
     m_screenFader.Update();
@@ -105,7 +104,7 @@ void UILoadingScene::Update(void)
 
         // アニメ表示中（読み込み完了を待つ）
     case LoadingState::ShowLoadingUI:
-        if (m_resourceLoaded)
+        if (m_resourceLoaded && (m_animProgress >= 1.0f))
         {
             m_screenFader.StartFadeOut();
             m_state = LoadingState::FadeInBeforeFinish;
@@ -129,20 +128,5 @@ void UILoadingScene::Draw(void)
     {
         if (m_loadingAnim)
             m_loadingAnim->Draw();
-
-        DrawProgressBar();
     }
-}
-
-void UILoadingScene::DrawProgressBar(void)
-{
-    float barWidth = 400.0f * m_animProgress;
-    float barHeight = 16.0f;
-    float x = SCREEN_WIDTH / 2.0f - 200.0f;
-    float y = SCREEN_HEIGHT / 2.0f + 80.0f;
-
-    UIManager::get_instance().DrawOverlay(
-        x, y, barWidth, barHeight,
-        { 1.0f, 1.0f, 1.0f, 1.0f }
-    );
 }

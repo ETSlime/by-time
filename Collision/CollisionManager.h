@@ -10,6 +10,8 @@
 #include "Collision/OctreeNode.h"
 #include "Collision/VoxelGrid.h"
 #include "Utility/SingletonBase.h"
+#include "Utility/Debugproc.h"
+#include "Utility/DebugBoundingBoxRenderer.h"
 #include "Model/Model.h"
 
 //*****************************************************************************
@@ -104,11 +106,11 @@ public:
 };
 
 // CollisionManager クラス：静的オブジェクト（八分木）と動的オブジェクトの衝突管理
-class CollisionManager : public SingletonBase<CollisionManager>
+class CollisionManager : public SingletonBase<CollisionManager>, IDebugUI
 {
 public:
     void Update(void);
-
+    void Init(void);
 	// 静的オブジェクトの八分木を初期化する
     void InitOctree(const BOUNDING_BOX& boundingBox);
     bool IsInitializedOctree(void) const { return m_staticOctree != nullptr; }
@@ -130,6 +132,11 @@ public:
 
 private:
     bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
+    virtual void RenderDebugInfo(void) override;
+
+    bool m_drawBoundingBox = true;
+    BOUNDING_BOX m_curCollisionBox; // 現在のバウンディングボックス（デバッグ用）
+    DebugBoundingBoxRenderer m_debugBoundingBoxRenderer; // デバッグ用のバウンディングボックス描画
 
     // 静的オブジェクト（例：地面モデル）の八分木
     OctreeNode* m_staticOctree = nullptr;

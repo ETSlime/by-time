@@ -10,7 +10,7 @@
 #include "Scene/Environment.h"
 #include "Scene/Town.h"
 #include "Scene/GameObject.h"
-#include "Effects/WaterFluidParticleRenderer.h"
+#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -50,7 +50,7 @@ public:
 	Ground();
 	~Ground();
 
-	void Init(void); // ‰Šú‰»ˆ—
+	void Initialize(void); // ‰Šú‰»ˆ—
 
 	void Update(void);
 	void Draw(void);

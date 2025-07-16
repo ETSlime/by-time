@@ -1,9 +1,14 @@
 #pragma once
 //=============================================================================
 //
-//  [VoxelBufferUploader.h]
+// [VoxelBufferUploader.h]
 // Author : 
 //
+// Voxel Grid 構造から GPU 用の三角形マッピング情報を構築・アップロードするクラス。
+// 三角形の構造体配列、Voxel ごとの三角形インデックス、IndexTriplet のページ構造など、
+// 体素ベースの衝突・再構築に必要な StructuredBuffer 群を自動生成し、
+// Shader 内での高速なアクセスを可能にする。
+// 
 //=============================================================================
 #include "Collision/VoxelGrid.h" 
 #include "Core/Graphics/Renderer.h"

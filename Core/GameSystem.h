@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // ゲーム進行・描画・システム状態を統括管理する中枢クラス [GameSystem.h]
@@ -6,7 +7,6 @@
 // プレイヤー／敵／UI／カメラ／エフェクトなど全主要サブシステムを統括する
 //
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Core/Camera.h"
 #include "Core/CursorManager.h"
@@ -17,6 +17,7 @@
 #include "Core/Graphics/ShadowMapRenderer.h"
 #include "UI/UILoadingScene.h"
 #include "UI/Base/UIManager.h"
+#include "UI/Base/TweenManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/Ground.h"
@@ -112,7 +113,8 @@ protected:
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
         , m_textureUploadQueue(TextureUploadQueue::get_instance())
         , m_ground(Ground::get_instance()) 
-        , m_skybox(Skybox::get_instance()) {}
+        , m_skybox(Skybox::get_instance())
+        , m_tweenManager(TweenManager::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -178,4 +180,5 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
+    TweenManager& m_tweenManager;
 };

@@ -44,6 +44,18 @@
     <Filter Include="UI\Base">
       <UniqueIdentifier>{8be4b185-68a5-4615-92f8-e1e698024ec5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Effects\MarchingCubes">
+      <UniqueIdentifier>{676d95bb-87de-4ca5-93fe-30b85acdda77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Effects\SpecialEffects">
+      <UniqueIdentifier>{d8f641a8-813b-49f3-9be7-374ba2ef4844}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Effects\SPH">
+      <UniqueIdentifier>{b69f8ca8-7bee-44e0-b64f-336e0760f81f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Effects\SpecialEffects\Water">
+      <UniqueIdentifier>{306edcb0-94fa-45f6-b6b6-1f86a6562e9a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -112,9 +124,6 @@
     <ClInclude Include="Effects\EffectSystem.h">
       <Filter>Effects</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\FireBallEffectRenderer.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
     <ClInclude Include="Effects\IEffectRenderer.h">
       <Filter>Effects</Filter>
     </ClInclude>
@@ -125,12 +134,6 @@
       <Filter>Effects</Filter>
     </ClInclude>
     <ClInclude Include="Effects\Skybox.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effects\SmokeEffectRenderer.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effects\SwordTrail.h">
       <Filter>Effects</Filter>
     </ClInclude>
     <ClInclude Include="Model\FBXLoader.h">
@@ -281,9 +284,6 @@
     <ClInclude Include="Collision\VoxelGrid.h">
       <Filter>Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\WaterFluidParticleRenderer.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Graphics\VertexStructs.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
@@ -293,47 +293,71 @@
     <ClInclude Include="Collision\VoxelBufferUploader.h">
       <Filter>Collision</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\SPHSystem.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Shader\ShaderInclude.h">
       <Filter>Core\Shader</Filter>
-    </ClInclude>
-    <ClInclude Include="Effects\SPHGridUploader.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effects\FluidSurfaceMesh.h">
-      <Filter>Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="Effects\FluidHeightFieldBuilder.h">
-      <Filter>Effects</Filter>
     </ClInclude>
     <ClInclude Include="Core\Graphics\RenderTexture.h">
       <Filter>Core\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\FluidThicknessRenderer.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\MarchingCubes\MarchingCubesSurfaceMesh.h">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\SPHVolumeBuilder.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\MarchingCubes\MarchingCubesSurfaceMeshGPU.h">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\MarchingCubesTables.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\MarchingCubes\MarchingCubesTables.h">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\MarchingCubesSurfaceMesh.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\MarchingCubes\MCVoxelClusterUploader.h">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\OptimizedMarchingCubesMesher.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.h">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\SPHVolumeBuilderGPU.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\SPH\SPHGridUploader.h">
+      <Filter>Effects\SPH</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\MarchingCubesSurfaceMeshGPU.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\SPH\SPHSystem.h">
+      <Filter>Effects\SPH</Filter>
     </ClInclude>
-    <ClInclude Include="Effects\MCVoxelClusterUploader.h">
-      <Filter>Effects</Filter>
+    <ClInclude Include="Effects\SPH\SPHVolumeBuilder.h">
+      <Filter>Effects\SPH</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SPH\SPHVolumeBuilderGPU.h">
+      <Filter>Effects\SPH</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.h">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\Water\FluidSurfaceMesh.h">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\Water\FluidThicknessRenderer.h">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\Water\WaterFluidParticleRenderer.h">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\SmokeEffectRenderer.h">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\SwordTrail.h">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\ISpriteUI.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\TweenManager.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\UIButton.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\UISprite.h">
+      <Filter>UI\Base</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -388,19 +412,10 @@
     <ClCompile Include="Effects\EffectSystem.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\FireBallEffectRenderer.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Effects\Skybox.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\SmokeEffectRenderer.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\SwordTrail.cpp">
       <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Model\FBXLoader.cpp">
@@ -512,44 +527,65 @@
     <ClCompile Include="Collision\VoxelGrid.cpp">
       <Filter>Collision</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\WaterFluidParticleRenderer.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
     <ClCompile Include="Collision\VoxelBufferUploader.cpp">
       <Filter>Collision</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\SPHSystem.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\SPHGridUploader.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\FluidHeightFieldBuilder.cpp">
-      <Filter>Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="Effects\FluidSurfaceMesh.cpp">
-      <Filter>Effects</Filter>
     </ClCompile>
     <ClCompile Include="Core\Graphics\RenderTexture.cpp">
       <Filter>Core\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\FluidThicknessRenderer.cpp">
-      <Filter>Effects</Filter>
+    <ClCompile Include="Effects\MarchingCubes\MarchingCubesSurfaceMesh.cpp">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\SPHVolumeBuilder.cpp" />
-    <ClCompile Include="Effects\MarchingCubesTables.cpp">
-      <Filter>Effects</Filter>
+    <ClCompile Include="Effects\MarchingCubes\MarchingCubesSurfaceMeshGPU.cpp">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\MarchingCubesSurfaceMesh.cpp">
-      <Filter>Effects</Filter>
+    <ClCompile Include="Effects\MarchingCubes\MarchingCubesTables.cpp">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\OptimizedMarchingCubesMesher.cpp">
-      <Filter>Effects</Filter>
+    <ClCompile Include="Effects\MarchingCubes\MCVoxelClusterUploader.cpp">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\SPHVolumeBuilderGPU.cpp" />
-    <ClCompile Include="Effects\MarchingCubesSurfaceMeshGPU.cpp">
-      <Filter>Effects</Filter>
+    <ClCompile Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.cpp">
+      <Filter>Effects\MarchingCubes</Filter>
     </ClCompile>
-    <ClCompile Include="Effects\MCVoxelClusterUploader.cpp" />
+    <ClCompile Include="Effects\SPH\SPHGridUploader.cpp">
+      <Filter>Effects\SPH</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SPH\SPHSystem.cpp">
+      <Filter>Effects\SPH</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SPH\SPHVolumeBuilder.cpp">
+      <Filter>Effects\SPH</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SPH\SPHVolumeBuilderGPU.cpp">
+      <Filter>Effects\SPH</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.cpp">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\Water\FluidSurfaceMesh.cpp">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\Water\FluidThicknessRenderer.cpp">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\Water\WaterFluidParticleRenderer.cpp">
+      <Filter>Effects\SpecialEffects\Water</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\SmokeEffectRenderer.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\SwordTrail.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Base\TweenManager.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Base\UIButton.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

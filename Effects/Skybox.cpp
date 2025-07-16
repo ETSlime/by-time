@@ -35,13 +35,7 @@ static char* nightTextures[6] =
     "data/TEXTURE/SkyBox/LS nigth 02_out_5.png",
 };
 
-Skybox::Skybox()
-{
-    m_dayToNight = true;
-    m_timeOfDay = 0.0f;
-}
-
-Skybox::~Skybox() 
+void Skybox::ShutDown(void) 
 {
     SafeRelease(&m_vertexBuffer);
     SafeRelease(&m_skyboxBuffer);
@@ -57,10 +51,15 @@ Skybox::~Skybox()
 
 }
 
-bool Skybox::Init() 
+bool Skybox::Initialize(float timeSpeed)
 {
     m_device = Renderer::get_instance().GetDevice();
     m_context = Renderer::get_instance().GetDeviceContext();
+
+    m_dayToNight = true;
+    m_timeOfDay = 0.0f;
+
+    m_timeSpeed = timeSpeed;
 
     CreateCube();
     LoadShaders();
@@ -240,4 +239,9 @@ void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
     m_context->Draw(36, 0);
     m_renderer.SetDepthEnable(TRUE);
     m_renderer.SetCullingMode(CULL_MODE_BACK);
+}
+
+void Skybox::SetCurrentTime(float time)
+{
+    m_timeOfDay = time;
 }

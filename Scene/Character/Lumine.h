@@ -6,9 +6,9 @@
 //
 //=============================================================================
 #include "Scene/GameObject.h"
-#include "Effects/SwordTrail.h"
+#include "Effects/SpecialEffects/SwordTrail.h"
 #include "Utility/InputManager.h"
-#include "Effects/WaterFluidParticleRenderer.h"
+#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 
 //*****************************************************************************
 // ç\ë¢ëÃíËã`

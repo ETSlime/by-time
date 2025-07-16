@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 一時停止の魔法をかけるモーダルちゃん [PauseModal.h]
@@ -6,7 +7,6 @@
 // 背景をやさしく遮って、まるで時間が止まったみたいな演出をしてくれるの
 // 
 //=============================================================================
-#pragma once
 #include "UI/Base/UIElement.h"
 #include "UI/Base/UIManager.h"
 
@@ -15,8 +15,6 @@ class PauseModal : public UIElement
 public:
     PauseModal() 
     {
-        m_position = { 640, 360 };
-        m_size = { 400, 200 };
         //m_customOverlay = true; // オーバーレイを使用する
     }
 

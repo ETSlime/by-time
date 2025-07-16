@@ -264,7 +264,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (gameSystem.GetMode() == GameMode::GAME)
 			{
 				g_IsWindowActive = true;
-				g_IsGamePaused = false;
+
 				cursorManager.RememberCursorPosition(); // カーソル位置を保存
 				inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
 			}
@@ -272,7 +272,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else
 		{
-			if (gameSystem.GetMode() == GameMode::GAME)
+			if (gameSystem.GetMode() == GameMode::GAME && !gameSystem.IsPaused())
 			{
 				// ウィンドウが非アクティブになった
 				g_IsWindowActive = false;
@@ -280,7 +280,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				// 自動ポーズ（手動入力と同じ処理）
 				gameSystem.PauseGame();
-				uiManager.SetModalIfNotExist<PauseModal>();
 			}
 		}
 		break;
@@ -312,7 +311,11 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	// カメラの初期化
 	camera.Init();
 
+	// ゲームシステムの初期化
 	gameSystem.Init();
+
+	// 衝突管理の初期化
+	collisionManager.Init();
 
 	// 入力処理の初期化
 	inputManager.Init(hInstance, hWnd);

@@ -1,22 +1,14 @@
 #pragma once
 //=============================================================================
 //
-// UIアニメーションスプライト管理クラス [UIAnimatedSprite.h]
+//  [UIAnimatedSprite.h]
 // Author : 
-// これは 2D UI 上で「アニメーションするスプライト（画像）」を表示する、
-// 再生機能付きの UIElement サブクラスなのだよ～
 //
-// 主な機能：
-//  - テクスチャアトラス（格子状）でのアニメーション再生
-//  - 任意のフレーム範囲で再生（例：PlayFrames(4, 7)）
-//  - 再生速度調整 / 一時停止 / フレーム直接指定
-//  - 非ループ時、最後のフレームでコールバックが呼ばれる
-//  - フレーム切り替えは Timer に基づく累積時間制御～
-// 
 //=============================================================================
 #include "UI/Base/UIElement.h"
+#include "UI/Base/UISprite.h"
 
-class UIAnimatedSprite : public UIElement
+class UIAnimatedSprite : public UIElement, public ISpriteUI
 {
 public:
     void Init(ID3D11ShaderResourceView* tex, ID3D11Buffer* vb, 
@@ -43,6 +35,14 @@ public:
 
     // 指定された進行度に応じてアニメーションフレームを手動設定する関数 (0.0～1.0 の範囲）
     void SetFrameDirectly(float ratio);
+    
+    //追加
+    bool IsAnimationFinished() const;
+    void SetLoop(bool loop) { m_loop = loop; }
+    bool IsLoop() const { return m_loop; }
+
+	// ISpriteUI インターフェースの実装
+    DELEGATE_SPRITE_ALL_INTERFACE(m_sprite);
 
 private:
     int m_columns = 1;     // 横のフレーム数
@@ -58,8 +58,9 @@ private:
     bool m_finished = false;   // 一度終了したらtrueに
     void (*m_onFinish)() = nullptr; // 再生終了時のコールバック
 
-    ID3D11ShaderResourceView* m_texture = nullptr;
-    ID3D11Buffer* m_vertexBuffer = nullptr; // 頂点バッファ（スプライト用）
+	UISprite* m_sprite = nullptr; // スプライト描画用
+    //ID3D11ShaderResourceView* m_texture = nullptr;
+    //ID3D11Buffer* m_vertexBuffer = nullptr; // 頂点バッファ（スプライト用）
     Timer& m_timer = Timer::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
     ShaderResourceBinder& m_resourceBinder = ShaderResourceBinder::get_instance();

@@ -5,9 +5,9 @@
 //
 //=============================================================================
 #include "Effects/EffectSystem.h"
-#include "Effects/SmokeEffectRenderer.h"
-#include "Effects/FireBallEffectRenderer.h"
-#include "Effects/WaterFluidParticleRenderer.h"
+#include "Effects/SpecialEffects/SmokeEffectRenderer.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 
 void EffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
 {
@@ -107,6 +107,8 @@ void EffectSystem::Draw(void)
 		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::BillboardSimple);
 		for (auto* effect : m_billboardSimpleEffects)
 		{
+			if (effect->IsShutdown()) // シャットダウン済みならスキップ
+				continue;
 			effect->SetupPipeline();
 			effect->Draw();
 		}
@@ -118,6 +120,8 @@ void EffectSystem::Draw(void)
 		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::BillboardFlipbook);
 		for (auto* effect : m_billboardFlipbookEffects)
 		{
+			if (effect->IsShutdown()) // シャットダウン済みならスキップ
+				continue;
 			effect->SetupPipeline();
 			effect->Draw();
 		}

@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Core/GameSystem.h"
 #include "UI/PauseModal.h"
+#include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
 #include "Utility/Debugproc.h"
 #include "Effects/EffectSystem.h"
@@ -35,11 +36,13 @@ void GameSystem::Shutdown(void)
 {
     SAFE_DELETE(m_player); // プレイヤーの解放
 
-    m_UIManager.Uninit(); // UIManagerの解放
+    m_UIManager.Shutdown(); // UIManagerの解放
+
+    m_tweenManager.Shutdown(); // TweenManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
-    m_textureUploadQueue.ShutDown();
+    m_textureUploadQueue.ShutDown(); // テクスチャアップロードキューの解放
 
 	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
@@ -76,6 +79,7 @@ void GameSystem::Update(void)
     }
 
     // UI 全体の更新を行う
+    m_tweenManager.Update(); // TweenManagerの更新
     m_UIManager.Update();
 }
 
@@ -114,7 +118,9 @@ void GameSystem::Draw(void)
 
 void GameSystem::InitTitle(void)
 {
-    m_UIManager.AddElement(new UITitleScene());
+    UITitleScene* titleScene = new UITitleScene();
+    titleScene->Init(this);
+    m_UIManager.AddElement(titleScene);
     m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
 
@@ -198,8 +204,8 @@ void GameSystem::PauseGame(void)
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
-    // ポーズモーダルを表示
-    m_UIManager.SetModalIfNotExist<PauseModal>(); 
+    m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
+    m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
 
 }
 
@@ -220,9 +226,9 @@ void GameSystem::StartAsyncResourceLoading(void)
     {
         m_player = new Player(); // プレイヤーの初期化
 
-        m_skybox.Init(); // Skyboxの初期化
+        m_skybox.Initialize(0.0f); // Skyboxの初期化
 
-        m_ground.Init(); // 地面の初期化
+        m_ground.Initialize(); // 地面の初期化
 
         m_enemyManager.Init(m_player); // エネミーの初期化
 
@@ -337,7 +343,7 @@ void GameSystem::HandlePauseInput(void)
         {
             // ゲームを再開
             ResumeGame();
-            m_UIManager.ClearModal();
+            m_UIManager.PopAllModals();
         }
         else
         {

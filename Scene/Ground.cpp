@@ -13,7 +13,7 @@
 #include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
-#include "Effects/FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`
@@ -36,7 +36,7 @@ Ground::Ground()
 
 Ground::~Ground() {}
 
-void Ground::Init(void)
+void Ground::Initialize(void)
 {
 	InitSceneLoadMap();
 

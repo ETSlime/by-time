@@ -4,7 +4,7 @@
 // Author : 
 //
 //=============================================================================
-#include "ParticleEffectRendererBase.h"
+#include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/EffectSystem.h"
 #include "ParticleStructs.h"
 //*****************************************************************************
