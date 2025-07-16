@@ -198,6 +198,7 @@ void Player::Update(void)
 		}
 
 	}
+
 	HandlePlayerMove(transform);
 
 	// ”­ŽË

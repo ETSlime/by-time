@@ -9,6 +9,7 @@
 #include "UI/Base/UIButton.h"
 #include "UI/Base/UIManager.h"
 #include "UI/Base/TweenManager.h"
+#include "Scene/Ground.h"
 #include "Core/TextureMgr.h"
 
 //*****************************************************************************
@@ -216,11 +217,12 @@ private:
 				ctx, // コンテキストを渡す
 				[](void* ptr)
 				{
+					Ground& ground = Ground::get_instance();
 					GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-					if (self->GetGround()->GetCurrentScene() == SceneID::SCENE_1)
-						self->GetGround()->LoadScene(SceneID::SCENE_2);
+					if (ground.GetCurrentScene() == SceneID::SCENE_1)
+						ground.LoadScene(SceneID::SCENE_2);
 					else
-						self->GetGround()->LoadScene(SceneID::SCENE_1);
+						ground.LoadScene(SceneID::SCENE_1);
 					UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
 				},
 				[](void* ptr)

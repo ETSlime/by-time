@@ -7,7 +7,7 @@
 // Compute Shader + DrawIndirect による高効率な火球エフェクトを描画する
 //
 //=============================================================================
-#include "ParticleEffectRendererBase.h"
+#include "Effects/ParticleEffectRendererBase.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -18,8 +18,7 @@
 //*********************************************************
 // 構造体
 //*********************************************************
-
-struct CBFireBall
+struct FireBallCB
 {
     UINT tilesX = 7;
     UINT tilesY = 7;
@@ -34,25 +33,30 @@ struct CBFireBall
 	float startSpeedMin = 0.0f;
 	float startSpeedMax = 0.0f;
 	XMFLOAT2 padding = XMFLOAT2(0.0f, 0.0f); // float4のサイズに合わせるためのパディング
-};
+}; // 火球パーティクル用の定数バッファ
 
 class FireBallEffectRenderer : public ParticleEffectRendererBase
 {
 public:
+    // 初期化処理
     virtual bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context) override;
+    // シャットダウン処理
     virtual void Shutdown(void) override;
-    EffectType GetEffectType() const override { return EffectType::FireBall; }
+    // エフェクトの種類を返す
+    EffectType GetEffectType(void) const override { return EffectType::FireBall; }
+    // 描画はIndirectで行う
     bool UseDrawIndirect(void) const override { return true; }
+	// パーティクルエフェクトの設定
     virtual void ConfigureEffect(const ParticleEffectParams& params) override;
 
 private:
     virtual void DispatchComputeShader(void) override; // パーティクル更新（Dispatch）
-    virtual void DrawParticles(void) override;
+    virtual void DrawParticles(void) override;  // パーティクル描画（Draw）
 
-    bool CreateFireBallCB(void);
-    void UploadFireBallCB(void);
+	bool CreateFireBallCB(void); // 火球用の定数バッファの生成
+	void UploadFireBallCB(void); // 火球用の定数バッファにデータをアップロード
 
-    bool CreateDiffuseTex(void);
+	bool CreateDiffuseTex(void); // ディフューズテクスチャの生成
 
     float m_spawnConeAngleDegree = 25.0f;   // コーン角度（度）
     float m_spawnConeRadius = 0.6193843f;   // コーン底面の半径

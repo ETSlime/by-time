@@ -5,7 +5,7 @@
 //
 //=============================================================================
 
-#include "Effects/SwordTrail.h"
+#include "Effects/SpecialEffects/SwordTrail.h"
 
 
 SwordTrail::SwordTrail(const GameObject<SkinnedMeshModelInstance>* weapon) : weapon(weapon)

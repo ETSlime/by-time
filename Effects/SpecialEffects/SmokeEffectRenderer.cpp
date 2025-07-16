@@ -4,7 +4,7 @@
 // Author : 
 //
 //=============================================================================
-#include "SmokeEffectRenderer.h"
+#include "Effects/SpecialEffects/SmokeEffectRenderer.h"
 #include "Core/TextureMgr.h"
 
 //*****************************************************************************
@@ -52,7 +52,7 @@ void SmokeEffectRenderer::DispatchComputeShader(void)
     m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
 
     // CSのディスパッチ
-    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, 64); // スレッドグループ数計算
+    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, THREAD_COUNT); // スレッドグループ数計算
     m_context->Dispatch(threadGroupCount, 1, 1);
 
     // Emit用CS は基底クラスに任せる（Prepare + Bind + Dispatch）

@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // HLSL シェーダー読み込み・入力レイアウト生成ユーティリティ [ShaderLoader.h]
@@ -6,8 +7,8 @@
 // 反射情報による InputLayout の自動生成およびキャッシュ付きコンパイルに対応
 // 
 //=============================================================================
-#pragma once
 #include "main.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -32,6 +33,9 @@ enum class ShaderSetID : uint64_t
     FireEffect,
     FireBallEffect,
     SmokeEffect,
+    FluidSurface,
+    FluidMarchingCube,
+    FluidMarchingCubeGPU,
     UI,
     Debug,
 };
@@ -43,6 +47,7 @@ enum class ParticleShaderGroup : uint64_t
     BillboardFlipbook,
     BillboardSoftParticle,
     BillboardFlipbookSoft,
+    WaterFluid,
     Count,
 };
 
@@ -52,6 +57,7 @@ enum class ParticleComputeGroup : uint64_t
     BasicBillboard,          // BillboardSimple
     FlipbookAnimated,        // BillboardFlipbook
     FlipbookWithSoft,        // BillboardFlipbookSoft
+    WaterFluid,
 };
 
 // コンピュートパスの種類を管理する列挙型
@@ -62,6 +68,17 @@ enum class ComputePassType : uint64_t
     Emit,
     Sort,
     Blur,
+    SPH_BuildGrid,
+    SPH_Simulate_Dense_Grid,
+	SPH_Simulate_Sparse_Grid,
+    MarchingCubes,
+    GenerateScalarField,
+    MCVoxelLabelPropagation,
+    MCVoxelClusterPartition,
+    MCVoxelPrefixSumLocal,
+    MCVoxelPrefixSumGlobal,
+    MCVoxelPrefixSumAddOffset,
+	Particle_Thickness,
     PreIntegration,
 };
 
@@ -73,6 +90,7 @@ enum class VertexLayoutID : uint64_t
     Instanced,
     Skybox,
     VFX,
+    FluidSurface,
     UI,
     Debug,
 

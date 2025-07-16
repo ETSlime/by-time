@@ -6,7 +6,7 @@
 //
 //
 //=============================================================================
-
+#include "Core/Graphics/ConstantBufferStructs.h"
 #include "Scene/Item.h"
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"

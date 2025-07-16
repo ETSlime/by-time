@@ -362,6 +362,8 @@ void Model::BuildMeshParts(void)
 
 void Model::BuildBoundingBoxTriangles(const BOUNDING_BOX& box)
 {
+	if (m_buildTriangles) return;
+
 	// AABB の 8 つの頂点を定義
 	XMFLOAT3 v0 = XMFLOAT3(box.minPoint.x, box.minPoint.y, box.minPoint.z);
 	XMFLOAT3 v1 = XMFLOAT3(box.maxPoint.x, box.minPoint.y, box.minPoint.z);
@@ -405,10 +407,14 @@ void Model::BuildBoundingBoxTriangles(const BOUNDING_BOX& box)
 	// +Z 面
 	m_modelData->triangles.push_back(new Triangle(v3, v2, v0, normalZPlus)); // 三角形 11
 	m_modelData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
+
+	m_buildTriangles = true;
 }
 
 void Model::BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
 {
+	if (m_buildTriangles) return;
+
 	XMFLOAT3 worldPos1, worldPos2;
 
 	XMVECTOR localAABBMax = XMVectorSet(
@@ -480,6 +486,7 @@ void Model::BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
 		}
 	}
 
+	m_buildTriangles = true;
 }
 
 bool Model::BuildOctree(void)
@@ -487,14 +494,35 @@ bool Model::BuildOctree(void)
 	if (!m_modelData->triangles.getSize())
 		return false;
 
-	if (CollisionManager::get_instance().staticOctree == nullptr)
-		CollisionManager::get_instance().staticOctree = new OctreeNode(m_modelData->boundingBox);
+	if (!CollisionManager::get_instance().IsInitializedOctree())
+		CollisionManager::get_instance().InitOctree(m_modelData->boundingBox);
 
 	int numTriangles = m_modelData->triangles.getSize();
 	for (int i = 0; i < numTriangles; i++)
 	{
-		if (!CollisionManager::get_instance().staticOctree->insert(m_modelData->triangles[i]))
+		if (!CollisionManager::get_instance().OctreeInsertTriangle(m_modelData->triangles[i]))
 			return false;
+	}
+
+	return true;
+}
+
+bool Model::BuildVoxelGrid(bool batchInsert)
+{
+	if (!m_modelData->triangles.getSize())
+		return false;
+
+	if (batchInsert)
+	{
+		CollisionManager::get_instance().VoxelGridInsertTriangles(m_modelData->triangles);
+	}
+	else
+	{
+		int numTriangles = m_modelData->triangles.getSize();
+		for (int i = 0; i < numTriangles; i++)
+		{
+			CollisionManager::get_instance().VoxelGridInsertTriangle(m_modelData->triangles[i]);
+		}
 	}
 
 	return true;
@@ -517,18 +545,44 @@ const SimpleArray<StaticMeshPart>& Model::GetMeshParts(void) const
 	return m_meshParts;
 }
 
-void Model::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+bool Model::Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
 {
-	BuildBoundingBoxTriangles(box);
-	BuildOctree();
 	SetDrawBoundingBox(drawBoundingBox);
+
+	bool success = false;
+	BuildBoundingBoxTriangles(box);
+	success = BuildOctree();
+
+	return success;
 }
 
-void Model::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+bool Model::Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
 {
-	BuildMeshTriangles(worldMatrix, alwaysFaceUp);
-	BuildOctree();
 	SetDrawBoundingBox(drawBoundingBox);
+
+	bool success = false;
+	BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+	success = BuildOctree();
+
+	return success;
+}
+
+bool Model::Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
+{
+	bool success = false;
+	BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+	success = BuildVoxelGrid(true);
+
+	return success;
+}
+
+bool Model::Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box)
+{
+	bool success = false;
+	BuildBoundingBoxTriangles(box);
+	success = BuildVoxelGrid(false);
+
+	return success;
 }
 
 Model* Model::StoreModel(const char* modelPath, AxisFlip flip)

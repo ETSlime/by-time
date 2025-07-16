@@ -13,7 +13,7 @@
 #include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
-#include "Effects/FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Scene/ItemManager.h"
 
 //*****************************************************************************
@@ -31,12 +31,9 @@
 //=============================================================================
 // 初期化処理
 //=============================================================================
-Ground::Ground(Skybox* skybox)
-{
-#ifdef _DEBUG
-	DebugProc::get_instance().Register(this);
-#endif // DEBUG
 
+void Ground::Initialize(void)
+{
 	InitSceneLoadMap();
 
 	BOUNDING_BOX worldBB;
@@ -145,14 +142,6 @@ Ground::Ground(Skybox* skybox)
 	//	options
 	//);
 
-	m_skybox = skybox;
-}
-
-//=============================================================================
-// 終了処理
-//=============================================================================
-Ground::~Ground()
-{
 }
 
 //=============================================================================
@@ -164,6 +153,12 @@ void Ground::Update(void)
 	UpdateGameObjectArray<GameObject<ModelInstance>>(m_persistentStaticGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
+
+	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
+	{
+		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+			m_waterFluid->EmitWater(35.0f, 1);
+	}
 
 	if (m_town)
 		m_town->Update();
@@ -205,17 +200,24 @@ void Ground::UnloadCurrentScene(void)
 {
 	for (auto it = m_modelLoadMap.begin(); it != m_modelLoadMap.end();)
 	{
+		// モデルロード済みのものは削除
 		if ((*it).value == 1)
 			it = m_modelLoadMap.erase(it);
 		else
 			++it;
 	}
 
+	// 現在のシーンの GameObject をクリア
 	m_staticGOs.clear();
 	m_skinnedGOs.clear();
-	m_totalModelLoadCnt = m_persistentModelLoadCnt;
-	m_currentModelLoadCnt = 0;
 
+	// 現在のシーンのモデルロードカウントをリセット
+	m_totalModelLoadCnt = m_persistentModelLoadCnt;
+	m_totalTerrainModelLoadCnt = m_persistentTerrainModelLoadCnt;
+	m_currentModelLoadCnt = 0;
+	m_currentTerrainModelLoadCnt = 0;
+
+	// 現在のシーンが存在しない場合は何もしない
 	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentScene)))
 		return;
 
@@ -355,8 +357,37 @@ void Ground::LoadScene1(void)
 	params.lifeMin = 3.0f;
 	params.lifeMax = 6.0f;
 	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
-	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(params);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(effect);
+	IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
+
+	WaterFluidParams waterParams;
+	waterParams.type = EffectType::WaterFluid;
+	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
+	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
+	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
+	waterParams.numParticles = 5000; // 最大粒子数
+	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
+	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
+
+	// エミット制御（あまり使わないが、baseクラス必須）
+	waterParams.spawnRateMin = 0;
+	waterParams.spawnRateMax = 0;
+	waterParams.lifeMin = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+
+	// 水の物理パラメータ
+	waterParams.supportRadius = 15.0f;		// サポート半径（粒子影響範囲）
+	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
+	waterParams.particleMass = 15.0f;		// 粒子質量
+	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
+	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
+	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
+	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
+
+	IEffectRenderer* waterFluid = nullptr;// EffectSystem::get_instance().SpawnParticleEffect(waterParams);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
+	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
+
 
 	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
 	//GameObjectConfig bonfireConfig{};
@@ -491,6 +522,23 @@ void Ground::GenerateEnvironmentObj(void*)
 		);
 	}
 	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+}
+
+void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool isTerrain)
+{
+	if (!m_modelLoadMap.contains(modelPath))
+	{
+		m_modelLoadMap[modelPath] = 0; // 初期値は0
+		m_totalModelLoadCnt++; // 全体のロード数を更新
+		if (isPersistent)
+		{
+			m_persistentModelLoadCnt++; // 永続的なモデルロード数も更新
+			if (isTerrain)
+				m_persistentTerrainModelLoadCnt++; // 永続的な地形モデルのロード数も更新
+		}
+		if (isTerrain)
+			m_totalTerrainModelLoadCnt++; // 地形モデルのロード数も更新
+	}
 }
 
 void Ground::RenderImGui(void)

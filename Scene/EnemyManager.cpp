@@ -117,7 +117,7 @@ void EnemyManager::Draw(void)
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 		{
-			RenderProgressBuffer defaultRenderProgress;
+			RenderProgressCBuffer defaultRenderProgress;
 			defaultRenderProgress.isRandomFade = false;
 			defaultRenderProgress.progress = 1.0f;
 			m_renderer.SetRenderProgress(defaultRenderProgress);
@@ -144,7 +144,7 @@ void EnemyManager::DrawUI(EnemyUIType type)
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 		{
-			RenderProgressBuffer defaultRenderProgress;
+			RenderProgressCBuffer defaultRenderProgress;
 			defaultRenderProgress.isRandomFade = false;
 			defaultRenderProgress.progress = 1.0f;
 			m_renderer.SetRenderProgress(defaultRenderProgress);

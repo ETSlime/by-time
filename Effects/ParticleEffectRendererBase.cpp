@@ -4,7 +4,7 @@
 // Author : 
 //
 //=============================================================================
-#include "ParticleEffectRendererBase.h"
+#include "Effects/ParticleEffectRendererBase.h"
 #include "Effects/EffectSystem.h"
 #include "ParticleStructs.h"
 //*****************************************************************************
@@ -80,17 +80,17 @@ void ParticleEffectRendererBase::Shutdown(void)
 
     SafeRelease(&m_cbParticleUpdate);
     SafeRelease(&m_cbParticleDraw);
-    SafeRelease(&m_particleBuffer);
-    SafeRelease(&m_particleSRV);
-    SafeRelease(&m_particleUAV);
+    SafeRelease(&m_particleBufferSet.buffer);
+    SafeRelease(&m_particleBufferSet.srv);
+    SafeRelease(&m_particleBufferSet.uav);
     SafeRelease(&m_cbParticleEffect);
     SafeRelease(&m_drawArgsBuffer);
-    SafeRelease(&m_aliveListBuffer);
-    SafeRelease(&m_aliveListUAV);
-    SafeRelease(&m_aliveListSRV);
+    SafeRelease(&m_aliveListBufferSet.buffer);
+    SafeRelease(&m_aliveListBufferSet.srv);
+    SafeRelease(&m_aliveListBufferSet.uav);
     SafeRelease(&m_drawArgsStaging);
-    SafeRelease(&m_freeListBuffer);
-    SafeRelease(&m_freeListUAV);
+    SafeRelease(&m_freeListBufferSet.buffer);
+    SafeRelease(&m_freeListBufferSet.uav);
     SafeRelease(&m_freeListConsumeUAV);
 }
 
@@ -115,6 +115,9 @@ void ParticleEffectRendererBase::Update(void)
     // パーティクル更新用CB更新
     UpdateParticleUpdateCB();
 
+    // パーティクル描画用CB更新
+    UpdateParticleDrawCB();
+
     // 子クラスのパーティクル更新
     DispatchComputeShader();
 
@@ -128,8 +131,7 @@ void ParticleEffectRendererBase::Update(void)
 
 void ParticleEffectRendererBase::Draw(void)
 {
-    XMMATRIX worldMatrix = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
-    BindParticleDrawResources(worldMatrix, m_camera.GetViewProjMtx());
+    BindParticleDrawResources();
     DrawParticles();
 }
 
@@ -155,7 +157,7 @@ bool ParticleEffectRendererBase::CreateConstantBuffer(void)
     if (FAILED(hr))
         return false;
 
-    desc.ByteWidth = sizeof(XMMATRIX) * 2; // 描画用 2つ行列: world, viewProj
+    desc.ByteWidth = sizeof(CBParticleDraw);
     hr = m_device->CreateBuffer(&desc, nullptr, &m_cbParticleDraw);
     if (FAILED(hr))
         return false;
@@ -208,7 +210,7 @@ bool ParticleEffectRendererBase::CreateAliveListBuffer(void)
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     desc.StructureByteStride = elementSize;
 
-    hr = m_device->CreateBuffer(&desc, nullptr, &m_aliveListBuffer);
+    hr = m_device->CreateBuffer(&desc, nullptr, &m_aliveListBufferSet.buffer);
     if (FAILED(hr))
         return false;
 
@@ -220,7 +222,7 @@ bool ParticleEffectRendererBase::CreateAliveListBuffer(void)
     uavDesc.Buffer.NumElements = elementCount;
     uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND; // AppendStructuredBuffer 用のAppendフラグ
 
-    hr = m_device->CreateUnorderedAccessView(m_aliveListBuffer, &uavDesc, &m_aliveListUAV);
+    hr = m_device->CreateUnorderedAccessView(m_aliveListBufferSet.buffer, &uavDesc, &m_aliveListBufferSet.uav);
     if (FAILED(hr))
         return false;
 
@@ -231,7 +233,7 @@ bool ParticleEffectRendererBase::CreateAliveListBuffer(void)
     srvDesc.Buffer.FirstElement = 0;
     srvDesc.Buffer.NumElements = elementCount;
 
-    hr = m_device->CreateShaderResourceView(m_aliveListBuffer, &srvDesc, &m_aliveListSRV);
+    hr = m_device->CreateShaderResourceView(m_aliveListBufferSet.buffer, &srvDesc, &m_aliveListBufferSet.srv);
     if (FAILED(hr))
         return false;
 
@@ -256,7 +258,7 @@ bool ParticleEffectRendererBase::CreateFreeListBuffer(void)
     desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     desc.StructureByteStride = elementSize;
 
-    hr = m_device->CreateBuffer(&desc, nullptr, &m_freeListBuffer);
+    hr = m_device->CreateBuffer(&desc, nullptr, &m_freeListBufferSet.buffer);
     if (FAILED(hr))
         return false;
 
@@ -268,7 +270,7 @@ bool ParticleEffectRendererBase::CreateFreeListBuffer(void)
     uavDesc.Buffer.NumElements = elementCount;
     uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND; // Appendバッファのフラグ
 
-    hr = m_device->CreateUnorderedAccessView(m_freeListBuffer, &uavDesc, &m_freeListUAV);
+    hr = m_device->CreateUnorderedAccessView(m_freeListBufferSet.buffer, &uavDesc, &m_freeListBufferSet.uav);
     if (FAILED(hr))
         return false;
 
@@ -280,11 +282,77 @@ bool ParticleEffectRendererBase::CreateFreeListBuffer(void)
     consumUavDesc.Buffer.NumElements = elementCount;
     consumUavDesc.Buffer.Flags = 0; // Consumeバッファのフラグ
 
-    hr = m_device->CreateUnorderedAccessView(m_freeListBuffer, &consumUavDesc, &m_freeListConsumeUAV);
+    hr = m_device->CreateUnorderedAccessView(m_freeListBufferSet.buffer, &consumUavDesc, &m_freeListConsumeUAV);
     if (FAILED(hr))
         return false;
 
     return true;
+}
+
+void ParticleEffectRendererBase::CreateStructuredBuffer(ID3D11Device* device,
+    UINT structSize,
+    UINT count, 
+    const void* initData, 
+    ID3D11Buffer** ppBuffer, 
+    ID3D11ShaderResourceView** ppSRV, 
+    ID3D11UnorderedAccessView** ppUAV,
+    bool allowAppendUAV,
+    bool cpuWritable,
+    bool useCounterUAV)
+{
+    HRESULT hr = S_OK;
+
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = structSize * count;
+    desc.Usage = cpuWritable ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+    desc.BindFlags = 0;
+    if (ppSRV) desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+	if (ppUAV && !cpuWritable) desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS; // UAVはCPU書き込み不可の場合のみ
+    desc.CPUAccessFlags = cpuWritable ? D3D11_CPU_ACCESS_WRITE : 0;
+    desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    desc.StructureByteStride = structSize;
+
+    D3D11_SUBRESOURCE_DATA data = {};
+    data.pSysMem = initData;
+
+    hr = device->CreateBuffer(&desc, initData ? &data : nullptr, ppBuffer);
+    assert(SUCCEEDED(hr));
+
+    if (ppSRV && *ppBuffer)
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+        srvDesc.Buffer.NumElements = count;
+        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+
+        srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+        srvDesc.Buffer.FirstElement = 0;
+        hr = device->CreateShaderResourceView(*ppBuffer, &srvDesc, ppSRV);
+        assert(SUCCEEDED(hr));
+    }
+
+	if (ppUAV && *ppBuffer && !cpuWritable) // UAVはCPU書き込み不可の場合のみ
+    {
+        D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+        uavDesc.Buffer.NumElements = count;
+        uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+        uavDesc.Buffer.FirstElement = 0;
+        if (allowAppendUAV)
+        {
+            uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_APPEND;
+        }
+        else if (useCounterUAV)
+        {
+            uavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_COUNTER;
+        }
+        else
+        {
+            uavDesc.Buffer.Flags = 0;
+        }
+        hr = device->CreateUnorderedAccessView(*ppBuffer, &uavDesc, ppUAV);
+        assert(SUCCEEDED(hr));
+    }
 }
 
 void ParticleEffectRendererBase::InitializeFreeList(void)
@@ -293,7 +361,7 @@ void ParticleEffectRendererBase::InitializeFreeList(void)
     for (UINT i = 0; i < m_maxParticles; ++i)
         ids[i] = i;
 
-    m_context->UpdateSubresource(m_freeListBuffer, 0, nullptr, ids.data(), 0, 0);
+    m_context->UpdateSubresource(m_freeListBufferSet.buffer, 0, nullptr, ids.data(), 0, 0);
 }
 
 bool ParticleEffectRendererBase::CreateParticleBuffer(void)
@@ -302,7 +370,7 @@ bool ParticleEffectRendererBase::CreateParticleBuffer(void)
     if (s_bufferFactoryTable[groupIndex])
     {
         s_bufferFactoryTable[groupIndex](this);
-        return m_particleBuffer != nullptr;
+        return m_particleBufferSet.buffer != nullptr;
     }
     return false;
 }
@@ -322,7 +390,6 @@ void ParticleEffectRendererBase::DrawParticles(void)
 void ParticleEffectRendererBase::DispatchEmitParticlesCS(void)
 {
 #ifdef _DEBUG
-
     ID3D11InfoQueue* infoQueue;
     if (SUCCEEDED(m_device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&infoQueue)))
     {
@@ -347,7 +414,7 @@ void ParticleEffectRendererBase::DispatchEmitParticlesCS(void)
         // Emit用CSのバインド
         m_context->CSSetShader(m_emitParticlesCS.cs, nullptr, 0);
 
-        UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_particlesToEmitThisFrame, 64); // スレッドグループ数計算
+        UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_particlesToEmitThisFrame, THREAD_COUNT); // スレッドグループ数計算
         m_context->Dispatch(threadGroupCount, 1, 1);
     }
 
@@ -376,19 +443,16 @@ void ParticleEffectRendererBase::DispatchEmitParticlesCS(void)
 #endif
 }
 
-void ParticleEffectRendererBase::BindParticleDrawResources(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj)
+void ParticleEffectRendererBase::BindParticleDrawResources(void)
 {
-    // パーティクル描画用CB更新
-    UpdateParticleDrawCB(worldMatrix, viewProj);
-
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::GS, SLOT_CB_EFFECT_DRAW, m_cbParticleDraw);
 
-    m_shaderResourceBinder.BindShaderResource(ShaderStage::GS, SLOT_SRV_PARTICLE, m_particleSRV);
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::GS, SLOT_SRV_PARTICLE, m_particleBufferSet.srv);
 
-    if (UseDrawIndirect() && m_aliveListSRV)
+    if (UseDrawIndirect() && m_aliveListBufferSet.srv)
     {
-        m_shaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_SRV_ALIVE_LIST, m_aliveListSRV);
+        m_shaderResourceBinder.BindShaderResource(ShaderStage::VS, SLOT_SRV_ALIVE_LIST, m_aliveListBufferSet.srv);
     }
 
     m_renderer.BindViewBuffer(ShaderStage::GS);
@@ -397,20 +461,20 @@ void ParticleEffectRendererBase::BindParticleDrawResources(const XMMATRIX& world
 void ParticleEffectRendererBase::BindCommonComputeResources(void)
 {
     m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_UPDATE, m_cbParticleUpdate);
-    m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_PARTICLE, m_particleUAV);
+    m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_PARTICLE, m_particleBufferSet.uav);
 
     if (UseDrawIndirect())
     {
         // アクティブなパーティクルIDリスト（RWStructuredBuffer<uint> g_AliveList : register(SLOT_UAV_ALIVE_LIST)）
-        if (m_aliveListUAV)
+        if (m_aliveListBufferSet.uav)
         {
-            m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_ALIVE_LIST, m_aliveListUAV);
+            m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_ALIVE_LIST, m_aliveListBufferSet.uav);
         }
 
         // フリーリスト（RWStructuredBuffer<uint> g_FreeList : register(SLOT_UAV_FREE_LIST)）
-        if (m_freeListUAV)
+        if (m_freeListBufferSet.uav)
 		{
-			m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_FREE_LIST, m_freeListUAV);
+			m_shaderResourceBinder.BindUnorderedAccessView(SLOT_UAV_FREE_LIST, m_freeListBufferSet.uav);
 		}
     }
 
@@ -439,6 +503,9 @@ void ParticleEffectRendererBase::UnbindAllShaderSRVs(void)
     // GSのパーティクルSRVを解除
     m_shaderResourceBinder.BindShaderResource(ShaderStage::GS, SLOT_SRV_PARTICLE, nullSRV);
 
+	// CSのパーティクルSRVを解除
+    m_shaderResourceBinder.BindShaderResource(ShaderStage::CS, SLOT_SRV_PARTICLE, nullSRV);
+
 }
 
 void ParticleEffectRendererBase::PrepareForEmitCS(void)
@@ -460,12 +527,12 @@ void ParticleEffectRendererBase::ClearInternalUAVs(void)
     UINT clear[4] = { 0 };
 
     // アクティブリストをクリア
-    if (m_aliveListUAV)
-        m_context->ClearUnorderedAccessViewUint(m_aliveListUAV, clear);
+    if (m_aliveListBufferSet.uav)
+        m_context->ClearUnorderedAccessViewUint(m_aliveListBufferSet.uav, clear);
 
     // フリーリストをクリア
-    if (m_freeListUAV)
-        m_context->ClearUnorderedAccessViewUint(m_freeListUAV, clear);
+    if (m_freeListBufferSet.uav)
+        m_context->ClearUnorderedAccessViewUint(m_freeListBufferSet.uav, clear);
 }
 
 void ParticleEffectRendererBase::ConfigureEffect(const ParticleEffectParams& params)
@@ -527,12 +594,12 @@ bool ParticleEffectRendererBase::LoadShaders(void)
 
 bool ParticleEffectRendererBase::CreateBillboardSimpleBuffer(ParticleEffectRendererBase* self)
 {
-    HRESULT hr = S_OK;
-
+	// 初期パーティクル配列を生成（すべてゼロ寿命）
     SimpleArray<BillboardSimpleParticle> initData(self->m_maxParticles);
+
     for (UINT i = 0; i < self->m_maxParticles; ++i)
     {
-        initData[i].position = self->m_position;
+        initData[i].position = XMFLOAT3(0.0f, 0.0f, 0.0f);
         initData[i].velocity = XMFLOAT3(0.0f, 0.3f + (i % 10) * 0.05f, 0.0f);
         initData[i].size = 0.5f * self->m_scale;
         initData[i].life = 0.0f; // 初期ライフは0
@@ -543,51 +610,17 @@ bool ParticleEffectRendererBase::CreateBillboardSimpleBuffer(ParticleEffectRende
         initData[i].endColor = self->m_endColor;
     }
 
-    // バッファ作成
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.ByteWidth = sizeof(BillboardSimpleParticle) * self->m_maxParticles;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bufferDesc.StructureByteStride = sizeof(BillboardSimpleParticle);
-
-    D3D11_SUBRESOURCE_DATA subData = {};
-    subData.pSysMem = initData.data();
-
-    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBuffer);
-    if (FAILED(hr))
-        return false;
-
-    // SRV作成
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.ElementWidth = self->m_maxParticles;
-    hr = self->m_device->CreateShaderResourceView(self->m_particleBuffer, &srvDesc, &self->m_particleSRV);
-    if (FAILED(hr))
-        return false;
-
-    // UAV作成
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = self->m_maxParticles;
-    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBuffer, &uavDesc, &self->m_particleUAV);
-    if (FAILED(hr))
-        return false;
-
-    return true;
+    return CreateParticleBuffer(self, initData);
 }
 
 bool ParticleEffectRendererBase::CreateBillboardFlipbookBuffer(ParticleEffectRendererBase* self)
 {
-    HRESULT hr = S_OK;
-
     // 初期パーティクル配列を生成（すべてゼロ寿命）
     SimpleArray<BillboardFlipbookParticle> initData(self->m_maxParticles);
+
     for (UINT i = 0; i < self->m_maxParticles; ++i)
     {
-        initData[i].position = self->m_position;
+        initData[i].position = XMFLOAT3(0.0f, 0.0f, 0.0f);
         initData[i].velocity = XMFLOAT3(0, 0, 0);
         initData[i].life = 0.0f; // 初期ライフは0
         initData[i].lifeRemaining = 0.0f; // 残りライフ
@@ -600,51 +633,45 @@ bool ParticleEffectRendererBase::CreateBillboardFlipbookBuffer(ParticleEffectRen
         initData[i].frameSpeed = 0.0f;
     }
 
-    // 構造化バッファの設定
-    D3D11_BUFFER_DESC bufferDesc = {};
-    bufferDesc.ByteWidth = sizeof(BillboardFlipbookParticle) * self->m_maxParticles;
-    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-    bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
-    bufferDesc.StructureByteStride = sizeof(BillboardFlipbookParticle);
-
-    D3D11_SUBRESOURCE_DATA subData = {};
-    subData.pSysMem = initData.data();
-
-    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBuffer);
-    if (FAILED(hr))
-        return false;
-
-    // SRV（Shader Resource View）の作成
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
-    srvDesc.Buffer.ElementWidth = self->m_maxParticles;
-
-    hr = self->m_device->CreateShaderResourceView(self->m_particleBuffer, &srvDesc, &self->m_particleSRV);
-    if (FAILED(hr)) return false;
-
-    // UAV（Unordered Access View）の作成
-    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
-    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
-    uavDesc.Buffer.NumElements = self->m_maxParticles;
-
-    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBuffer, &uavDesc, &self->m_particleUAV);
-    if (FAILED(hr))
-        return false;
-
-    return true;
+    return CreateParticleBuffer(self, initData);
 }
 
-void ParticleEffectRendererBase::RegisterarticleBufferFactories()
+bool ParticleEffectRendererBase::CreateWaterFluidBuffer(ParticleEffectRendererBase* self)
+{
+    // 初期パーティクルデータ（全て密度0、水面に静止）
+    SimpleArray<WaterFluidParticle> initData(self->m_maxParticles);
+
+    for (UINT i = 0; i < self->m_maxParticles; ++i)
+    {
+        WaterFluidParticle& p = initData[i];
+
+        p.position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.predictedPosition = p.position;
+
+        p.density = 0.0f;
+        p.lambda = 0.0f;
+        p.lifeRemaining = 0.0f;
+        p.size = 1.0f;
+
+        // デバッグ用カラー（青っぽく）
+        p.color = self->m_startColor;
+		p.padding = XMFLOAT3(0.0f, 0.0f, 0.0f); // パディング用のダミー値
+    }
+
+    return CreateParticleBuffer(self, initData);
+}
+
+void ParticleEffectRendererBase::RegisterarticleBufferFactories(void)
 {
     static bool initialized = false;
     if (initialized) return;
     initialized = true;
 
+	// 各パーティクルバッファのファクトリ関数を登録
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardSimple)] = &CreateBillboardSimpleBuffer;
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardFlipbook)] = &CreateBillboardFlipbookBuffer;
+    s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::WaterFluid)] = &CreateWaterFluidBuffer;
 }
 
 void ParticleEffectRendererBase::UpdateParticleUpdateCB(void)
@@ -680,29 +707,34 @@ void ParticleEffectRendererBase::UpdateEmitter(void)
     m_accumulatedEmitCount -= m_particlesToEmitThisFrame;
 }
 
-void ParticleEffectRendererBase::UpdateParticleDrawCB(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj)
+void ParticleEffectRendererBase::UpdateParticleDrawCB(void)
 {
+	const XMMATRIX& worldMatrix = XMMatrixTranslation(m_position.x, m_position.y, m_position.z); 
+	const XMMATRIX& viewProj = m_camera.GetViewProjMtx();
+
     D3D11_MAPPED_SUBRESOURCE mapped;
     if (SUCCEEDED(m_context->Map(m_cbParticleDraw, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
     {
         CBParticleDraw* cb = reinterpret_cast<CBParticleDraw*>(mapped.pData);
         cb->world = XMMatrixTranspose(worldMatrix);
+		cb->worldInv = XMMatrixTranspose(XMMatrixInverse(nullptr, worldMatrix));
         cb->viewProj = XMMatrixTranspose(viewProj);
+		cb->cameraPos = m_camera.GetPosition();
+        cb->padding = 0.0f;
         m_context->Unmap(m_cbParticleDraw, 0);
     }
 }
 
 void ParticleEffectRendererBase::UpdateDrawArgsInstanceCount(void)
 {
-    if (!m_drawArgsBuffer || !m_aliveListUAV)
+    if (!m_drawArgsBuffer || !m_aliveListBufferSet.uav)
         return; // セーフティチェック
 
     // DrawInstancedIndirect用のインスタンス数を更新
     m_context->CopyStructureCount(
         m_drawArgsBuffer, 
         offsetof(DrawArgs, InstanceCount), 
-        m_aliveListUAV);
-
+        m_aliveListBufferSet.uav);
 
 #ifdef _DEBUG
     m_context->CopyResource(m_drawArgsStaging, m_drawArgsBuffer);
@@ -711,15 +743,13 @@ void ParticleEffectRendererBase::UpdateDrawArgsInstanceCount(void)
     m_context->Map(m_drawArgsStaging, 0, D3D11_MAP_READ, 0, &mapped);
 
     DrawArgs* args = reinterpret_cast<DrawArgs*>(mapped.pData);
-    m_debugProc.PrintDebugProc("InstanceCount = %u\n", args->InstanceCount);
 
     m_context->Unmap(m_drawArgsStaging, 0);
 #endif // DEBUG
 
-
 }
 
-ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectType type)
+ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectType type) const
 {
     switch (type)
     {
@@ -728,12 +758,16 @@ ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectTy
 
     case EffectType::FireBall:
         return ParticleShaderGroup::BillboardFlipbook;
+
+    case EffectType::WaterFluid:
+		return ParticleShaderGroup::WaterFluid;
+
     default:
         return ParticleShaderGroup::None;
     }
 }
 
-ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(EffectType type)
+ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(EffectType type) const
 {
     switch (type)
     {
@@ -742,6 +776,10 @@ ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(Effect
 
     case EffectType::FireBall:
         return ParticleComputeGroup::FlipbookAnimated;
+
+	case EffectType::WaterFluid:
+		return ParticleComputeGroup::WaterFluid;
+
     default:
         return ParticleComputeGroup::None;
     }

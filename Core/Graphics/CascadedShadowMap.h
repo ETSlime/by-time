@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 複数カスケードによるシャドウマップ生成と分割管理 [CascadedShadowMap.h]
@@ -6,7 +7,6 @@
 // ライトビュー投影・影生成・テクセルスナップ補正を行う
 // 
 //=============================================================================
-#pragma once
 #include "Core/Graphics/Renderer.h"
 #include "Collision/AABBUtils.h"
 #include "Scene/GameObject.h"

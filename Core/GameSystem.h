@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // ゲーム進行・描画・システム状態を統括管理する中枢クラス [GameSystem.h]
@@ -6,7 +7,6 @@
 // プレイヤー／敵／UI／カメラ／エフェクトなど全主要サブシステムを統括する
 //
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Core/Camera.h"
 #include "Core/CursorManager.h"
@@ -93,9 +93,8 @@ public:
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
-    GameMode GetMode() const { return m_mode; }
+    GameMode GetMode(void) const { return m_mode; }
 
-	Ground* GetGround(void) const { return m_ground; } // 地面オブジェクト取得
 
 protected:
     // プライベートコンストラクタ
@@ -118,6 +117,8 @@ protected:
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
         , m_textureUploadQueue(TextureUploadQueue::get_instance())
+        , m_ground(Ground::get_instance()) 
+        , m_skybox(Skybox::get_instance())
         , m_tweenManager(TweenManager::get_instance()) {}
 
     // この行が絶対に必要！！
@@ -162,13 +163,13 @@ private:
     GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
-    Ground* m_ground = nullptr;
-    Skybox* m_skybox = nullptr;
 
     ResourceLoadStatus m_loadStatus;
     ResourceLoadContext m_currLoadCtx;
     UILoadingScene* m_loadingScene = nullptr;
 
+    Ground& m_ground;
+	Skybox& m_skybox;
     UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     ItemManager& m_itemManager;
@@ -186,7 +187,5 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
-	TweenManager& m_tweenManager;
+    TweenManager& m_tweenManager;
 };
-
-void OnSceneSwitchClicked(void* userData);

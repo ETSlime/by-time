@@ -5,6 +5,7 @@
 //
 //=============================================================================
 #include "Core/Shader/ShaderLoader.h"
+#include "Core/Shader/ShaderInclude.h"
 #include "Utility/SimpleArray.h"
 
 
@@ -122,6 +123,7 @@ bool ShaderLoader::LoadComputerShaderSet(ID3D11Device* device, ComputeShaderSet&
 bool ShaderLoader::CompileShaderFromFileLegacy(const char* fileName, const char* entryPoint, const char* target, ID3DBlob** blobOut)
 {
     DWORD shaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+
 #if defined( _DEBUG )
     shaderFlags |= D3DCOMPILE_DEBUG;
 #endif
@@ -147,6 +149,8 @@ bool ShaderLoader::CompileShaderFromFileLegacy(const char* fileName, const char*
         }
         return false;
     }
+
+    assert(SUCCEEDED(hr));
 
     return true;
 }
@@ -187,12 +191,13 @@ bool ShaderLoader::CompileShaderFromFile(const char* fileName, const char* entry
 #endif
 
     ID3DBlob* pErrorBlob = nullptr;
+	ShaderInclude includeHandler; // シェーダーインクルードハンドラー
     // D3DCompile を使用してシェーダーをコンパイル
     HRESULT hr = D3DCompile(
         buffer, size,
         fileName,                           // ソース名（警告/エラー表示用）
         nullptr,                            // defines
-        nullptr,
+		&includeHandler,                    // インクルードハンドラー
         entryPoint, target,
         flags, 0,
         blobOut, &pErrorBlob
@@ -201,6 +206,8 @@ bool ShaderLoader::CompileShaderFromFile(const char* fileName, const char* entry
     char* error = nullptr;
     if (!SUCCEEDED(hr))
         error = (char*)pErrorBlob->GetBufferPointer();
+
+    assert(SUCCEEDED(hr));
 
     delete[] buffer;
     return SUCCEEDED(hr);

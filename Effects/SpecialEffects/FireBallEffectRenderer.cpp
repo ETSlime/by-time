@@ -4,7 +4,7 @@
 // Author : 
 //
 //=============================================================================
-#include "FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Core/TextureMgr.h"
 #include "Effects/EffectSystem.h"
 
@@ -29,7 +29,8 @@ bool FireBallEffectRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContex
     // ディフューズテクスチャの読み込み
     if (!CreateDiffuseTex())
         return false;
-    
+
+	// FireBall専用のCBを作成
     if (!CreateFireBallCB())
         return false;
 
@@ -45,12 +46,14 @@ void FireBallEffectRenderer::Shutdown(void)
 
 void FireBallEffectRenderer::ConfigureEffect(const ParticleEffectParams& params)
 {
+    // 基底クラスの共通設定（色、寿命、スケールなど）
     ParticleEffectRendererBase::ConfigureEffect(params);
 
+	// FireBallEffectParamsの型チェック
     const FireBallEffectParams* fbParams = dynamic_cast<const FireBallEffectParams*>(&params);
-    if (!fbParams)
-        return;
+    if (!fbParams) return;
 
+	// FireBallEffectParamsからパラメータを取得
     m_tilesX = fbParams->tilesX;
     m_tilesY = fbParams->tilesY;
     m_spawnConeAngleDegree = fbParams->coneAngleDegree;
@@ -71,7 +74,7 @@ void FireBallEffectRenderer::DispatchComputeShader(void)
     m_context->CSSetShader(m_updateParticlesCS.cs, nullptr, 0);
 
     // スレッドグループ数を計算（例: 64スレッド/グループ）
-    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, 64);
+    UINT threadGroupCount = GET_THREAD_GROUP_COUNT(m_maxParticles, THREAD_COUNT);
     m_context->Dispatch(threadGroupCount, 1, 1);
 
     // Emit処理は基底クラスに任せる
@@ -92,7 +95,7 @@ void FireBallEffectRenderer::DrawParticles(void)
 bool FireBallEffectRenderer::CreateFireBallCB(void)
 {
     D3D11_BUFFER_DESC cbDesc = {};
-    cbDesc.ByteWidth = sizeof(CBFireBall);
+    cbDesc.ByteWidth = sizeof(FireBallCB);
     cbDesc.Usage = D3D11_USAGE_DYNAMIC;
     cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -110,7 +113,7 @@ void FireBallEffectRenderer::UploadFireBallCB(void)
     D3D11_MAPPED_SUBRESOURCE mapped = {};
     if (SUCCEEDED(m_context->Map(m_cbFireBall, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
     {
-        CBFireBall* cb = reinterpret_cast<CBFireBall*>(mapped.pData);
+        FireBallCB* cb = reinterpret_cast<FireBallCB*>(mapped.pData);
         cb->tilesX = m_tilesX;
         cb->tilesY = m_tilesY;
         cb->initialFrameOffset = 0.0f;
@@ -122,9 +125,10 @@ void FireBallEffectRenderer::UploadFireBallCB(void)
 		cb->startSpeedMin = m_startSpeedMin;
 		cb->startSpeedMax = m_startSpeedMax;
         m_context->Unmap(m_cbFireBall, 0);
-    }
 
-    m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_PARTICLE, m_cbFireBall);
+        // CS に定数バッファをセット
+        m_shaderResourceBinder.BindConstantBuffer(ShaderStage::CS, SLOT_CB_EFFECT_PARTICLE, m_cbFireBall);
+    }
 }
 
 bool FireBallEffectRenderer::CreateDiffuseTex(void)

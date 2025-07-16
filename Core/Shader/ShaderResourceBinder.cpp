@@ -12,7 +12,7 @@ void ShaderResourceBinder::Initialize(ID3D11DeviceContext* context)
 }
 
 // ===== 各種リセット（毎フレームリセット推奨）=====
-void ShaderResourceBinder::Reset()
+void ShaderResourceBinder::Reset(void)
 {
     memset(m_currentCB_VS, 0, sizeof(m_currentCB_VS));
     memset(m_currentCB_PS, 0, sizeof(m_currentCB_PS));
