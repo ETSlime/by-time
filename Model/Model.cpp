@@ -531,7 +531,7 @@ void Model::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool always
 	SetDrawBoundingBox(drawBoundingBox);
 }
 
-Model* Model::StoreModel(const char* modelPath)
+Model* Model::StoreModel(const char* modelPath, AxisFlip flip)
 {
 	MODEL_POOL* modelPool = GetModel(modelPath);
 
@@ -565,7 +565,7 @@ Model* Model::StoreModel(const char* modelPath)
 	}
 
 	// 未ロード → ロード要求を保留リストに登録（次のフレームで処理）
-	loader.RequestLoadIfNotQueued(modelPath);
+	loader.RequestLoadIfNotQueued(modelPath, flip);
 
 
 	// 今はリソースがないので null

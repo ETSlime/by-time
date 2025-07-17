@@ -17,6 +17,26 @@
 //*****************************************************************************
 #define MODEL_MAX_MATERIAL		(16)		// １モデルのMaxマテリアル数
 
+// 反転フラグのビットマスク
+enum class AxisFlip : uint8_t
+{
+	None = 0,
+	FlipX = 1 << 0,
+	FlipY = 1 << 1,
+	FlipZ = 1 << 2,
+};
+
+// ビット演算を使えるようにする
+inline AxisFlip operator|(AxisFlip a, AxisFlip b) {
+	return static_cast<AxisFlip>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+inline AxisFlip operator&(AxisFlip a, AxisFlip b) {
+	return static_cast<AxisFlip>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+inline bool HasFlip(AxisFlip flags, AxisFlip target) {
+	return (flags & target) != AxisFlip::None;
+}
+
 enum TextureType
 {
 	Diffuse,
@@ -166,7 +186,7 @@ public:
 	void Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
 	void Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
 
-	static Model* StoreModel(const char* modelPath);
+	static Model* StoreModel(const char* modelPath, AxisFlip flip = AxisFlip::None);
 	static MODEL_POOL* GetModel(const char* modelPath);
 	static void RemoveModel(const char* modelPath);
 

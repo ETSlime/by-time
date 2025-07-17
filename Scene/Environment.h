@@ -192,7 +192,7 @@ public:
 
     // フィールドモデルのインスタンスを生成
     bool GenerateRandomInstances(EnvironmentObjectType type, const Model* fieldModel, int clusterCount = 45);
-    bool GenerateInstanceByParams(const InstanceParams& params, const SkinnedMeshModel* fieldModel, BOUNDING_BOX fieldBBox);
+    bool GenerateInstanceByParams(const InstanceParams& params, const Model* fieldModel, BOUNDING_BOX fieldBBox);
 
 	void SetDrawBoundingBox(bool draw) { m_drawBoundingBox = draw; }
 

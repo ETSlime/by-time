@@ -12,6 +12,11 @@ void TextureUploadQueue::Init(void)
         MAX_TEXTURE_UPLOAD_SIZE,
         CharPtrHash(),
         CharPtrEquals());
+
+    m_pendingCallbackMap = HashMap<const char*, SimpleArray<PendingCallback>, CharPtrHash, CharPtrEquals>(
+        MAX_TEXTURE_UPLOAD_SIZE,
+        CharPtrHash(),
+        CharPtrEquals());
 }
 
 bool TextureUploadQueue::TextureUploadQueue::HasTask(const char* path)
@@ -148,7 +153,11 @@ void TextureUploadQueue::RegisterPendingCallback(
     void(*onFinish)(bool, void*),
     void* userData)
 {
+    m_lock.Lock();
+
     m_pendingCallbackMap[filename].push_back({ outSRV, onFinish, userData });
+
+    m_lock.Unlock();
 }
 
 void TextureUploadQueue::NotifyPendingCallbacks(

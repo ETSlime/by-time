@@ -114,7 +114,8 @@ void CollisionManager::Update()
                         {
                             minDistSq = distSq;
                             obstacleNormal = currObstacleNormal;
-							m_curCollisionBox = candidates[j]->aabb; // 現在の衝突ボックスを更新
+                            if (dynamicCol->tag == ColliderTag::PLAYER)
+							    m_curCollisionBox = candidates[j]->aabb; // 現在の衝突ボックスを更新
                         }
 
                         // n.y が 0 に近い場合は、斜面判定を無視
