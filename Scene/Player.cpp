@@ -265,6 +265,11 @@ void Player::Update(void)
 			m_hpDrainTimer = 0.0f;
 		}
 	}
+	// デバッグ用:HP回復
+	if (m_inputManager.GetKeyboardPress(DIK_L))
+	{
+		m_currentHP = 100.0f;
+	}
 
 
 #ifdef _DEBUG
@@ -391,8 +396,8 @@ void Player::InitHPBar(UIManager* uiManager)
 	m_hpBar = new HPBarUI();
 
 	// HPバーの位置・サイズは適宜調整してください
-	m_hpBar->SetPosition({ 120.0f, 120.0f });
-	m_hpBar->SetSize({ 500.0f, 50.0f });
+	m_hpBar->SetPosition({ 180.0f, 120.0f });
+	m_hpBar->SetSize({ 440.0f, 50.0f });
 	m_hpBar->SetHP(1.0f);
 
 	// 装飾テクスチャの設定例

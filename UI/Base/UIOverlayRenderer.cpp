@@ -108,6 +108,38 @@ float UIOverlayRenderer::ComputeAlpha() const
     return m_fadeIn ? (t * m_targetColor.w) : ((1.0f - t) * m_targetColor.w);
 }
 
+//void UIOverlayRenderer::DrawHPBar(
+//    ID3D11DeviceContext* ctx,
+//    float x, float y,
+//    float width, float height,
+//    float hpRatio,
+//    DirectX::XMFLOAT4 barColor,
+//    DirectX::XMFLOAT4 bgColor)
+//{
+//    hpRatio = (hpRatio < 0.0f) ? 0.0f : ((hpRatio > 1.0f) ? 1.0f : hpRatio);
+//
+//     //フェード状態を一時退避して無効化
+//     bool originalIsFading = m_isFading;
+//     float originalAlpha = 1.0f;
+//     if (originalIsFading)
+//     {
+//         originalAlpha = ComputeAlpha();
+//         m_isFading = false;  // フェード無効化
+//     }
+//
+//    // 背景バー（全面）
+//    Draw(ctx, x + width * 0.5f, y + height * 0.5f, width, height, bgColor);
+//
+//    // HPバー（左端固定）
+//    float hpWidth = width * hpRatio;
+//    if (hpWidth > 0.0f)
+//    {
+//        float hpX = x + hpWidth * 0.5f;
+//        float hpY = y + height * 0.5f;
+//        Draw(ctx, hpX, hpY, hpWidth, height, barColor);
+//    }
+//}
+
 void UIOverlayRenderer::DrawHPBar(
     ID3D11DeviceContext* ctx,
     float x, float y,
@@ -116,29 +148,48 @@ void UIOverlayRenderer::DrawHPBar(
     DirectX::XMFLOAT4 barColor,
     DirectX::XMFLOAT4 bgColor)
 {
+    // hpRatioの範囲制限は最初に行う
     hpRatio = (hpRatio < 0.0f) ? 0.0f : ((hpRatio > 1.0f) ? 1.0f : hpRatio);
 
-     //フェード状態を一時退避して無効化
-     bool originalIsFading = m_isFading;
-     float originalAlpha = 1.0f;
-     if (originalIsFading)
-     {
-         originalAlpha = ComputeAlpha();
-         m_isFading = false;  // フェード無効化
-     }
+    // フェード状態一時退避
+    bool originalIsFading = m_isFading;
+    float originalAlpha = 1.0f;
+    if (originalIsFading)
+    {
+        originalAlpha = ComputeAlpha();
+        m_isFading = false;
+    }
 
-    // 背景バー（全面）
+    // 背景バー（長方形のまま）
     Draw(ctx, x + width * 0.5f, y + height * 0.5f, width, height, bgColor);
 
-    // HPバー（左端固定）
+    // HPバー（台形に変更）
     float hpWidth = width * hpRatio;
     if (hpWidth > 0.0f)
     {
-        float hpX = x + hpWidth * 0.5f;
-        float hpY = y + height * 0.5f;
-        Draw(ctx, hpX, hpY, hpWidth, height, barColor);
+        float hpWidth = width * hpRatio;
+        float centerX = x + hpWidth * 0.5f;
+        float centerY = y + height * 0.5f;
+        float skewX = -55.0f;  // お好みで調整
+
+        UISpriteRenderer::SetSpriteParallelogram(
+            m_vertexBuffer,
+            centerX, centerY,
+            hpWidth, height,
+            skewX,
+            0, 0, 1, 1,
+            barColor
+        );
+
+        // 描画コマンド
+        UINT stride = sizeof(UIVertex);
+        UINT offset = 0;
+        ctx->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+        ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        ctx->Draw(4, 0);
     }
 }
+
 
 void UIOverlayRenderer::Draw2DTexturedRect(
     ID3D11DeviceContext* ctx,
