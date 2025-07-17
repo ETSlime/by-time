@@ -108,6 +108,7 @@ float UIOverlayRenderer::ComputeAlpha() const
     return m_fadeIn ? (t * m_targetColor.w) : ((1.0f - t) * m_targetColor.w);
 }
 
+//長方形のバー描画用
 //void UIOverlayRenderer::DrawHPBar(
 //    ID3D11DeviceContext* ctx,
 //    float x, float y,
@@ -140,6 +141,7 @@ float UIOverlayRenderer::ComputeAlpha() const
 //    }
 //}
 
+//平行四辺形バー描画用
 void UIOverlayRenderer::DrawHPBar(
     ID3D11DeviceContext* ctx,
     float x, float y,
@@ -224,7 +226,7 @@ void UIOverlayRenderer::DrawOverlayTexture(
 
     // 3. 描画用の頂点バッファをセット
     // ここでは、画面左上が原点(0,0)のピクセル座標系と仮定
-    // 既存の2D矩形描画関数を呼ぶ場合が多いです
+    // 既存の2D矩形描画関数を呼ぶ場合が多い
 
     Draw2DTexturedRect(ctx, x, y, width, height, color);
 

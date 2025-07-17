@@ -40,5 +40,6 @@ public:
         float U, float V, float UW, float VH,
         XMFLOAT4 color, float rotationRad);
 
+    // UIバーの頂点編集用関数
     static void SetSpriteParallelogram(ID3D11Buffer* buf, float x, float y, float width, float height, float skewX, float U, float V, float UW, float VH, XMFLOAT4 color);
 };

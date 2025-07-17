@@ -35,14 +35,13 @@ public:
     // HPバー専用描画（右端固定で左から縮む）
     void DrawHPBar(ID3D11DeviceContext* ctx, float x, float y, float width, float height, float hpRatio, DirectX::XMFLOAT4 barColor, DirectX::XMFLOAT4 bgColor);
 
-    // 指定座標・サイズでテクスチャを2D描画する関数（新規追加）
+    // 指定座標・サイズでテクスチャを2D描画する関数
     void DrawOverlayTexture(
         ID3D11DeviceContext* ctx,
         float x, float y,
         float width, float height,
         ID3D11ShaderResourceView* textureSRV,
         const DirectX::XMFLOAT4& color = { 1,1,1,1 });
-
     void Draw2DTexturedRect(ID3D11DeviceContext* ctx, float x, float y, float width, float height, const DirectX::XMFLOAT4& color);
 
 private:
