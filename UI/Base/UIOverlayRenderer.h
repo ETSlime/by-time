@@ -18,6 +18,8 @@
 class UIOverlayRenderer
 {
 public:
+    ~UIOverlayRenderer();
+
     bool Initialize(ID3D11Buffer* vertexBuffer);
 
     // 瞬間表示（アルファ指定）
@@ -33,6 +35,16 @@ public:
     // HPバー専用描画（右端固定で左から縮む）
     void DrawHPBar(ID3D11DeviceContext* ctx, float x, float y, float width, float height, float hpRatio, DirectX::XMFLOAT4 barColor, DirectX::XMFLOAT4 bgColor);
 
+    // 指定座標・サイズでテクスチャを2D描画する関数（新規追加）
+    void DrawOverlayTexture(
+        ID3D11DeviceContext* ctx,
+        float x, float y,
+        float width, float height,
+        ID3D11ShaderResourceView* textureSRV,
+        const DirectX::XMFLOAT4& color = { 1,1,1,1 });
+
+    void Draw2DTexturedRect(ID3D11DeviceContext* ctx, float x, float y, float width, float height, const DirectX::XMFLOAT4& color);
+
 private:
     // 現在のアルファ値を取得
     float ComputeAlpha() const;
@@ -47,4 +59,6 @@ private:
 
     Renderer& m_renderer = Renderer::get_instance();
     ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
+
+    ID3D11BlendState* m_alphaBlendState = nullptr;  // アルファブレンド用ブレンドステート
 };

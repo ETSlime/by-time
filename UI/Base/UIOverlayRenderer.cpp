@@ -18,7 +18,34 @@ bool UIOverlayRenderer::Initialize(ID3D11Buffer* vertexBuffer)
     if (m_whiteTextureSRV == nullptr)
         return false;
 
+    // --- アルファブレンドステートの初期化 ---
+    ID3D11Device* device = m_renderer.GetDevice();  // あなたの環境に合わせて取得方法を調整
+
+    D3D11_BLEND_DESC blendDesc = {};
+    blendDesc.RenderTarget[0].BlendEnable = TRUE;
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    HRESULT hr = device->CreateBlendState(&blendDesc, &m_alphaBlendState);
+    if (FAILED(hr)) {
+        return false; // 失敗時の処理
+    }
+
     return true;
+}
+
+UIOverlayRenderer::~UIOverlayRenderer()
+{
+    if (m_alphaBlendState)
+    {
+        m_alphaBlendState->Release();
+        m_alphaBlendState = nullptr;
+    }
 }
 
 void UIOverlayRenderer::Draw(ID3D11DeviceContext* ctx, float x, float y, float width, float height, XMFLOAT4 color)
@@ -112,3 +139,49 @@ void UIOverlayRenderer::DrawHPBar(
         Draw(ctx, hpX, hpY, hpWidth, height, barColor);
     }
 }
+
+void UIOverlayRenderer::Draw2DTexturedRect(
+    ID3D11DeviceContext* ctx,
+    float x, float y,
+    float width, float height,
+    const DirectX::XMFLOAT4& color)
+{
+    // UV全体 (0〜1) を使用して矩形描画
+    UISpriteRenderer::SetSpriteWithColor(m_vertexBuffer, x, y, width, height, 0.0f, 0.0f, 1.0f, 1.0f, color);
+
+    UINT stride = sizeof(UIVertex);
+    UINT offset = 0;
+    ctx->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+    ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    ctx->Draw(4, 0);
+}
+
+void UIOverlayRenderer::DrawOverlayTexture(
+    ID3D11DeviceContext* ctx,
+    float x, float y,
+    float width, float height,
+    ID3D11ShaderResourceView* textureSRV,
+    const DirectX::XMFLOAT4& color)
+{
+    if (!ctx || !textureSRV) return;
+
+    // 1. シェーダーリソースビューをセット
+    ctx->PSSetShaderResources(0, 1, &textureSRV);
+
+    // 2. ブレンドステート（アルファブレンド）を有効にする
+    ctx->OMSetBlendState(m_alphaBlendState, nullptr, 0xffffffff);
+
+    // 3. 描画用の頂点バッファをセット
+    // ここでは、画面左上が原点(0,0)のピクセル座標系と仮定
+    // 既存の2D矩形描画関数を呼ぶ場合が多いです
+
+    Draw2DTexturedRect(ctx, x, y, width, height, color);
+
+    // 4. シェーダーリソースを解除（クリーンアップ）
+    ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
+    ctx->PSSetShaderResources(0, 1, nullSRV);
+
+    // 5. ブレンドステートを元に戻す（必要なら）
+    ctx->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+}
+

@@ -62,8 +62,8 @@ public:
 
 	void PickItem(Item* obj);
 
-	int GetCurrentHP() const { return m_currentHP; }
-	int GetMaxHP() const { return m_maxHP; }
+	float GetCurrentHP() const { return m_currentHP; }
+	float GetMaxHP() const { return m_maxHP; }
 
 	void TakeDamage(int damage);
 	void Heal(int amount);
@@ -104,8 +104,8 @@ private:
 
 	bool m_hasWeapon = false;
 
-	int m_currentHP = 100;    // åªç›HP
-	int m_maxHP = 100;        // ç≈ëÂHP
+	float m_currentHP = 100;    // åªç›HP
+	float m_maxHP = 100;        // ç≈ëÂHP
 
 	HPBarUI* m_hpBar = nullptr;
 

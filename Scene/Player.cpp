@@ -258,7 +258,7 @@ void Player::Update(void)
 	{
 		float deltaTime = 1.0f / 60.0f; // 仮想フレームレート（必要に応じてGameSystemからもらうとより良い）
 		m_hpDrainTimer += deltaTime;
-
+	
 		if (m_hpDrainTimer >= 1.0f)
 		{
 			TakeDamage(1);
@@ -269,6 +269,7 @@ void Player::Update(void)
 
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", transform.pos.x, transform.pos.y, transform.pos.z);
+	m_debugProc.PrintDebugProc("HP: %f\n", m_currentHP);
 #endif
 }
 
@@ -334,6 +335,10 @@ void Player::InitializePlayerStatus(void)
 		lumine->InitializeStatus();
 	}
 
+	m_maxHP = 100.0f;
+	m_currentHP = 100.0f;
+	SetHP(1.0f);
+
 	Update();
 }
 
@@ -386,11 +391,13 @@ void Player::InitHPBar(UIManager* uiManager)
 	m_hpBar = new HPBarUI();
 
 	// HPバーの位置・サイズは適宜調整してください
-	m_hpBar->SetPosition({ 50.0f, 40.0f });
-	m_hpBar->SetSize({ 400.0f, 35.0f });
+	m_hpBar->SetPosition({ 120.0f, 120.0f });
+	m_hpBar->SetSize({ 500.0f, 50.0f });
 	m_hpBar->SetHP(1.0f);
-	m_hpBar->SetBarColor({ 0.0f, 1.0f, 0.0f, 1.0f });       // 緑色
-	m_hpBar->SetBackgroundColor({ 0.1f, 0.1f, 0.1f, 0.5f }); // 半透明の背景
+
+	// 装飾テクスチャの設定例
+	ID3D11ShaderResourceView* decoTex = TextureMgr::get_instance().CreateTexture("data/TEXTURE/ui2hp_.png");
+	m_hpBar->SetDecorationTexture(decoTex);
 
 	if (uiManager)
 	{

@@ -1,18 +1,18 @@
-#include "Scene/HPBarUI.h"
+﻿#include "Scene/HPBarUI.h"
 #include "UI/Base/UIManager.h"
 #include "UI/Base/UIOverlayRenderer.h"
 
 void HPBarUI::Update()
 {
-    // �K�v�ɉ�����HP�����Ȃǃe�X�g�R�[�h������
+    // 必要に応じてHP減少などテストコードを書く
 }
 
 void HPBarUI::Draw()
 {
     UIOverlayRenderer& overlay = UIManager::get_instance().GetOverlayRenderer();
-
     ID3D11DeviceContext* ctx = UIManager::get_instance().GetRenderer().GetDeviceContext();
 
+    // 1. HPバーの描画
     overlay.DrawHPBar(
         ctx,
         m_position.x, m_position.y,
@@ -21,6 +21,18 @@ void HPBarUI::Draw()
         m_barColor,
         m_bgColor
     );
+
+    // 2. 装飾テクスチャの重ね描き（フルHD）
+    if (m_decoTextureSRV)
+    {
+        overlay.DrawOverlayTexture(
+            ctx,
+            960.0f, 540.0f,              // 描画位置（画面左上）
+            1920.0f, 1080.0f,        // 描画サイズ（フルHD）
+            m_decoTextureSRV,
+            { 1, 1, 1, 1 }           // 色（RGBA）— アルファ0.5fなどで透明にも
+        );
+    }
 }
 
 
