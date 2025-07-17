@@ -7,6 +7,8 @@ Sword::Sword(Transform transform) :Item(ItemType::Weapon, transform)
 	GameObjectConfig config;
 	config.modelPath = "data/MODEL/Item/Key/Key.obj";
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	config.flip = AxisFlip::None;
+	config.loadAsync = false;
 	config.colliderTag = ColliderTag::ITEM;
 	config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 	config.modelType = ModelType::Default;

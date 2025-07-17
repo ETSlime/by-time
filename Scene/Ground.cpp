@@ -348,7 +348,7 @@ void Ground::LoadScene1(void)
 	if (m_p1SeedCont == nullptr) {
 
 		Transform trans;
-		trans.pos = XMFLOAT3(-4371.0f, -4670.0f, -1595.0f);
+		trans.pos = XMFLOAT3(-4371.0f, -4770.0f, -1595.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = SWORD_SIZE;
 
@@ -398,7 +398,7 @@ void Ground::LoadScene2(void)
 	if (m_sceneSword == nullptr) {
 
 		Transform trans;
-		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
+		trans.pos = XMFLOAT3(-5371.0f, -4770.0f, -1295.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = SWORD_SIZE;
 	
