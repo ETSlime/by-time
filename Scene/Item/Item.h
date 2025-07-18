@@ -12,7 +12,8 @@ enum class ItemType
 	Seed,
 	Interactable,// Interactable‚Ì•û‚ÍŽè‚É“ü‚ê‚È‚¢
 	IntSoil,
-	IntVine,
+	IntPSeed,
+	IntVines,
 	Max
 };
 
@@ -40,7 +41,7 @@ public:
 	void Update(void) override;
 	void Draw(void) override;
 
-	void Use(void) {};
+	void Use(void);
 	void Pickup(void);
 	bool GetUsed(void) { return m_itemAttributes.used; }
 	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }

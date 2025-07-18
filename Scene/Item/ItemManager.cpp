@@ -101,7 +101,7 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 	}
 	else {
 	
-		item = new Interactable(trans);
+		item = new Interactable(itemType, trans);
 	
 	}
 

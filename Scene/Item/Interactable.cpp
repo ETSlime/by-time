@@ -1,6 +1,6 @@
 #include "Interactable.h"
 
-Interactable::Interactable(Transform transform) :Item(ItemType::Interactable, transform)
+Interactable::Interactable(ItemType itemType, Transform transform): Item(itemType, transform)
 {
 	/*GameObjectConfig config;
 	config.modelPath = "data/MODEL/Item/Key/Key.obj";

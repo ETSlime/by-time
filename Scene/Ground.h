@@ -143,6 +143,9 @@ private:
 
 	Item* m_sceneKey = nullptr;
 	Item* m_sceneSeed = nullptr;
+	Item* m_sceneSoil = nullptr;
+	Item* m_scenePSeed = nullptr;
+	Item* m_sceneVines = nullptr;
 	Skybox* m_skybox = nullptr;
 };
 

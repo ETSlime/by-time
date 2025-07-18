@@ -1026,7 +1026,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		Item* item = static_cast<Item*>(itemCol->owner);
 		if (item && item->GetItemType() == ItemType::Seed)
 		{
-
+			self->EnableSeed(true);
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{

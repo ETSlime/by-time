@@ -6,7 +6,7 @@ class Interactable : public Item {
 
 public:
 
-	Interactable(Transform transform);
+	Interactable(ItemType itemType, Transform transform);
 	~Interactable();
 
 	void Update(void) override;

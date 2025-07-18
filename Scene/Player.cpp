@@ -269,9 +269,13 @@ void Player::UpdateNormalMode(void)
 	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
 		if (m_linkedInteractable != nullptr)
 		{
-			//m_linkedInteractable->Use();
-			//m_linkedInteractable->SetActive(false);
-			m_transform.pos.y += 500;
+			if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
+				m_linkedInteractable->Use();
+				m_linkedInteractable->SetActive(false);
+			}
+			else if (m_linkedInteractable->GetItemType() == ItemType::IntVines) {
+				m_transform.pos.y += 500;
+			}
 		}
 		m_linkedInteractable = nullptr;
 	}

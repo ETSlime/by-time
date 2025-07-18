@@ -34,9 +34,24 @@ void Item::Initialize(void)
 		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 		break;
 	case ItemType::Interactable:
+		config.modelPath = "data/MODEL/Item/Vines/vines.obj";
+		config.scale = XMFLOAT3(20.0f, 20.0f, 20.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		break;
+	case ItemType::IntSoil:
+		config.modelPath = "data/MODEL/Item/Soil/soil.obj";
+		config.scale = XMFLOAT3(20.0f, 20.0f, 20.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		break;
+	case ItemType::IntPSeed:
 		config.modelPath = "data/MODEL/Item/Seed/Seed.obj";
 		config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+		break;
+	case ItemType::IntVines:
+		config.modelPath = "data/MODEL/Item/Vines/vines.obj";
+		config.scale = XMFLOAT3(20.0f, 20.0f, 20.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;
 	}
 
@@ -61,6 +76,11 @@ void Item::Initialize(void)
 void Item::Draw(void)
 {
 	GameObject::Draw();
+}
+
+void Item::Use(void)
+{
+	m_itemAttributes.used = true;
 }
 
 void Item::Pickup(void)
