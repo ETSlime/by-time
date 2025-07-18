@@ -90,7 +90,21 @@ void ItemManager::Update(void)
 Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 {
 
-	Item* item = new Item(itemType, trans);
+	Item* item;
+	
+	
+	// = new Item(itemType, trans);
+
+	if (itemType < ItemType::Interactable) {
+	
+		item = new Item(itemType, trans);
+	}
+	else {
+	
+		item = new Interactable(trans);
+	
+	}
+
 	item->Initialize();
 
 	if (!itemLoadMap.contains(TO_UINT64(item->GetID())))

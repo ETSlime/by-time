@@ -405,7 +405,7 @@ void Ground::LoadScene1(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
-		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Interactable, trans);
 
 	}
 	else if (!m_sceneSeed->GetUsed())

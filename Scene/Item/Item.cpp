@@ -33,11 +33,19 @@ void Item::Initialize(void)
 		config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
 		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 		break;
+	case ItemType::Interactable:
+		config.modelPath = "data/MODEL/Item/Seed/Seed.obj";
+		config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
+		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+		break;
 	}
 
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	config.colliderTag = ColliderTag::ITEM;
 	config.modelType = ModelType::Default;
+
+	if (m_itemAttributes.itemType >= ItemType::Interactable)
+		config.colliderTag = ColliderTag::DEFAULT;
 
 	Instantiate(config);
 

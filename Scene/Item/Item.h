@@ -11,6 +11,8 @@ enum class ItemType
 	Key,
 	Seed,
 	Interactable,// Interactable‚Ì•û‚ÍŽè‚É“ü‚ê‚È‚¢
+	IntSoil,
+	IntVine,
 	Max
 };
 
@@ -56,5 +58,7 @@ protected:
 	};
 
 	ItemAttributes m_itemAttributes;
+
+	Collider m_triggerCollider;
 
 };
