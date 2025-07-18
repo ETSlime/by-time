@@ -13,7 +13,7 @@
 //*****************************************************************************
 // É}ÉNÉçíËã`
 //*****************************************************************************
-#define TITLE_ANIM_TEXTURE_PATH         "data/TEXTURE/bg000.jpg"
+#define TITLE_ANIM_TEXTURE_PATH         "data/TEXTURE/bg000.png"
 #define TITLE_NEWGAME_TEXTURE_PATH      "data/TEXTURE/UI/newgame_xlixk.png"
 #define TITLE_BTN_TEXTURE_SIZE_X        380
 #define TITLE_BTN_TEXTURE_SIZE_Y        80

@@ -11,100 +11,54 @@
 #include "Collision/VoxelGrid.h"
 #include "Utility/SingletonBase.h"
 #include "Utility/Debugproc.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
+#include "Collision/Collider.h"
 #include "Model/Model.h"
 
-//*****************************************************************************
-// マクロ定義
-//*****************************************************************************
-
-// 衝突器の種類を表す列挙型
-enum class ColliderTag 
-{
-    DEFAULT,
-    PLAYER,
-    ENEMY,
-    WALL,
-    TREE,
-    ITEM,
-    STATIC_OBJECT,
-    TELEPORTER,
-    PLAYER_ATTACK,
-    ENEMY_ATTACK,
-    PLAYER_PROJECTILE
-};
 
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
-class Collider 
+// コライダーのペア構造体（常に小さいアドレスが first）
+struct ColliderPair
 {
-public:
-    BOUNDING_BOX aabb; // ワールド座標での衝突判定用
-    ColliderTag tag; // 衝突器の種類
-    void* owner;
-    bool enable;
-    bool isInitialized;
+    const Collider* collider1;
+    const Collider* collider2;
 
-    Collider()
+    ColliderPair(const Collider* col1, const Collider* col2)
     {
-        aabb = BOUNDING_BOX();
-        tag = ColliderTag::DEFAULT;
-        enable = false;
-        isInitialized = false;
-        owner = nullptr;
-    }
-
-    void UpdateBoundingBox(const XMVECTOR& min, const XMVECTOR& max)
-    {
-        XMStoreFloat3(&aabb.minPoint, min);
-        XMStoreFloat3(&aabb.maxPoint, max);
-        isInitialized = true;
-    }
-};
-
-// 衝突イベント構造体：衝突時に発行されるイベントメッセージ
-struct CollisionEvent 
-{
-    const Collider* colliderA;
-    const Collider* colliderB;
-};
-
-// コールバック関数
-typedef void (*CollisionListener)(const CollisionEvent& event, void* context);
-
-// 衝突イベントリスナーのエントリ構造体
-struct CollisionListenerEntry 
-{
-    CollisionListener listener; // コールバック関数ポインタ
-    void* context;              // 任意のコンテキスト情報（呼び出し側で利用可能）
-};
-
-// EventBus クラス：イベントを購読・発行するシンプルなメッセージシステム
-class EventBus 
-{
-public:
-    // 衝突イベントリスナーのリストを保持する
-    SimpleArray<CollisionListenerEntry> collisionListeners;
-
-    // 衝突イベントの購読を登録する（関数ポインタとコンテキストを登録）
-    void subscribeCollision(CollisionListener listener, void* context) 
-    {
-        CollisionListenerEntry entry;
-        entry.listener = listener;
-        entry.context = context;
-        collisionListeners.push_back(entry);
-    }
-
-    // 衝突イベントを発行する（登録された全リスナーに通知する）
-    void publishCollision(const CollisionEvent& event) 
-    {
-        for (UINT i = 0; i < collisionListeners.getSize(); ++i) 
+        if (col1 < col2)
         {
-            collisionListeners[i].listener(event, collisionListeners[i].context);
+            collider1 = col1;
+            collider2 = col2;
+        }
+        else
+        {
+            collider1 = col2;
+            collider2 = col1;
         }
     }
 };
+
+// コライダーペアのハッシュ関数
+struct HashColliderPair
+{
+    size_t operator()(const ColliderPair& pair) const
+    {
+        size_t h1 = reinterpret_cast<size_t>(pair.collider1);
+        size_t h2 = reinterpret_cast<size_t>(pair.collider2);
+        return h1 ^ (h2 << 1); // シンプルなXOR合成
+    }
+};
+
+// コライダーペアの比較関数
+struct EqualColliderPair
+{
+    bool operator()(const ColliderPair& lhs, const ColliderPair& rhs) const
+    {
+        return lhs.collider1 == rhs.collider1 && lhs.collider2 == rhs.collider2;
+    }
+};
+
 
 // CollisionManager クラス：静的オブジェクト（八分木）と動的オブジェクトの衝突管理
 class CollisionManager : public SingletonBase<CollisionManager>, IDebugUI
@@ -125,6 +79,8 @@ public:
 
     // 動的衝突体の登録
     void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
+    // 衝突イベントを発行するためのコライダーを登録
+	void RegisterEventCollider(Collider* collider) { m_triggerEventColliders.push_back(collider); }
     // 動的衝突体リストのクリア
     void ClearDynamicColliders(void) { dynamicColliders.clear(); }
 
@@ -132,7 +88,11 @@ public:
     void PrepareVoxelMappingAfterSceneChange(void);
 
 private:
-    bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
+    // 動的オブジェクト同士の衝突判定
+	bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
+	// イベント衝突判定（衝突イベントの発行・購読）
+	void CheckEventCollision(const Collider* dynamicCol, Collider* triggerCol);
+    void TriggerOnExit(void);
     virtual void RenderDebugInfo(void) override;
 
     bool m_drawBoundingBox = true;
@@ -146,6 +106,17 @@ private:
 
     // 動的オブジェクト（プレイヤー、敵、その他）の衝突体リスト
     SimpleArray<const Collider*> dynamicColliders;
+
+	// 衝突イベントを発行するためのコライダーリスト
+    SimpleArray<Collider*> m_triggerEventColliders;
+
+    // 毎フレームの接触ペア記録（フレーム前後の比較に使用）
+    HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>* m_currentFramePairs = nullptr;
+    HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>* m_lastFramePairs = nullptr;
+
+    // 実体（2つのバッファ）
+    HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair> m_framePairsA;
+    HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair> m_framePairsB;
 
     // イベントバスのインスタンス
     EventBus eventBus;

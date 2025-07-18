@@ -25,6 +25,7 @@ enum class ActionEnum
 {
 	NONE,
 	ATTACK,
+	AIM,
 };
 
 enum class ModelType
@@ -45,6 +46,7 @@ enum class ObjectCollisionType
 
 #define DRAW_BOUNDING_BOX       1
 #define MAX_MODEL_TYPE			32
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -94,6 +96,11 @@ struct Attributes
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
 	bool			hasWeapon = false;
+	bool			hasGun = false;
+	bool			aimMode = false;	// エイムモード
+	bool			climbMode = false; // クライムモード
+	bool			climbUp = false; // クライムモードで上に移動中かどうか
+	bool 			climbDown = false; // クライムモードで下に移動中かどうか
 
 	void Initialize(void)
 	{
@@ -426,6 +433,11 @@ public:
 	virtual void PlayDashAnim() {}
 	virtual void PlayJumpAnim() {}
 	virtual void PlaySurprisedAnim() {}
+	virtual void PlayIdleAimAnim() {}
+	virtual void PlayWalkAimAnim() {}
+	virtual void PlayRunAimAnim() {}
+	virtual void PlayStandJumpAnim() {}
+	virtual void PlayRunJumpAnim() {}
 	virtual void InitAnimInfo() {}
 
 	virtual bool CanWalk() const = 0;
@@ -440,6 +452,16 @@ public:
 	virtual bool CanJump()	const { return false; }
 	virtual bool CanSurprised() const { return false; }
 	virtual bool CanDie()	const { return false; }
+	virtual bool CanAim() const { return false; }
+	virtual bool CanWalkAim() const { return false; }
+	virtual bool CanWalkAimToWalk() const { return false; }
+	virtual bool CanRunAim() const { return false; }
+	virtual bool CanRunAimToRun() const { return false; }
+	virtual bool CanStopAiming() const { return false; }
+	virtual bool CanJumpAim() const { return false; }
+	virtual bool CanRunJumpAim() const { return false; }
+	virtual bool CanClimb() const { return false; }
+	virtual bool CanStopClimbing() const { return false; }
 	virtual void OnAttackAnimationEnd() {};
 	virtual void OnHitAnimationEnd() {};
 	virtual void OnDashAnimationEnd() {}

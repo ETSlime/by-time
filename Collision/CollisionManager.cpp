@@ -16,7 +16,8 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define DRAW_BOUNDING_BOX       1
+#define DRAW_BOUNDING_BOX               1
+#define MAX_TRIGGER_EVENT_NUM           256
 
 constexpr float HEIGHT_EPSILON = 5.0f;
 constexpr float SMOOTHING_FACTOR = 0.1f;
@@ -34,6 +35,21 @@ void CollisionManager::Init(void)
 #if DRAW_BOUNDING_BOX
     m_debugBoundingBoxRenderer.Initialize();
 #endif
+
+    m_framePairsA = HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>(
+        MAX_TRIGGER_EVENT_NUM, // 初期バケット数
+        HashColliderPair(), // ハッシュ関数
+        EqualColliderPair() // 等価比較関数
+    );
+
+    m_framePairsB = HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>(
+        MAX_TRIGGER_EVENT_NUM, // 初期バケット数
+        HashColliderPair(), // ハッシュ関数
+        EqualColliderPair() // 等価比較関数
+    );
+
+    m_currentFramePairs = &m_framePairsA;
+    m_lastFramePairs = &m_framePairsB;
 }
 
 void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
@@ -65,18 +81,19 @@ void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, fl
 
 void CollisionManager::Update()
 {
+#ifdef _DEBUG
     if (m_voxelGrid)
     {
-		if (InputManager::get_instance().GetKeyboardTrigger(DIK_V))
-		{
-			m_voxelGrid->print_debug_stats();
-		}
+        if (InputManager::get_instance().GetKeyboardTrigger(DIK_V))
+        {
+            m_voxelGrid->print_debug_stats();
+        }
     }
+#endif // _DEBUG
 
-
-    int numColliders = dynamicColliders.getSize();
+    UINT numColliders = dynamicColliders.getSize();
     
-    for (int i = 0; i < numColliders; i++)
+    for (UINT i = 0; i < numColliders; i++)
     {
         const Collider* dynamicCol = dynamicColliders[i];
 
@@ -88,6 +105,9 @@ void CollisionManager::Update()
         if (m_staticOctree)
         {
             auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(dynamicCol->owner);
+            if (!colliderOwner->GetLoad()) 
+                continue;
+
             Transform transform = colliderOwner->GetTransform();
 
 
@@ -103,9 +123,10 @@ void CollisionManager::Update()
             float minDistSq = FLT_MAX; // 最短距離
             float currentY = dynamicCol->aabb.minPoint.y;//transform.pos.y;
             XMVECTOR obstacleNormal{};
+
             // 候補となる各三角形に対して、精密な衝突判定を実施する
-            int numCandidates = candidates.getSize();
-            for (int j = 0; j < numCandidates; j++)
+            UINT numCandidates = candidates.getSize();
+            for (UINT j = 0; j < numCandidates; j++)
             {
                 SimpleArray<float> hitYArray;
                 if (dynamicCol->aabb.intersects(candidates[j]->aabb))
@@ -291,12 +312,10 @@ void CollisionManager::Update()
                     colliderOwner->SetGrounded(false);
                 }
             }
-
-
         }
 
         // 動的オブジェクト同士（例：プレイヤーと敵、その他）の衝突検出
-        for (int j = i + 1; j < numColliders; j++)
+        for (UINT j = i + 1; j < numColliders; j++)
         {
             const Collider* dynamicCol2 = dynamicColliders[j];
 
@@ -362,16 +381,14 @@ void CollisionManager::Update()
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ITEM)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
                 {
-                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
-                    auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(playerCol->owner);
+                    CollisionEvent event{ dynamicCol, dynamicCol2 };
 
-                    const Collider* itemCol = dynamicCol->tag == ColliderTag::ITEM ? dynamicCol : dynamicCol2;
-                    auto itemColOwner = static_cast<Item*>(itemCol->owner);
+                    // コールバックを持っていれば呼ぶ
+                    if (dynamicCol->onCollisionCallback)
+                        dynamicCol->CallCollisionCallback(event);
+                    if (dynamicCol2->onCollisionCallback)
+                        dynamicCol2->CallCollisionCallback(event);
 
-                    //colliderOwner->PickItem(itemColOwner);
-                    colliderOwner->EnableWeapon(true);
-
-                    itemColOwner->Use();
                 }
                 else
                 {
@@ -478,7 +495,24 @@ void CollisionManager::Update()
                 eventBus.publishCollision(collisionEvent);
             }
         }
+
+		// トリガーイベント型の衝突検出
+		UINT triggerEventCount = m_triggerEventColliders.getSize();
+		for (UINT j = 0; j < triggerEventCount; j++)
+		{
+			Collider* triggerCol = m_triggerEventColliders[j];
+			if (triggerCol->enable == false) continue;
+
+			// トリガーイベント型の衝突検出
+			if (dynamicCol->aabb.intersects(triggerCol->aabb))
+			{
+				CheckEventCollision(dynamicCol, triggerCol);
+			}
+		}
     }
+
+    // 接触終了イベントを発行
+	TriggerOnExit();
 }
 
 bool CollisionManager::OctreeInsertTriangle(const Triangle* tri)
@@ -553,6 +587,63 @@ bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col
         (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_PROJECTILE) ||
         (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
         (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
+}
+
+void CollisionManager::CheckEventCollision(const Collider* dynamicCol, Collider* triggerCol)
+{
+    // triggerColがTriggerEventColliderであることを保証
+    if (triggerCol->tag != ColliderTag::TRIGGER)
+        return; // ありえないが、安全のためチェック
+
+    TriggerEventCollider* trigger = static_cast<TriggerEventCollider*>(triggerCol);
+
+    ColliderPair pair(dynamicCol, triggerCol);
+    m_currentFramePairs->insert(pair, true); // 接触ペアを記録
+
+    // 前のフレームには存在しない → 新規接触
+    if (!m_lastFramePairs->contains(pair))
+    {
+        trigger->TriggerEnter(dynamicCol);
+    }
+}
+
+void CollisionManager::TriggerOnExit(void)
+{
+    for (auto it = m_lastFramePairs->begin(); it != m_lastFramePairs->end(); ++it)
+    {
+        const ColliderPair& pair = it->key;
+
+        if (!m_currentFramePairs->contains(pair))
+        {
+            const Collider* collider1 = pair.collider1;
+            const Collider* collider2 = pair.collider2;
+
+            TriggerEventCollider* trigger = nullptr;
+            const Collider* activator = nullptr;
+
+            if (collider1->tag == ColliderTag::TRIGGER)
+            {
+                trigger = static_cast<TriggerEventCollider*>(const_cast<Collider*>(collider1));
+                activator = collider2;
+            }
+            else if (collider2->tag == ColliderTag::TRIGGER)
+            {
+                trigger = static_cast<TriggerEventCollider*>(const_cast<Collider*>(collider2));
+                activator = collider1;
+            }
+
+            if (trigger)
+            {
+				trigger->TriggerExit(activator); // 接触終了イベントを発行
+            }
+        }
+    }
+    
+    // ポインタをスワップ（ping-pong）
+    std::swap(m_currentFramePairs, m_lastFramePairs);
+    // フレーム終わりにペアを更新
+    m_currentFramePairs->clear();
+
 }
 
 void CollisionManager::RenderDebugInfo(void)

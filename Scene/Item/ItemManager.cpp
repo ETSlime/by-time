@@ -1,5 +1,5 @@
-#include "ItemManager.h"
-#include "Scene/Item/Sword.h"
+#include "Scene/Item/ItemManager.h"
+#include "Scene/Item/Item.h"
 #include "Scene/Ground.h"
 
 void ItemManager::Init(void)
@@ -14,7 +14,6 @@ void ItemManager::InitializeItemStatus(void)
 	while (cur != nullptr)
 	{
 		cur->data->Initialize();
-		//cur->data->SetDrawWorldAABB(true);
 		cur = cur->next;
 	}
 }
@@ -89,15 +88,8 @@ void ItemManager::Update(void)
 Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 {
 
-	Item* item;
-	switch (itemType)
-	{
-	case ItemType::Weapon:
-		item = new Sword(trans);
-		break;
-	default:
-		return nullptr;
-	}
+	Item* item = new Item(itemType, trans);
+	item->Initialize();
 
 	if (!itemLoadMap.contains(TO_UINT64(itemType)))
 	{
@@ -105,7 +97,6 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 		m_totalItemLoadCnt++;
 	}
 
-	//item->SetDrawWorldAABB(m_drawBoundingBox);
 	m_itemList.push_back(item);
 
 	return item;

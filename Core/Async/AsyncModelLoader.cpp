@@ -49,7 +49,7 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath, AxisFlip flip)
     task->modelPath = const_cast<char*>(modelPath);
     task->flip = flip;
 	DeferredTaskOptions options{};
-	options.async = true; // 非同期実行
+	options.async = false; // 同期実行
 	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
     DeferredTaskBinder<AsyncModelLoader>::Add(

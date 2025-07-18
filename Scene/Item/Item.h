@@ -9,15 +9,18 @@ enum class ItemType
 	Weapon,
 	GB,
 	Key,
+	Seed,
 	Max
 };
 
 struct ItemAttributes
 {
 	bool used;
+	bool pickedUp;
+	bool initialized;
 	ItemType itemType;
 
-	Transform	initTrans;
+	Transform initTrans;
 };
 
 
@@ -34,13 +37,16 @@ public:
 	void Update(void) override;
 	void Draw(void) override;
 
-	void Use(void);
-
+	void Use(void) {};
+	void Pickup(void);
+	bool GetUsed(void) { return m_itemAttributes.used; }
+	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }
 	void SetActive(bool enable);
-
+	ItemType GetItemType(void) const { return m_itemAttributes.itemType; }
 
 protected:
-
+	// プレイヤーがアイテムを拾ったときのコールバック
+	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
 	ItemAttributes m_itemAttributes;
 
 };

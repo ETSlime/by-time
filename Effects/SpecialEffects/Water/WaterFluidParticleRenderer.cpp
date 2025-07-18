@@ -89,7 +89,7 @@ void WaterFluidParticleRenderer::ConfigureEffect(const ParticleEffectParams& par
 	m_restitution = wfParams->restitution;
 }
 
-void WaterFluidParticleRenderer::EmitWater(float radius, int emitCount, const XMFLOAT3& center)
+void WaterFluidParticleRenderer::EmitWater(const XMFLOAT3& dir, float speed, float radius, int emitCount, const XMFLOAT3& center)
 {
     m_particlesToEmitThisFrame = emitCount;
 
@@ -97,6 +97,8 @@ void WaterFluidParticleRenderer::EmitWater(float radius, int emitCount, const XM
     m_emitCBData.emitCount = emitCount;
     m_emitCBData.emitCenter = center;
     m_emitCBData.emitRadius = radius;
+	m_emitCBData.emitDirection = dir;
+	m_emitCBData.emitSpeed = speed;
 
     // Emit専用定数バッファのアップロード
     UploadEmitCB();

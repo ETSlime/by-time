@@ -20,7 +20,7 @@
 #include "UI/Base/TweenManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
-#include "Scene/ItemManager.h"
+#include "Scene/Item/ItemManager.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
 #include "Effects/Skybox.h"
@@ -95,6 +95,7 @@ public:
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode(void) const { return m_mode; }
 
+	Player* GetPlayer(void) const { return m_player; }
 
 protected:
     // プライベートコンストラクタ

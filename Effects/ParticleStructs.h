@@ -62,46 +62,4 @@ struct WaterFluidParticle
     XMFLOAT4 color;                // デバッグ用カラー（密度に応じた可視化など）
 
     float size;                    // サイズ
-
-
-    UINT debug_mortonIndex = 0;     
-    XMUINT2 debug_mortonIndex64 = XMUINT2(0, 0);
-    UINT debug_voxelX = 0;              
-    UINT debug_voxelY = 0;
-    UINT debug_voxelZ = 0;
-    UINT debug_neighborX = 0;
-    UINT debug_neighborY = 0;
-    UINT debug_neighborZ = 0;
-	UINT debug_neighborID = 0;          // 近傍粒子のID（デバッグ用）
-    int debug_foundTripletIndex = 0;    
-    UINT debug_triCheckCount = 0;       
-    UINT debug_hit = 0;                 
-    UINT debug_pageHeaderIndex = 0;
-    XMFLOAT3 debug_position = { 0.0f, 0.0f, 0.0f };
-    float debug_dirLength = 0;
-    XMFLOAT3 debug_triV0 = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_triV1 = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_triV2 = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_rayStart = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_rayDir = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_hitPoint = { 0.0f, 0.0f, 0.0f };
-	XMFLOAT3 debug_pressureForce = { 0.0f, 0.0f, 0.0f }; 
-	XMFLOAT3 debug_viscosityForce = { 0.0f, 0.0f, 0.0f };
-    XMFLOAT3 debug_gridCoord = { 0.0f, 0.0f, 0.0f };
-	UINT     debug_left = 123456;              // デバッグ用：左側の粒子インデックス
-	UINT     debug_right = 123456;             // デバッグ用：右側の粒子インデックス
-	float    debug_w = 0.0f;                // デバッグ用：重み（W）値
-	float    debug_dist = 0.0f;                // デバッグ用：距離（D）値
-    UINT     debug_cellCount = 0;              // デバッグ用：セル内の粒子数
-	UINT     debug_neighborCount = 0;          // デバッグ用：近傍粒子数
-	UINT     debug_allParticleCount = 0;       // デバッグ用：全粒子数
-	UINT     debug_neighborIDcount = 0;          // デバッグ用：近傍粒子IDの数
-	UINT     debug_distCheckCount = 0;          // デバッグ用：距離チェック回数
-    XMFLOAT3 debug_accel = { 0.0f, 0.0f, 0.0f };
-	XMFLOAT3 debug_rawVelocity = { 0.0f, 0.0f, 0.0f }; // デバッグ用：速度
-	XMUINT2 debug_ipos = { 12345, 255 };           // デバッグ用：整数位置（2Dモートンコード用）
-	float debug_dist2 = 12123.0f;                // デバッグ用：距離の二乗（平方根計算回避用）
-	int debug_radius = 0;                // デバッグ用：半径（距離計算用）
-	XMFLOAT2 debug_screenPos = { 0.0f, 0.0f }; // デバッグ用：スクリーン座標
-	XMFLOAT3 padding;              // パディング（16バイト境界調整用）
 };

@@ -656,7 +656,6 @@ bool ParticleEffectRendererBase::CreateWaterFluidBuffer(ParticleEffectRendererBa
 
         // デバッグ用カラー（青っぽく）
         p.color = self->m_startColor;
-		p.padding = XMFLOAT3(0.0f, 0.0f, 0.0f); // パディング用のダミー値
     }
 
     return CreateParticleBuffer(self, initData);

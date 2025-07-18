@@ -365,15 +365,6 @@
     <ClInclude Include="UI\Base\UISprite.h">
       <Filter>UI\Base</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Item\Sword.h">
-      <Filter>Scene\Item</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\Item.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene\ItemManager.h">
-      <Filter>Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Scene\Weapon\Projectile.h">
       <Filter>Scene\Weapon</Filter>
     </ClInclude>
@@ -400,6 +391,27 @@
     </ClInclude>
     <ClInclude Include="Scene\Character\GBMonster.h">
       <Filter>Scene\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision\Collider.h">
+      <Filter>Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\EventTrigger.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIMainHUD.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\PlayerEnterExitBehavior.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Base\UIInteractPrompt.h">
+      <Filter>UI\Base</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\Item.h">
+      <Filter>Scene\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\ItemManager.h">
+      <Filter>Scene\Item</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -629,15 +641,6 @@
     <ClCompile Include="UI\Base\UIButton.cpp">
       <Filter>UI\Base</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\Item\Sword.cpp">
-      <Filter>Scene\Item</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\Item.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Scene\ItemManager.cpp">
-      <Filter>Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Scene\Weapon\Projectile.cpp">
       <Filter>Scene\Weapon</Filter>
     </ClCompile>
@@ -655,6 +658,21 @@
     </ClCompile>
     <ClCompile Include="Scene\Character\GBMonster.cpp">
       <Filter>Scene\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Base\UIInteractPrompt.cpp">
+      <Filter>UI\Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Item.cpp">
+      <Filter>Scene\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\ItemManager.cpp">
+      <Filter>Scene\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UIMainHUD.cpp">
+      <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

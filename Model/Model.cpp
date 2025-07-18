@@ -68,6 +68,37 @@ void Model::DrawModel()
 
 	for( unsigned int i = 0; i < m_modelData->SubsetNum; i++ )
 	{
+		// サブセット設定
+		if (m_modelData->SubsetArray[i].diffuseTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.noTexSampling = 1;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.noTexSampling = 0;
+
+		if (m_modelData->SubsetArray[i].normalTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.normalMapSampling = 0;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.normalMapSampling = 1;
+
+		if (m_modelData->SubsetArray[i].bumpTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.bumpMapSampling = 0;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.bumpMapSampling = 1;
+
+		if (m_modelData->SubsetArray[i].opacityTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.opacityMapSampling = 0;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.opacityMapSampling = 1;
+
+		if (m_modelData->SubsetArray[i].reflectTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.reflectMapSampling = 0;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.reflectMapSampling = 1;
+
+		if (m_modelData->SubsetArray[i].translucencyTexture == NULL)
+			m_modelData->SubsetArray[i].Material.MaterialData.translucencyMapSampling = 0;
+		else
+			m_modelData->SubsetArray[i].Material.MaterialData.translucencyMapSampling = 1;
+
 		// マテリアル設定
 		if (m_modelData->SubsetArray[i].Material.MaterialData.LoadMaterial)
 			m_renderer.SetMaterial( m_modelData->SubsetArray[i].Material.MaterialData);

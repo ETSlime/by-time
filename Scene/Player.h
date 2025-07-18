@@ -12,36 +12,21 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/Mitachurl.h"
-#include "Scene/Item.h"
+#include "Scene/Item/Item.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define ACTION_QUEUE_SIZE		(4)
-#define ACTION_QUEUE_CLEAR_WAIT	(40)
-#define PLAYER_HIT_WINDOW		(90)
-#define Action(action)			static_cast<UINT>(action)
-
-//*****************************************************************************
-// 構造体定義
-//*****************************************************************************
-
-struct PlayerAction
-{
-	ActionEnum	actionType;
-	float		liveTime;
-};
-
-struct PlayerAttributes
-{
-	UINT			actionQueueClearTime;
-	PlayerAction	actionQueue[ACTION_QUEUE_SIZE];
-	UINT			actionQueueStart;
-	UINT			actionQueueEnd;
-};
-
+#define	VALUE_MOVE			(6.5f)							// 移動量
+#define VALUE_CLIMB			(4.0f)							// クライム移動量
+#define VALUE_RUN_FACTOR	(1.5f)
+#define	VALUE_ROTATE		(XM_PI * 0.02f)					// 回転量
+#define ROTATION_SPEED				(0.18f)
+#define FALLING_SPEED		(2.50f)
+#define SPD_DECAY_RATE		(0.93f)
+#define PLAYER_INIT_POS		XMFLOAT3(-5371.67f, -4775.0f, -1895.0f)
 
 class Player : public IDebugUI
 {
@@ -60,8 +45,19 @@ public:
 
 	void PickItem(Item* obj);
 
-private:
+	void SetClimbMode(bool enable);
 
+	static void OnClimbPromptTriggered(void* userData)
+	{
+		static_cast<Player*>(userData)->SetClimbMode(true);
+	}
+
+	bool GetMeleeMode(void) const { return m_playerAttr.isMeleeMode; }
+	bool GetHasSeed(void) const { return m_playerAttr.hasSeed; }
+
+private:
+	void UpdateNormalMode(void);
+	void UpdateClimbMode(void);
 	void UpdateActionQueue(void);
 	void HandlePlayerMove(Transform& transform);
 
@@ -69,6 +65,7 @@ private:
 	virtual const char* GetPanelName(void) const override { return "Player"; };
 
 	Attributes m_attributes;
+	Transform m_transform;
 	PlayerAttributes m_playerAttr;
 	Sigewinne* sigewinne;
 	Klee* klee;
@@ -80,7 +77,7 @@ private:
 	bool m_drawBoundingBox = true;
 	int m_currentModelLoadCnt = 0;
 	int m_totalModelLoadCnt = 1;
-
+	
 	GameObject<SkinnedMeshModelInstance>* m_playerGO;
 
 	Light* m_light;

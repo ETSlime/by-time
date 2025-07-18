@@ -10,8 +10,9 @@
 #include "Scene/Environment.h"
 #include "Scene/Town.h"
 #include "Scene/GameObject.h"
+#include "Scene/Item/Item.h"
+#include "Scene/EventTrigger.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
-#include "Scene/Item/Sword.h"
 #include "Effects/Skybox.h"
 
 //*****************************************************************************
@@ -106,6 +107,8 @@ private:
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>	m_skinnedGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>  m_persistentSkinnedGOs;
 
+	SimpleArray<EventTrigger*> m_eventTriggers; // イベントトリガーの配列
+
 	GameObject<ModelInstance>* m_fieldGO = nullptr;
 	bool m_drawBoundingBox = true;
 
@@ -138,7 +141,8 @@ private:
 			EqualUInt64()
 		);
 
-	Item* m_sceneSword = nullptr;
+	Item* m_sceneKey = nullptr;
+	Item* m_sceneSeed = nullptr;
 	Skybox* m_skybox = nullptr;
 };
 

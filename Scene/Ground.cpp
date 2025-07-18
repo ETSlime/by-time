@@ -14,7 +14,8 @@
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
-#include "Scene/ItemManager.h"
+#include "Scene/Item/ItemManager.h"
+#include "Scene/PlayerEnterExitBehavior.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -22,12 +23,15 @@
 #define MAX_TREE			(0)
 
 #define TREE_SIZE			(350.0f)
+#define KEY_SIZE			(15.0f)
+#define SEED_SIZE			(0.2f)
+#define SOIL_SIZE			(100.0f)
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(15.0f)
 #define BONFIRE_SIZE		(12.0f)
 
-#define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
 #define TERRAIN_POS			XMFLOAT3(-5371.67f, -5775.0f, -1895.0f)
+#define SOIL_POS			XMFLOAT3(-5371.67f, -5775.0f, -1895.0f)
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -41,29 +45,16 @@ void Ground::Initialize(void)
 	worldBB.minPoint = WORLD_MIN;
 	CollisionManager::get_instance().InitOctree(worldBB);
 
-	//m_town = new Town();
-
-	//SkinnedGameObjectConfig config;
-	//config.modelPath = MODEL_ENVIRONMENT_PATH;
-	//config.modelName = MODEL_FIELD_NAME;
-	//config.modelType = SkinnedModelType::Field;
-	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
-	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
-	//config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
-	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	//GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
-	//fieldGO->Instantiate(config);
-	//m_persistentSkinnedGOs.push_back(fieldGO);
-	//m_fieldGO = fieldGO;
-
-	//if (!m_modelLoadMap.contains(config.modelName))
-	//{
-	//	m_modelLoadMap[config.modelName] = 0;
-	//	m_totalModelLoadCnt++;
-	//	m_persistentModelLoadCnt++;
-	//}
-
 	InitTerrain();
+
+	GameObjectConfig soilConfig{};
+	soilConfig.modelPath = "data/MODEL/Environment/soil.obj";
+	soilConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	soilConfig.scale = XMFLOAT3(SOIL_SIZE, SOIL_SIZE, SOIL_SIZE);
+	soilConfig.position = SOIL_POS;
+	soilConfig.drawWorldAABB = false;
+	soilConfig.loadAsync = false;
+	CreateTerrainGO(soilConfig);
 
 	//SkinnedGameObjectConfig config;
 	//config.modelPath = MODEL_TERRAIN_PATH;
@@ -111,24 +102,6 @@ void Ground::Initialize(void)
 	//	m_persistentModelLoadCnt++;
 	//}
 
-	//GameObjectConfig config{};
-	//config.modelPath = MODEL_LAND_PATH;
-	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
-	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
-	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
-	//fieldGO->Instantiate(config);
-	//m_groundGO.push_back(fieldGO);
-	//m_fieldGO = fieldGO;
-
-	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	//GameObjectConfig banyanConfig{};
-	//banyanConfig.modelPath = MODEL_BANYAN_PATH;
-	//banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
-	//banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
-	//banyanGO->Instantiate(banyanConfig);
-	//m_groundGO.push_back(banyanGO);
-
 	
 	//DeferredTaskOptions options{};
 	//options.async = false; // 同期実行
@@ -154,11 +127,11 @@ void Ground::Update(void)
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 
-	if (InputManager::get_instance().GetKeyboardPress(DIK_K))
-	{
-		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(35.0f, 1);
-	}
+	//if (InputManager::get_instance().GetKeyboardPress(DIK_K))
+	//{
+	//	if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+	//		m_waterFluid->EmitWater(35.0f, 1);
+	//}
 
 	if (m_town)
 		m_town->Update();
@@ -341,8 +314,8 @@ void Ground::InitSceneLoadMap(void)
 
 void Ground::LoadScene1(void)
 {
-	if(m_sceneSword != nullptr)
-		m_sceneSword->SetActive(false);
+	if(m_sceneKey != nullptr)
+		m_sceneKey->SetActive(false);
 
 	if (m_skybox != nullptr)
 		m_skybox->SetCurrentTime(DAY_TIME);
@@ -384,9 +357,26 @@ void Ground::LoadScene1(void)
 	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
 	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
-	IEffectRenderer* waterFluid = nullptr;// EffectSystem::get_instance().SpawnParticleEffect(waterParams);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
-	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
+	//IEffectRenderer* waterFluid =  EffectSystem::get_instance().SpawnParticleEffect(waterParams);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
+	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
+
+	// プレイヤーが触れたらメッセージを出すトリガーイベント
+	EventTrigger* eventTrigger = new EventTrigger();
+
+	BOUNDING_BOX triggerBox;
+	triggerBox.minPoint = XMFLOAT3(-4371.67f, -4175.0f, -2895.0f);
+	triggerBox.maxPoint = XMFLOAT3(-3371.67f, -3775.0f, -2195.0f);
+	eventTrigger->SetBoundingBox(triggerBox);
+
+	// イベントの内容を設定
+	auto* behavior = new PlayerEnterExitBehavior();
+	eventTrigger->SetEventBehavior(behavior);
+	eventTrigger->Init();
+
+	// 登録
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(eventTrigger);
+	CollisionManager::get_instance().RegisterEventCollider(eventTrigger->GetCollider());
 
 
 	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
@@ -406,24 +396,37 @@ void Ground::LoadScene1(void)
 	//	m_modelLoadMap[bonfireConfig.modelPath] = 0;
 	//	m_totalModelLoadCnt++;
 	//}
+
+	if (m_sceneSeed == nullptr) 
+	{
+
+		Transform trans;
+		trans.pos = XMFLOAT3(-4171.0f, -4970.0f, -1495.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+
+	}
+	else if (!m_sceneSeed->GetUsed())
+		m_sceneSeed->SetActive(true);
 }
 
 void Ground::LoadScene2(void)
 {
-	if (m_sceneSword == nullptr) {
+	if (m_sceneKey == nullptr) {
 
 		Transform trans;
 		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
-		trans.scl = SWORD_SIZE;
+		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
-		m_sceneSword = ItemManager::get_instance().SpawnItem(ItemType::Weapon, trans);
-
-		m_sceneSword->Initialize();
+		m_sceneKey = ItemManager::get_instance().SpawnItem(ItemType::Key, trans);
 
 	}
-
-	m_sceneSword->SetActive(true);
+	else if (!m_sceneKey->GetUsed())
+		m_sceneKey->SetActive(true);
+	
 
 	if (m_skybox != nullptr) 
 		m_skybox->SetCurrentTime(NIGHT_TIME);

@@ -42,6 +42,8 @@ struct EmitCB
     UINT emitCount;
     XMFLOAT3 emitCenter;
     float  emitRadius;
+	XMFLOAT3 emitDirection; // 放出方向（正規化ベクトル）
+	float  emitSpeed;       // 放出速度
     XMFLOAT3 _padding; // 16byte alignment
 };
 
@@ -59,7 +61,7 @@ public:
     // パーティクルエフェクトの設定
     virtual void ConfigureEffect(const ParticleEffectParams& params) override;
     // 水の流体パーティクルを指定位置に放出
-    void EmitWater(float radius, int emitCount, const XMFLOAT3& center = XMFLOAT3{});
+    void EmitWater(const XMFLOAT3& dir, float speed, float radius, int emitCount, const XMFLOAT3& center = XMFLOAT3{});
     // 放出するパーティクル数を設定
 	void SetEmitCount(UINT count) { m_emitCBData.emitCount = count; }
 
@@ -75,7 +77,6 @@ private:
 	void UploadWaterFluidCB(void); // 水の流体パーティクル用の定数バッファをアップロード
 	bool CreateEmitCB(void); // パーティクル放出用の定数バッファを作成
 	void UploadEmitCB(void); // パーティクル放出用の定数バッファをアップロード
-	void UpdateSurfaceMeshFromSPH(void); // SPHシステムから流体表面メッシュを更新
 	void UpdateVolumMeshFromSPH(void); // SPHシステムからボリュームメッシュを更新
 
     virtual void RenderImGui(void) override;

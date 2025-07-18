@@ -29,47 +29,6 @@ struct WaterFluidParticle
     float4 color; // デバッグ用カラー（密度に応じた可視化など）
     
     float size; // サイズ
-    
-    uint debug_mortonIndex;
-    uint2 debug_mortonIndex64;
-    uint debug_voxelX;
-    uint debug_voxelY;
-    uint debug_voxelZ;
-    uint debug_neighborX;
-    uint debug_neighborY;
-    uint debug_neighborZ;
-    uint debug_neighborID;
-    int debug_foundTripletIndex;
-    uint debug_triCheckCount;
-    uint debug_hit;
-    uint debug_pageHeaderIndex;
-    float3 debug_position;
-    float debug_dirLength;
-    float3 debug_triV0;
-    float3 debug_triV1;
-    float3 debug_triV2;
-    float3 debug_rayStart;
-    float3 debug_rayDir;
-    float3 debug_hitPoint;
-    float3 debug_pressureForce;
-    float3 debug_viscosityForce;
-    float3 debug_gridCoord;
-    uint debug_left;
-    uint debug_right;
-    float debug_w;
-    float debug_dist;
-    uint debug_cellCount;
-    uint debug_neighborCount;
-    uint debug_allParticleCount;
-    uint debug_neighborIDcount;
-    uint debug_distCheckCount;
-    float3 debug_accel;
-    float3 debug_rawVelocity;
-    uint2 debug_ipos;
-    float debug_dist2;
-    int debug_radius;
-    float2 debug_screenPos;
-    float3 padding;
 };
 
 struct GS_OUTPUT_FLUID
@@ -109,6 +68,8 @@ cbuffer CBEmit : register(SLOT_CB_EFFECT_EMIT)
     uint g_EmitCount;
     float3 g_EmitCenter;
     float g_EmitRadius;
+    float3 g_EmitDirection;
+    float g_EmitSpeed;
     float3 _padding;
 };
 
@@ -147,17 +108,9 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
         uint3 voxelCoord = GetVoxelCoord(worldPredicted.xyz);
         uint mortonIndex = EncodeMorton3(voxelCoord.x, voxelCoord.y, voxelCoord.z);
         
-        p.debug_mortonIndex = mortonIndex;
-        p.debug_voxelX = voxelCoord.x;
-        p.debug_voxelY = voxelCoord.y;
-        p.debug_voxelZ = voxelCoord.z;
-        p.debug_position = worldPredicted.xyz;
-        
         
         int found = FindIndexTriplet(mortonIndex);
         
-        p.debug_foundTripletIndex = found;
-        p.debug_hit = 0;
         
         if (found >= 0)
         {
@@ -169,7 +122,6 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
             [allow_uav_condition] // ループ展開のためのアトミック制御
             for (uint i = 0; i < t.count; ++i)
             {   
-                p.debug_triCheckCount = i;
                 
                 uint triIndex = g_VoxelTriangleIndices[t.startOffset + i];
                 TriangleStruct tri = g_Triangles[triIndex];
@@ -184,12 +136,6 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                 float rayRange = length(rayDirWS.xyz);
                 float3 rayStart = rayStartWS.xyz + rayDir * 0.001f;
                 
-                p.debug_triV0 = tri.v0;
-                p.debug_triV1 = tri.v1;
-                p.debug_triV2 = tri.v2;
-                p.debug_rayStart = rayStart;
-                p.debug_rayDir = rayDir;
-                p.debug_dirLength = length(dir);
                 
                 float rayDistance = 0;
                 if (RayIntersectsTriangle(rayStart, rayDir, tri, hitPoint, rayDistance))
@@ -198,8 +144,6 @@ void UpdateCS(uint3 dispatchThreadID : SV_DispatchThreadID)
                     {
                         closestRayDistance = rayDistance;
                         bestHitPoint = hitPoint;
-                        
-                        p.debug_hitPoint = hitPoint;
                     
                     // --- 簡易的な反射処理っ！（滑る感じで跳ね返す）
                     //float3 n = normalize(tri.normal);
@@ -291,11 +235,15 @@ void EmitCS(uint3 dispatchThreadID : SV_DispatchThreadID)
     uint slotID = g_FreeListConsumeUAV.Consume();
     WaterFluidParticle p = (WaterFluidParticle) 0; // 明示的に全フィールドを初期化
 
-    uint seed = asuint(g_TotalTime * 1000.0f) + dispatchThreadID.x;
-    float3 offset = RandomInsideUnitSphere(seed);
-    offset.y = 0;
-    p.position = g_EmitCenter + offset * g_EmitRadius;
-    p.velocity = float3(0, 0, 0);
+    //uint seed = asuint(g_TotalTime * 1000.0f) + dispatchThreadID.x;
+    //float3 offset = RandomInsideUnitSphere(seed);
+    //offset.y = 0;
+    //p.position = g_EmitCenter + offset * g_EmitRadius;
+    //p.velocity = float3(0, 0, 0);
+    
+    p.position = g_EmitCenter;
+    p.velocity = g_EmitDirection * g_EmitSpeed;
+    
     p.predictedPosition = p.position;
 
     p.density = g_RestDensity;
