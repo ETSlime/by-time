@@ -130,7 +130,12 @@ void TextureUploadQueue::Update()
     for (auto& it = m_taskMap.begin(); it != m_taskMap.end();)
     {
         TextureUploadTask* task = (*it).value;
-
+        if (!task)
+        {
+            it = m_taskMap.erase(it);
+            continue;
+        }
+            
         if (task->finishEvent && WaitForSingleObject(task->finishEvent, 0) != WAIT_OBJECT_0)
         {
             ++it;

@@ -174,6 +174,7 @@ public:
 	void BuildBoundingBoxTriangles(const BOUNDING_BOX& box);
 	void BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
 	bool BuildOctree(void);
+	bool BuildVoxelGrid(bool batchInsert = false);
 
 	const StaticModelData* GetModelData(void) { return m_modelData; }
 	const SUBSET* GetSubset(void) { return m_modelData->SubsetArray; }
@@ -183,8 +184,10 @@ public:
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 	const SimpleArray<StaticMeshPart>& GetMeshParts(void) const;
 
-	void Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
-	void Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
+	bool Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	bool Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
+	bool Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
+	bool Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box);
 
 	static Model* StoreModel(const char* modelPath, AxisFlip flip = AxisFlip::None);
 	static MODEL_POOL* GetModel(const char* modelPath);
@@ -205,6 +208,7 @@ private:
 	StaticModelData* m_modelData = nullptr;
 	bool			m_drawBoundingBox = false;
 	bool			m_GPUResource = false; // GPUリソースを生成したかどうか
+	bool			m_buildTriangles = false; // 三角形を構築したかどうか
 
 	ID3D11Buffer* m_BBVertexBuffer = nullptr;
 

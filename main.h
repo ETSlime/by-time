@@ -99,3 +99,9 @@ inline void SafeRelease(
 		(*ppInterfaceToRelease) = NULL;
 	}
 }
+
+template<typename T>
+T Clamp(const T& val, const T& low, const T& high)
+{
+	return val < low ? low : (val > high ? high : val);
+}

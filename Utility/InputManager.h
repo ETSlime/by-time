@@ -58,8 +58,11 @@
 #define KEY_QUEST       DIK_Q
 
 // メニュー操作
-#define KEY_CONFIRM     DIK_RETURN
-#define KEY_CANCEL      DIK_ESCAPE
+#define KEY_CONFIRM			DIK_RETURN
+#define KEY_CANCEL			DIK_ESCAPE
+
+#define KEY_INTERACT		DIK_F        // インタラクトキー（ドア開ける、アイテム拾うなど）
+#define KEY_SWITCH_WEAPON	DIK_Q      // 武器切り替えキー
 
 //*****************************************************************************
 // プロトタイプ宣言

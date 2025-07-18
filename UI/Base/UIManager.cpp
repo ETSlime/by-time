@@ -41,6 +41,12 @@ void UIManager::Update(void)
     }
 
     m_screenFader.Update();
+
+    if (m_activePrompt && m_inputManager.GetKeyboardRelease(KEY_INTERACT))
+    {
+        m_activePrompt->Trigger();
+		ClearActivePrompt(); // プロンプトをクリア
+    }
 }
 
 void UIManager::Draw(void)
@@ -131,6 +137,25 @@ void UIManager::PopAllModals(void)
 void UIManager::DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color)
 {
     m_overlay.Draw(m_renderer.GetDeviceContext(), x, y, w, h, color);
+}
+
+void UIManager::SetActivePrompt(UIInteractPrompt* prompt)
+{
+    m_activePrompt = prompt;
+    if (prompt)
+    {
+		AddElement(prompt); // UI要素として追加
+        prompt->Show();
+    }
+}
+
+void UIManager::ClearActivePrompt(void)
+{
+    if (m_activePrompt)
+    {
+        m_activePrompt->Hide();
+        m_activePrompt = nullptr;
+    }
 }
 
 void UIManager::Clear(void)

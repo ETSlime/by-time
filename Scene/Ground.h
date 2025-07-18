@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 地形および環境オブジェクト管理[Ground.h]
@@ -5,12 +6,13 @@
 // フィールド・町・環境オブジェクトの描画と更新を管理する
 // 
 //=============================================================================
-#pragma once
-#include "Scene/GameObject.h"
 #include "Utility/SimpleArray.h"
 #include "Scene/Environment.h"
-#include "Town.h"
-#include "Scene/Item/Sword.h"
+#include "Scene/Town.h"
+#include "Scene/GameObject.h"
+#include "Scene/Item/Item.h"
+#include "Scene/EventTrigger.h"
+#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 #include "Effects/Skybox.h"
 
 //*****************************************************************************
@@ -48,32 +50,43 @@ class Ground;
 // 各シーンに応じたモデルの生成処理などをまとめて呼び出す
 typedef void (Ground::* SceneLoadFunc)();
 
-class Ground :public IDebugUI
+class Ground : public SingletonBase<Ground>, public IDebugUI
 {
 public:
-	Ground(Skybox* skybox = nullptr);
-	~Ground();
+
+	void Initialize(void); // 初期化処理
+
 	void Update(void);
 	void Draw(void);
 
-	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
-	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
-
-	void UnloadCurrentScene(void);
-	void LoadScene(SceneID id);
+	void UnloadCurrentScene(void); // 現在のシーンをアンロード
+	void LoadScene(SceneID id); // シーンをロード
 	SceneID GetCurrentScene(void) { return m_currentScene; }
+
+	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; } // 全モデルのロード数
+	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; } // 現在ロードしたモデル数
+
+	// 地形モデルのロードが完了しているか
+	bool IsTerrainReady(void) const { return m_currentTerrainModelLoadCnt >= m_totalTerrainModelLoadCnt; }
 
 private:
 	void InitTerrain(void);
 	void CreateTerrainGO(GameObjectConfig config);
+	// シーンロードマップの初期化
 	void InitSceneLoadMap(void);
+
 	// シーンロード関数
 	void LoadScene1(void);
 	void LoadScene2(void);
 
+	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
 	bool DeferredIsFieldReady(void*) { return m_fieldGO->GetModel(); }
 
+	// モデルのロードマップ登録
+	void RegisterModelLoadMap(const char* modelPath, bool isPersistent = false, bool isTerrain = true);
+
+	// ゲームオブジェクトの更新と描画
 	template<typename T>
 	void UpdateGameObjectArray(const SimpleArray<T*>& array);
 	template<typename T>
@@ -82,20 +95,26 @@ private:
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };
 
-	int m_currentModelLoadCnt = 0;
-	int m_totalModelLoadCnt = 0;
-	int m_persistentModelLoadCnt = 0;
+	int m_currentModelLoadCnt = 0; // 現在ロードしたモデル数
+	int m_totalModelLoadCnt = 0; // 全モデルのロード数
+	int m_persistentModelLoadCnt = 0; // 永続的なモデルのロード数
+	int m_persistentTerrainModelLoadCnt = 0; // 永続的な地形モデルのロード数
+	int m_currentTerrainModelLoadCnt = 0; // 現在ロードした地形モデル数
+	int m_totalTerrainModelLoadCnt = 0; // 全地形モデルのロード数
 
 	SimpleArray<GameObject<ModelInstance>*>				m_staticGOs;
 	SimpleArray<GameObject<ModelInstance>*>             m_persistentStaticGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>	m_skinnedGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>  m_persistentSkinnedGOs;
 
+	SimpleArray<EventTrigger*> m_eventTriggers; // イベントトリガーの配列
+
 	GameObject<ModelInstance>* m_fieldGO = nullptr;
 	bool m_drawBoundingBox = true;
 
 	Town* m_town = nullptr;
 	Environment* m_environment = nullptr;
+	WaterFluidParticleRenderer* m_waterFluid = nullptr;
 
 	SceneID m_currentScene = SceneID::NONE;
 	Scene& m_scene = Scene::get_instance();
@@ -122,8 +141,8 @@ private:
 			EqualUInt64()
 		);
 
-	Item* m_sceneSword = nullptr;
-	Item* m_p1SeedCont = nullptr;
+	Item* m_sceneKey = nullptr;
+	Item* m_sceneSeed = nullptr;
 	Skybox* m_skybox = nullptr;
 };
 
@@ -133,21 +152,36 @@ inline void Ground::UpdateGameObjectArray(const SimpleArray<T*>& array)
 	UINT size = array.getSize();
 	for (UINT i = 0; i < size; i++)
 	{
+		auto& gameObject = array[i]; // GameObjectのポインタを取得
+
 		if (m_currentModelLoadCnt < m_totalModelLoadCnt)
 		{
-			const char* modelPath = array[i]->GetInstance()->modelName;
+			const char* modelPath = gameObject->GetInstance()->modelName;
+			// モデルのロードが必要な場合はチェック
 			if (m_modelLoadMap.contains(modelPath))
 			{
-				if (array[i]->GetLoad() && m_modelLoadMap[modelPath] == 0)
+				// モデルのロードが完了していない場合はスキップ
+				if (gameObject->GetLoad() && m_modelLoadMap[modelPath] == 0)
 				{
-					m_modelLoadMap[modelPath] = 1;
-					m_currentModelLoadCnt++;
+					if (gameObject->GetCollisionBuilt())
+					{
+						m_currentModelLoadCnt++; // モデルのロードカウントを増やす
+
+						if (gameObject->GetCollisionType() != ObjectCollisionType::NONE)
+						{
+							m_currentTerrainModelLoadCnt++; // 地形モデルのロードカウントを増やす
+						}
+
+						m_modelLoadMap[modelPath] = 1; // モデルのロードが完了したことを記録
+					}
 				}
 			}
 		}
 
-		if (array[i]->GetUse() == false) continue;
-		array[i]->Update();
+		if (gameObject->GetUse() == false) 
+			continue;
+
+		gameObject->Update();
 	}
 }
 
@@ -157,8 +191,10 @@ inline void Ground::DrawGameObjectArray(const SimpleArray<T*>& array)
 	UINT size = array.getSize();
 	for (UINT i = 0; i < size; i++)
 	{
-		if (array[i]->GetUse() == false) continue;
+		auto& gameObject = array[i]; // GameObjectのポインタを取得
 
-		array[i]->Draw();
+		if (gameObject->GetUse() == false) continue;
+
+		gameObject->Draw();
 	}
 }

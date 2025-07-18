@@ -59,8 +59,6 @@ private:
     void (*m_onFinish)() = nullptr; // 再生終了時のコールバック
 
 	UISprite* m_sprite = nullptr; // スプライト描画用
-    //ID3D11ShaderResourceView* m_texture = nullptr;
-    //ID3D11Buffer* m_vertexBuffer = nullptr; // 頂点バッファ（スプライト用）
     Timer& m_timer = Timer::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
     ShaderResourceBinder& m_resourceBinder = ShaderResourceBinder::get_instance();

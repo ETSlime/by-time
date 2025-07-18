@@ -25,6 +25,7 @@ enum class ActionEnum
 {
 	NONE,
 	ATTACK,
+	AIM,
 };
 
 enum class ModelType
@@ -45,6 +46,7 @@ enum class ObjectCollisionType
 
 #define DRAW_BOUNDING_BOX       1
 #define MAX_MODEL_TYPE			32
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -94,6 +96,11 @@ struct Attributes
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
 	bool			hasWeapon = false;
+	bool			hasGun = false;
+	bool			aimMode = false;	// エイムモード
+	bool			climbMode = false; // クライムモード
+	bool			climbUp = false; // クライムモードで上に移動中かどうか
+	bool 			climbDown = false; // クライムモードで下に移動中かどうか
 
 	void Initialize(void)
 	{
@@ -126,6 +133,7 @@ struct ModelInstance
 	bool				load = false;
 	bool				markedForDelete = false;
 	bool				postInit = false;
+	bool				collisionBuilt = false;	// 当たり判定のビルドが完了したかどうか
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 
@@ -141,13 +149,13 @@ struct ModelInstance
 	Attributes			attributes;
 	Collider			collider;
 
-	BOOL			isSelected = false;
-	BOOL			isCursorIn = false;
-	int				editorIdx = -1;
+	BOOL				isSelected = false;
+	BOOL				isCursorIn = false;
+	int					editorIdx = -1;
 
-	bool			drawWorldAABB = false;
-	ModelType		modelType = ModelType::Static;
-	RenderProgressBuffer renderProgress;
+	bool					drawWorldAABB = false;
+	ModelType				modelType = ModelType::Static;
+	RenderProgressCBuffer	renderProgress;
 
 	// インスタンス化されたモデルかどうか
 	InstanceModelAttribute instanceAttribute;
@@ -163,6 +171,7 @@ struct SkinnedMeshModelInstance
 	bool				load = false;
 	bool				markedForDelete = false;
 	bool				postInit = false;
+	bool				collisionBuilt = false;	// 当たり判定のビルドが完了したかどうか
 	bool				castShadow = true;
 	bool				enableAlphaTest = false;
 
@@ -183,7 +192,7 @@ struct SkinnedMeshModelInstance
 
 	bool			drawWorldAABB = false;
 	ModelType		modelType = ModelType::SkinnedMesh;
-	RenderProgressBuffer renderProgress;
+	RenderProgressCBuffer renderProgress;
 };
 
 struct GameObjectConfig 
@@ -301,6 +310,8 @@ public:
 	inline void SetEnableAlphaTest(bool alpha) { instance.enableAlphaTest = alpha; }
 	inline void SetCollisionType(ObjectCollisionType type) { instance.collisionType = type; }
 	inline ObjectCollisionType GetCollisionType(void) { return instance.collisionType; }
+	// 当たり判定のビルドが完了しているかどうか
+	inline bool GetCollisionBuilt() { return instance.collisionType == ObjectCollisionType::NONE ? true : instance.collisionBuilt; }
 
 	// インスタンス化されたモデルかどうか
 	inline void SetIsInstanced(bool instanced) { instance.instanceAttribute.isInstanced = instanced; }
@@ -424,6 +435,11 @@ public:
 	virtual void PlayDashAnim() {}
 	virtual void PlayJumpAnim() {}
 	virtual void PlaySurprisedAnim() {}
+	virtual void PlayIdleAimAnim() {}
+	virtual void PlayWalkAimAnim() {}
+	virtual void PlayRunAimAnim() {}
+	virtual void PlayStandJumpAnim() {}
+	virtual void PlayRunJumpAnim() {}
 	virtual void InitAnimInfo() {}
 
 	virtual bool CanWalk() const = 0;
@@ -438,6 +454,16 @@ public:
 	virtual bool CanJump()	const { return false; }
 	virtual bool CanSurprised() const { return false; }
 	virtual bool CanDie()	const { return false; }
+	virtual bool CanAim() const { return false; }
+	virtual bool CanWalkAim() const { return false; }
+	virtual bool CanWalkAimToWalk() const { return false; }
+	virtual bool CanRunAim() const { return false; }
+	virtual bool CanRunAimToRun() const { return false; }
+	virtual bool CanStopAiming() const { return false; }
+	virtual bool CanJumpAim() const { return false; }
+	virtual bool CanRunJumpAim() const { return false; }
+	virtual bool CanClimb() const { return false; }
+	virtual bool CanStopClimbing() const { return false; }
 	virtual void OnAttackAnimationEnd() {};
 	virtual void OnHitAnimationEnd() {};
 	virtual void OnDashAnimationEnd() {}
@@ -549,6 +575,15 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		else
 			options.async = false;
 		options.debugName = "GameObject_InstantiateGameObject_Collision";
+		options.callbackAsync = false; // コールバックは同期で実行
+		options.onComplete = [](void* ptr) // タスク完了後のコールバック関数
+			{
+				// コンテキストを取得
+				auto* ctx = static_cast<InstantiateTaskContext<T>*>(ptr);
+				ctx->owner->instance.collisionBuilt = true; // 当たり判定のビルドが完了
+			};
+		options.callbackParam = ctx;
+
 		if (instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX)
 		{
 			RawDeferredTask::Add(
@@ -560,7 +595,9 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const XMMATRIX& worldMatrix = ctx->owner->GetWorldMatrix();
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildMeshTriangles(worldMatrix, true, ctx->owner->instance.drawWorldAABB);
+					// モデルのボクセルグリッドをビルド
+					model->Deferred_BuildMeshVoxelGrid(worldMatrix, true);
 				},
 				[](void* ptr) // タスクの条件関数
 				{
@@ -583,7 +620,9 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deffered_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					// モデルのボクセルグリッドをビルド
+					model->Deferred_BuildBoundingBoxVoxelGrid(boundingBox);
 				},
 				[](void* ptr) // タスクの条件関数
 				{
@@ -603,6 +642,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
 				instance.collider.enable = true;
 			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
+			instance.collisionBuilt = true; // 当たり判定のビルドが完了
 		}
 
 		instance.modelBuildTaskRegistered = true;

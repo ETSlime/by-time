@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 統合型レンダリングパイプラインの管理中枢 [Renderer.h]
@@ -6,9 +7,10 @@
 // デバイス管理・シェーダ制御・描画状態の切替を一元的に扱う
 //
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Utility/SingletonBase.h"
+#include "Core/Graphics/VertexStructs.h"
+#include "Core/Graphics/ConstantBufferStructs.h"
 #include "Core/Shader/ShaderManager.h"
 #include "Core/Shader/ShaderResourceBinder.h"
 #include "Collision/AABBUtils.h"
@@ -16,15 +18,12 @@
 //*********************************************************
 // マクロ定義
 //*********************************************************
-#define LIGHT_MAX			(5)
-#define BONE_MAX			(512)
 #define MAX_BONE_INDICES	(4)
 #define SHADOWMAP_SIZE		(SCREEN_WIDTH * 3.5f)
 #define DEPTHBIAS_LAYER_0	(-25)
 #define DEPTHBIAS_LAYER_1	(-50)
 #define DEPTHBIAS_LAYER_2	(-100)
 #define DEPTHBIAS_LAYER_3	(-200)
-//*********************************************************
 
 enum BLEND_MODE
 {
@@ -75,102 +74,6 @@ enum class RenderLayer
 // 構造体
 //*********************************************************
 
-// 頂点構造体
-struct VERTEX_3D
-{
-    XMFLOAT3	Position;
-    XMFLOAT3	Normal;
-    XMFLOAT4	Diffuse;
-    XMFLOAT2	TexCoord;
-	XMFLOAT3	Tangent;
-
-	VERTEX_3D()
-	{
-		Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Normal = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Tangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		TexCoord = XMFLOAT2(0.0f, 0.0f);
-	}
-
-	VERTEX_3D(XMFLOAT3 pos, XMFLOAT3 norm, XMFLOAT3 tangent, XMFLOAT4 dif, XMFLOAT2 tex)
-	{
-		Position = pos;
-		Normal = norm;
-		Tangent = tangent;
-		Diffuse = dif;
-		TexCoord = tex;
-	}
-};
-
-struct SKINNED_VERTEX_3D
-{
-	XMFLOAT3	Position;
-	XMFLOAT3	Normal;
-	XMFLOAT3	Tangent;
-	XMFLOAT3	Bitangent;
-	XMFLOAT4	Diffuse;
-	XMFLOAT2	TexCoord;
-	XMFLOAT4	Weights;// [MAX_BONE_INDICES] ;
-	XMFLOAT4	BoneIndices;// [MAX_BONE_INDICES] ;
-
-	SKINNED_VERTEX_3D()
-	{
-		Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Normal = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Diffuse = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-		TexCoord = XMFLOAT2(0.0f, 0.0f);
-		Tangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Bitangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		//for (int i = 0; i < MAX_BONE_INDICES; i++)
-		//{
-		//	Weights[i] = 0.0f;
-		//	BoneIndices[i] = 0;
-		//}
-		Weights = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		BoneIndices = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	}
-
-	SKINNED_VERTEX_3D(XMFLOAT3 pos, XMFLOAT3 norm, XMFLOAT3 tangent, XMFLOAT4 dif, XMFLOAT2 tex)
-	{
-		Position = pos;
-		Normal = norm;
-		Tangent = tangent;
-		Diffuse = dif;
-		TexCoord = tex;
-		//for (int i = 0; i < MAX_BONE_INDICES; i++)
-		//{
-		//	Weights[i] = 0.0f;
-		//	BoneIndices[i] = 0;
-		//}
-		Bitangent = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Weights = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		BoneIndices = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-	}
-};
-
-// UI描画用の頂点構造体
-struct UIVertex
-{
-	XMFLOAT2 Position; // 位置（スクリーン座標）
-	XMFLOAT2 TexCoord; // テクスチャ座標
-	XMFLOAT4 Color;
-};
-
-
-struct VFXVertex
-{
-	XMFLOAT3 position;
-	XMFLOAT2 uv;
-	XMFLOAT4 color;
-};
-
-struct WorldMatrixBuffer
-{
-	XMMATRIX world;
-	XMMATRIX invWorld;
-};
-
 // マテリアル構造体
 struct MATERIAL
 {
@@ -188,7 +91,7 @@ struct MATERIAL
 	int			translucencyMapSampling;
 	BOOL		LoadMaterial;
 
-	MATERIAL()
+	MATERIAL(void)
 	{
 		noTexSampling = 1;
 		lightMapSampling = 0;
@@ -228,104 +131,12 @@ struct FOG
 	XMFLOAT4	FogColor;	// フォグの色
 };
 
-// マテリアル用定数バッファ構造体
-struct MATERIAL_CBUFFER
-{
-	XMFLOAT4	Ambient;
-	XMFLOAT4	Diffuse;
-	XMFLOAT4	Specular;
-	XMFLOAT4	Emission;
-	float		Shininess;
-	int			noTexSampling;
-	int			lightMapSampling;
-	int			normalMapSampling;
-	int			bumpMapSampling;
-	int			opacityMapSampling;
-	int			reflectMapSampling;
-	int			translucencyMapSampling;
-	//float		Dummy[1];				// 16byte境界用
-};
-
-// ライト用フラグ構造体
-struct LIGHTFLAGS
-{
-	int			Type;		//ライトタイプ（enum LIGHT_TYPE）
-	int         OnOff;		//ライトのオンorオフスイッチ
-	int			Dummy[2];
-};
-
-// ライト用定数バッファ構造体
-struct LIGHT_CBUFFER
-{
-	XMFLOAT4	Direction[LIGHT_MAX];	// ライトの方向
-	XMFLOAT4	Position[LIGHT_MAX];	// ライトの位置
-	XMFLOAT4	Diffuse[LIGHT_MAX];		// 拡散光の色
-	XMFLOAT4	Ambient[LIGHT_MAX];		// 環境光の色
-	XMFLOAT4	Attenuation[LIGHT_MAX];	// 減衰率
-	LIGHTFLAGS	Flags[LIGHT_MAX];		// ライト種別
-	XMFLOAT4X4 	LightViewProj[LIGHT_MAX];
-	int			Enable;					// ライティング有効・無効フラグ
-	int			Dummy[3];				// 16byte境界用
-};
-
-// フォグ用定数バッファ構造体
-struct FOG_CBUFFER
-{
-	XMFLOAT4	Fog;					// フォグ量
-	XMFLOAT4	FogColor;				// フォグの色
-	int			Enable;					// フォグ有効・無効フラグ
-	float		Dummy[3];				// 16byte境界用
-};
-
 // 縁取り用バッファ
 struct FUCHI
 {
 	int			fuchi;
 	int			fill[3];
 };
-
-struct LIGHTMODE_CBUFFER
-{
-	int			mode;
-	int			padding[3];
-};
-
-struct BoneMatrices
-{
-	XMMATRIX bones[BONE_MAX];
-};
-
-struct RenderProgressBuffer
-{
-	float progress = 0.0f;
-	int isRandomFade = true;
-	XMFLOAT2 padding{};
-};
-
-struct InstanceData
-{
-	XMFLOAT3 OffsetPosition; // インスタンス位置オフセット (ワールド座標)
-	XMFLOAT4 Rotation;        // インスタンスの回転 (四元数)
-	XMFLOAT4 initialBillboardRot; // 初期ビルボード回転角度
-	float Scale;             // インスタンススケール
-	float Type;              // インスタンスの種類
-
-	InstanceData()
-	{
-		OffsetPosition = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		Rotation = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		initialBillboardRot = XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f);
-		Scale = 1.0f;
-		Type = 0.0f;
-	}
-
-	InstanceData(XMFLOAT3 offset, XMFLOAT4 rot, XMFLOAT4 billboardRot, float scl, float type) :
-		OffsetPosition(offset), Rotation(rot), initialBillboardRot(billboardRot), Scale(scl), Type(type) {
-	}
-};
-
-
-
 
 //*****************************************************************************
 // プロトタイプ宣言
@@ -362,7 +173,7 @@ public:
 	void SetFogEnable(BOOL flag);
 	void SetFog(FOG* fog);
 
-	void SetRenderProgress(RenderProgressBuffer renderProgress);
+	void SetRenderProgress(RenderProgressCBuffer renderProgress);
 
 	void DebugTextOut(char* text, int x, int y);
 

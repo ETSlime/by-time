@@ -5,17 +5,20 @@
 //
 //=============================================================================
 #include "Collision/CollisionManager.h"
+#include "Collision/VoxelBufferUploader.h"
 #include "Scene/GameObject.h"
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/Projectile.h"
+#include "Scene/Ground.h"
 #include "Scene/Item/Interactable.h"
 #include "Utility/Debugproc.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define DRAW_BOUNDING_BOX       1
+#define DRAW_BOUNDING_BOX               1
+#define MAX_TRIGGER_EVENT_NUM           256
 
 constexpr float HEIGHT_EPSILON = 5.0f;
 constexpr float SMOOTHING_FACTOR = 0.1f;
@@ -33,25 +36,65 @@ void CollisionManager::Init(void)
 #if DRAW_BOUNDING_BOX
     m_debugBoundingBoxRenderer.Initialize();
 #endif
+
+    m_framePairsA = HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>(
+        MAX_TRIGGER_EVENT_NUM, // 初期バケット数
+        HashColliderPair(), // ハッシュ関数
+        EqualColliderPair() // 等価比較関数
+    );
+
+    m_framePairsB = HashMap<ColliderPair, bool, HashColliderPair, EqualColliderPair>(
+        MAX_TRIGGER_EVENT_NUM, // 初期バケット数
+        HashColliderPair(), // ハッシュ関数
+        EqualColliderPair() // 等価比較関数
+    );
+
+    m_currentFramePairs = &m_framePairsA;
+    m_lastFramePairs = &m_framePairsB;
 }
 
 void CollisionManager::InitOctree(const BOUNDING_BOX& boundingBox)
 {
-    if (staticOctree == nullptr)
-        staticOctree = new OctreeNode(boundingBox);
+    if (m_staticOctree == nullptr)
+        m_staticOctree = new OctreeNode(boundingBox);
     else
     {
-        SAFE_DELETE(staticOctree);
-        staticOctree = new OctreeNode(boundingBox);
+        SAFE_DELETE(m_staticOctree);
+        m_staticOctree = new OctreeNode(boundingBox);
     }
+}
+
+void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize)
+{
+    if (m_voxelGrid == nullptr)
+        m_voxelGrid = new VoxelGrid();
+    else
+    {
+        SAFE_DELETE(m_voxelGrid);
+        m_voxelGrid = new VoxelGrid();
+    }
+
+	// ボクセルグリッドの初期化
+	m_voxelGrid->Initialize(voxelSize);
+    m_voxelGrid->BuildTriangles(triangles);
+	VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
 }
 
 void CollisionManager::Update()
 {
-    int numColliders = dynamicColliders.getSize();
+#ifdef _DEBUG
+    if (m_voxelGrid)
+    {
+        if (InputManager::get_instance().GetKeyboardTrigger(DIK_V))
+        {
+            m_voxelGrid->print_debug_stats();
+        }
+    }
+#endif // _DEBUG
 
+    UINT numColliders = dynamicColliders.getSize();
     
-    for (int i = 0; i < numColliders; i++)
+    for (UINT i = 0; i < numColliders; i++)
     {
         const Collider* dynamicCol = dynamicColliders[i];
 
@@ -60,15 +103,18 @@ void CollisionManager::Update()
             dynamicCol->enable == false) continue;
 
         // 動的オブジェクトと静的オブジェクト（地面）の衝突検出
-        if (staticOctree)
+        if (m_staticOctree)
         {
             auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(dynamicCol->owner);
+            if (!colliderOwner->GetLoad()) 
+                continue;
+
             Transform transform = colliderOwner->GetTransform();
 
 
             // 動的オブジェクトの AABB を元に、静的八分木から候補となる三角形をクエリする
-            SimpleArray<Triangle*> candidates;
-            staticOctree->queryRange(dynamicCol->aabb, candidates);
+            SimpleArray<const Triangle*> candidates;
+            m_staticOctree->QueryRange(dynamicCol->aabb, candidates);
 
             bool hasCollision = false;
             bool hasValidSlope = false;
@@ -78,9 +124,10 @@ void CollisionManager::Update()
             float minDistSq = FLT_MAX; // 最短距離
             float currentY = dynamicCol->aabb.minPoint.y;//transform.pos.y;
             XMVECTOR obstacleNormal{};
+
             // 候補となる各三角形に対して、精密な衝突判定を実施する
-            int numCandidates = candidates.getSize();
-            for (int j = 0; j < numCandidates; j++)
+            UINT numCandidates = candidates.getSize();
+            for (UINT j = 0; j < numCandidates; j++)
             {
                 SimpleArray<float> hitYArray;
                 if (dynamicCol->aabb.intersects(candidates[j]->aabb))
@@ -266,12 +313,10 @@ void CollisionManager::Update()
                     colliderOwner->SetGrounded(false);
                 }
             }
-
-
         }
 
         // 動的オブジェクト同士（例：プレイヤーと敵、その他）の衝突検出
-        for (int j = i + 1; j < numColliders; j++)
+        for (UINT j = i + 1; j < numColliders; j++)
         {
             const Collider* dynamicCol2 = dynamicColliders[j];
 
@@ -319,7 +364,8 @@ void CollisionManager::Update()
                     }
                 }
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ENEMY_ATTACK)
-                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_ATTACK))
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_ATTACK)
+                    )
                 {
                     const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
                     auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(playerCol->owner);
@@ -336,16 +382,14 @@ void CollisionManager::Update()
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ITEM)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
                 {
-                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
-                    Lumine* player = static_cast<Lumine*>(playerCol->owner);
-                    Player* playerComp = static_cast<Player*>(player->GetPlayerComponent());
+                    CollisionEvent event{ dynamicCol, dynamicCol2 };
 
-                    const Collider* itemCol = dynamicCol->tag == ColliderTag::ITEM ? dynamicCol : dynamicCol2;
-                    auto itemColOwner = static_cast<Item*>(itemCol->owner);
+                    // コールバックを持っていれば呼ぶ
+                    if (dynamicCol->onCollisionCallback)
+                        dynamicCol->CallCollisionCallback(event);
+                    if (dynamicCol2->onCollisionCallback)
+                        dynamicCol2->CallCollisionCallback(event);
 
-                    playerComp->PickItem(itemColOwner);
-
-                    itemColOwner->Use();
                 }
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::INTERACTABLE)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::INTERACTABLE))
@@ -465,7 +509,87 @@ void CollisionManager::Update()
                 eventBus.publishCollision(collisionEvent);
             }
         }
+
+		// トリガーイベント型の衝突検出
+		UINT triggerEventCount = m_triggerEventColliders.getSize();
+		for (UINT j = 0; j < triggerEventCount; j++)
+		{
+			Collider* triggerCol = m_triggerEventColliders[j];
+			if (triggerCol->enable == false) continue;
+
+			// トリガーイベント型の衝突検出
+			if (dynamicCol->aabb.intersects(triggerCol->aabb))
+			{
+				CheckEventCollision(dynamicCol, triggerCol);
+			}
+		}
     }
+
+    // 接触終了イベントを発行
+	TriggerOnExit();
+}
+
+bool CollisionManager::OctreeInsertTriangle(const Triangle* tri)
+{
+	bool success = false;
+    if (m_staticOctree)
+        success = m_staticOctree->Insert(tri);
+    return success;
+}
+
+void CollisionManager::VoxelGridInsertTriangle(const Triangle* tri)
+{
+    if (m_voxelGrid)
+    {
+        m_voxelGrid->InsertTriangle(tri);
+    }
+    else
+    {
+		// ボクセルグリッドが初期化されていない場合は新規に作成
+		m_voxelGrid = new VoxelGrid();
+		m_voxelGrid->Initialize();
+		m_voxelGrid->InsertTriangle(tri);
+		VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
+    }
+}
+
+void CollisionManager::VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles)
+{
+    if (m_voxelGrid)
+        m_voxelGrid->BuildTriangles(triangles);
+    else
+    {
+		// ボクセルグリッドが初期化されていない場合は新規に作成
+		m_voxelGrid = new VoxelGrid();
+		m_voxelGrid->Initialize();
+		m_voxelGrid->BuildTriangles(triangles);
+		VoxelBufferUploader::get_instance().SetCachedGrid(m_voxelGrid); // ボクセルグリッドをキャッシュに設定
+    }
+}
+
+void CollisionManager::PrepareVoxelMappingAfterSceneChange(void)
+{
+	// シーン切り替え後にボクセルマッピングを準備する
+	VoxelBufferUploader::get_instance().RegisterAsyncMappingBuild();
+
+    DeferredTaskOptions options{};
+    options.async = true; // 同期で実行
+    options.debugName = "CollisionManager_PrepareVoxelMappingAfterSceneChange"; // デバッグ用の名前
+
+    RawDeferredTask::Add(
+        nullptr,
+        [](void* ptr)
+        {
+            // ボクセルグリッドの三角形からボクセルマップを構築
+			CollisionManager::get_instance().m_voxelGrid->BuildVoxelMapByTriangles();
+        },
+        [](void* ptr)
+        {
+            // 地形が準備完了かどうかを確認する
+			return CollisionManager::get_instance().m_voxelGrid && Ground::get_instance().IsTerrainReady();
+        },
+        options
+    );
 }
 
 bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col2)
@@ -477,6 +601,63 @@ bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col
         (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_PROJECTILE) ||
         (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
         (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
+}
+
+void CollisionManager::CheckEventCollision(const Collider* dynamicCol, Collider* triggerCol)
+{
+    // triggerColがTriggerEventColliderであることを保証
+    if (triggerCol->tag != ColliderTag::TRIGGER)
+        return; // ありえないが、安全のためチェック
+
+    TriggerEventCollider* trigger = static_cast<TriggerEventCollider*>(triggerCol);
+
+    ColliderPair pair(dynamicCol, triggerCol);
+    m_currentFramePairs->insert(pair, true); // 接触ペアを記録
+
+    // 前のフレームには存在しない → 新規接触
+    if (!m_lastFramePairs->contains(pair))
+    {
+        trigger->TriggerEnter(dynamicCol);
+    }
+}
+
+void CollisionManager::TriggerOnExit(void)
+{
+    for (auto it = m_lastFramePairs->begin(); it != m_lastFramePairs->end(); ++it)
+    {
+        const ColliderPair& pair = it->key;
+
+        if (!m_currentFramePairs->contains(pair))
+        {
+            const Collider* collider1 = pair.collider1;
+            const Collider* collider2 = pair.collider2;
+
+            TriggerEventCollider* trigger = nullptr;
+            const Collider* activator = nullptr;
+
+            if (collider1->tag == ColliderTag::TRIGGER)
+            {
+                trigger = static_cast<TriggerEventCollider*>(const_cast<Collider*>(collider1));
+                activator = collider2;
+            }
+            else if (collider2->tag == ColliderTag::TRIGGER)
+            {
+                trigger = static_cast<TriggerEventCollider*>(const_cast<Collider*>(collider2));
+                activator = collider1;
+            }
+
+            if (trigger)
+            {
+				trigger->TriggerExit(activator); // 接触終了イベントを発行
+            }
+        }
+    }
+    
+    // ポインタをスワップ（ping-pong）
+    std::swap(m_currentFramePairs, m_lastFramePairs);
+    // フレーム終わりにペアを更新
+    m_currentFramePairs->clear();
+
 }
 
 void CollisionManager::RenderDebugInfo(void)

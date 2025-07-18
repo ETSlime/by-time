@@ -61,7 +61,7 @@ public:
     }
 
     float GetDeltaTime(void) { return deltaTime; }
-    //float GetScaledDeltaTime(void) { return scaledDeltaTime; }
-    float GetScaledDeltaTime(void) { return 1; };// scaledDeltaTime; }
+    float GetScaledDeltaTime(void) { return scaledDeltaTime; }
+    //float GetScaledDeltaTime(void) { return 1; };// scaledDeltaTime; }
     float GetElapsedTime(void) { return elapsedTime; }
 };

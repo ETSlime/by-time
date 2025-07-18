@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Scene/Item.h"
+#include "Scene/Item/Item.h"
 
 class Interactable : public Item {
 

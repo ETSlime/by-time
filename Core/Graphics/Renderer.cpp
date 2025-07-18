@@ -241,7 +241,7 @@ void Renderer::SetWorldViewProjection2D( void )
 
 	XMMATRIX invWorld = XMMatrixTranspose(XMMatrixIdentity());
 
-	WorldMatrixBuffer worldBuffer;
+	WorldMatrixCBuffer worldBuffer;
 	worldBuffer.world = world;
 	worldBuffer.invWorld = invWorld;
 
@@ -294,7 +294,7 @@ void Renderer::SetCurrentWorldMatrix(const XMMATRIX *WorldMatrix ) const
 
 	world = XMMatrixTranspose(world);
 
-	WorldMatrixBuffer buffer;
+	WorldMatrixCBuffer buffer;
 	buffer.world = world;
 	buffer.invWorld = invWorld;
 
@@ -342,8 +342,6 @@ void Renderer::SetLightBuffer(const LIGHT_CBUFFER& lightBuffer)
 	m_ImmediateContext->UpdateSubresource(m_LightBuffer, 0, NULL, &lightBuffer, 0, 0);
 }
 
-
-
 void Renderer::SetFogBuffer(void)
 {
 	m_ImmediateContext->UpdateSubresource(m_FogBuffer, 0, NULL, &m_Fog, 0, 0);
@@ -366,7 +364,7 @@ void Renderer::SetFog(FOG* pFog)
 	SetFogBuffer();
 }
 
-void Renderer::SetRenderProgress(RenderProgressBuffer renderProgress)
+void Renderer::SetRenderProgress(RenderProgressCBuffer renderProgress)
 {
 	m_ImmediateContext->UpdateSubresource(m_RenderProgressBuffer, 0, NULL, &renderProgress, 0, 0);
 }
@@ -748,7 +746,7 @@ HRESULT Renderer::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 
 	// 定数バッファ生成
 	D3D11_BUFFER_DESC hBufferDesc;
-	hBufferDesc.ByteWidth = sizeof(WorldMatrixBuffer);
+	hBufferDesc.ByteWidth = sizeof(WorldMatrixCBuffer);
 	hBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	hBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	hBufferDesc.CPUAccessFlags = 0;
@@ -796,7 +794,7 @@ HRESULT Renderer::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_CAMERA_POS, m_CameraPosBuffer);
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_CAMERA_POS, m_CameraPosBuffer);
 
-	hBufferDesc.ByteWidth = sizeof(BoneMatrices);
+	hBufferDesc.ByteWidth = sizeof(BoneMatricesCBuffer);
 	m_D3DDevice->CreateBuffer(&hBufferDesc, NULL, &m_BoneMatrixBuffer);
 
 
@@ -805,7 +803,7 @@ HRESULT Renderer::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_LIGHT_MODE, m_LightModeBuffer);
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_LIGHT_MODE, m_LightModeBuffer);
 	
-	hBufferDesc.ByteWidth = sizeof(RenderProgressBuffer);
+	hBufferDesc.ByteWidth = sizeof(RenderProgressCBuffer);
 	m_D3DDevice->CreateBuffer(&hBufferDesc, NULL, &m_RenderProgressBuffer);
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_RENDER_PROGRESS, m_RenderProgressBuffer);
 	m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_RENDER_PROGRESS, m_RenderProgressBuffer);
