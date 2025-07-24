@@ -11,7 +11,7 @@
 #include "Collision/AABBUtils.h"
 #include "Scene/GameObject.h"
 #include "Core/Camera.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`

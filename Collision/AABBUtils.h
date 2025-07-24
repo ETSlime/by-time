@@ -112,6 +112,16 @@ struct BOUNDING_BOX
         maxPoint.z += margin;
     }
 
+    // 中心点を計算する関数
+    XMFLOAT3 GetCenter(void) const
+    {
+        return XMFLOAT3(
+            (minPoint.x + maxPoint.x) * 0.5f,
+            (minPoint.y + maxPoint.y) * 0.5f,
+            (minPoint.z + maxPoint.z) * 0.5f
+        );
+    }
+
     // 指定した点がこの AABB 内に含まれるか判定する関数
     bool contains(const XMFLOAT3& point) const
     {
@@ -194,6 +204,12 @@ struct Triangle
     XMFLOAT3 v0, v1, v2;
     BOUNDING_BOX aabb;
     XMFLOAT3 normal;
+
+	Triangle() : v0(XMFLOAT3(0.0f, 0.0f, 0.0f)), v1(XMFLOAT3(0.0f, 0.0f, 0.0f)), v2(XMFLOAT3(0.0f, 0.0f, 0.0f)), normal(XMFLOAT3(0.0f, 1.0f, 0.0f))
+	{
+		aabb.minPoint = XMFLOAT3(FLT_MAX, FLT_MAX, FLT_MAX);
+		aabb.maxPoint = XMFLOAT3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	}
 
     // AABBを計算
     Triangle(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, bool alwaysFaceUp = false) : v0(a), v1(b), v2(c)

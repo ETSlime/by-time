@@ -16,8 +16,6 @@
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
 #include "Collision/CollisionManager.h"
-#include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
 #include "Model/Model.h"
 #include "Model/FBXLoader.h"
 #include "Model/SkinnedMeshModel.h"
@@ -26,13 +24,16 @@
 #include "Scene/Scene.h"
 #include "UI/Base/UIManager.h"
 #include "UI/PauseModal.h"
-#include "UI/imgui/imgui_impl_win32.h"
+#include "Utility/InputManager.h"
+#include "Utility/Debug/Debugproc.h"
+#include "Utility/Debug/imgui/imgui_impl_win32.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
 #define CLASS_NAME		"AppClass"			// ウインドウのクラス名
 #define WINDOW_NAME		"メッシュ表示"		// ウインドウのキャプション名
+#define _SHOWFPS		1					// FPSを表示するかどうか
 
 //*****************************************************************************
 // プロトタイプ宣言
@@ -55,6 +56,7 @@ long g_MouseX = 0;
 long g_MouseY = 0;
 
 bool g_IsWindowActive = true; // デフォルトでアクティブ
+bool g_ExitApp = false; // アプリケーション終了フラグ
 
 //MapEditor& mapEditor = MapEditor::get_instance();
 InputManager& inputManager = InputManager::get_instance();
@@ -73,7 +75,7 @@ CursorManager& cursorManager = CursorManager::get_instance();
 ShaderResourceBinder& shaderResourceBinder = ShaderResourceBinder::get_instance();
 TextureMgr& textureMgr = TextureMgr::get_instance();
 
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 int		g_CountFPS;							// FPSカウンタ
 char	g_DebugStr[2048] = WINDOW_NAME;		// デバッグ文字表示用
 
@@ -168,7 +170,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			if ((dwCurrentTime - dwFPSLastTime) >= 1000)	// 1秒ごとに実行
 			{
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 				g_CountFPS = dwFrameCount;
 #endif
 				dwFPSLastTime = dwCurrentTime;				// FPSを測定した時刻を保存
@@ -179,7 +181,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			{
 				dwExecLastTime = dwCurrentTime;	// 処理した時刻を保存
 
-#ifdef _DEBUG	// デバッグ版の時だけFPSを表示する
+#ifdef _SHOWFPS	// デバッグ版の時だけFPSを表示する
 				wsprintf(g_DebugStr, WINDOW_NAME);
 				wsprintf(&g_DebugStr[strlen(g_DebugStr)], " FPS:%d", g_CountFPS);
 #endif
@@ -187,7 +189,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 				Update();			// 更新処理
 				Draw();				// 描画処理
 
-#ifdef _DEBUG	// デバッグ版の時だけ表示する
+#ifdef _SHOWFPS	// デバッグ版の時だけ表示する
 				wsprintf(&g_DebugStr[strlen(g_DebugStr)], " MX:%d MY:%d", GetMousePosX(), GetMousePosY());
 				SetWindowText(hWnd, g_DebugStr);
 #endif
@@ -218,6 +220,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
+	// アプリケーション終了フラグが立っている場合は終了
+	if (g_ExitApp)
+	{
+		Uninit();
+		DestroyWindow(hWnd);
+		return 0;
+	}
 
 	switch(message)
 	{
@@ -265,6 +274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				g_IsWindowActive = true;
 				cursorManager.RememberCursorPosition(); // カーソル位置を保存
 				inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+				gameSystem.ClearPauseFlag(); // ポーズフラグをクリア
 			}
 
 		}
@@ -276,7 +286,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				g_IsWindowActive = false;
 
 				// 自動ポーズ（手動入力と同じ処理）
-				gameSystem.PauseGame();
+				gameSystem.SetPauseFlag();
 			}
 		}
 		break;
@@ -308,11 +318,11 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	// カメラの初期化
 	camera.Init();
 
-	// ゲームシステムの初期化
-	gameSystem.Init();
-
 	// 衝突管理の初期化
 	collisionManager.Init();
+
+	// ゲームシステムの初期化
+	gameSystem.Init();
 
 	// 入力処理の初期化
 	inputManager.Init(hInstance, hWnd);
@@ -424,7 +434,7 @@ long GetMousePosY(void)
 }
 
 
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 char* GetDebugStr(void)
 {
 	return g_DebugStr;
@@ -460,4 +470,9 @@ float GetRandFloat(float min, float max)
 float Lerp(float a, float b, float t)
 {
 	return a + (b - a) * t;
+}
+
+void ExitGame(void)
+{
+	g_ExitApp = true; // アプリケーション終了フラグを立てる
 }

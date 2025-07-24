@@ -5,10 +5,10 @@
 //
 //=============================================================================
 #include "Scene/Character/Lumine.h"
-#include "Utility/Debugproc.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Effects/EffectSystem.h"
+#include "UI/Base/UIManager.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -45,12 +45,10 @@
 #define WEAPON_ON_BACK_TIME		(600.0f)
 #define WEAPON_ON_HAND_TIME		(200.0f)
 
+#define GLIDE_START_TIME		(0.5f) // グライド開始までの時間
+
 Lumine::Lumine()
 {
-#ifdef _DEBUG
-	DebugProc::get_instance().Register(this);
-#endif // _DEBUG
-
 	SkinnedGameObjectConfig config;
 	config.modelPath = "data/MODEL/character/Lumine";
 	config.modelName = "Character_output.fbx";
@@ -128,7 +126,7 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Sneak Walk.fbx", AnimClipName::ANIM_DASH);
 	AddAnimation("data/MODEL/character/Lumine/", "Running.fbx", AnimClipName::ANIM_RUN);
 	AddAnimation("data/MODEL/character/Lumine/", "Walking.fbx", AnimClipName::ANIM_WALK);
-	AddAnimation("data/MODEL/character/Lumine/", "Jump.fbx", AnimClipName::ANIM_JUMP);
+	AddAnimation("data/MODEL/character/Lumine/", "Jump.fbx", AnimClipName::ANIM_JUMP, AnimPlayMode::ONCE);
 	AddAnimation("data/MODEL/character/Lumine/", "Standing React Small From Left.fbx", AnimClipName::ANIM_HIT_REACTION_1);
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH);
 	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
@@ -138,19 +136,78 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Walk_Aiming.fbx", AnimClipName::ANIM_WALK_AIMING);
 	AddAnimation("data/MODEL/character/Lumine/", "Run_Aiming.fbx", AnimClipName::ANIM_RUN_ANIMING);
 	AddAnimation("data/MODEL/character/Lumine/", "Idle_Aiming.fbx", AnimClipName::ANIM_IDLE_AIMING);
-	AddAnimation("data/MODEL/character/Lumine/", "Stand_Jump_Aiming.fbx", AnimClipName::ANIM_STAND_JUMP_AIMING);
-	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING);
+	AddAnimation("data/MODEL/character/Lumine/", "Stand_Jump_Aiming.fbx", AnimClipName::ANIM_STAND_JUMP_AIMING, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING, AnimPlayMode::ONCE);
 
-	AddAnimation("data/MODEL/character/Lumine/", "Climbing Up Wall.fbx", AnimClipName::ANIM_CLIB_WALL);
+	AddAnimation("data/MODEL/character/Lumine/", "Climbing Up Wall.fbx", AnimClipName::ANIM_CLIMB_WALL);
+	AddAnimation("data/MODEL/character/Lumine/", "Climbing.fbx", AnimClipName::ANIM_START_CLIMBING, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Climbing To Top.fbx", AnimClipName::ANIM_CLIMBING_TO_TOP, AnimPlayMode::ONCE);
+
+	AddAnimation("data/MODEL/character/Lumine/", "Pick Fruit.fbx", AnimClipName::ANIM_PLANT_SEED, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Floating.fbx", AnimClipName::ANIM_AIR_GLIDE);
 
 	SetupAnimStateMachine();
 	InitAnimInfo();
 }
 
-void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
+void Lumine::HandleInput(void)
+{
+	if (!m_inputManager.GetKeyboardPress(DIK_W)
+		&& !m_inputManager.GetKeyboardPress(DIK_S)
+		&& !m_inputManager.GetKeyboardPress(DIK_A)
+		&& !m_inputManager.GetKeyboardPress(DIK_D))
+		instance.attributes.isMoving = false;
+
+	if (m_inputManager.IsMouseRightPressed())
+	{
+		instance.attributes.aimMode = true;
+	}
+	else
+	{
+		instance.attributes.aimMode = false;
+	}
+
+	if (m_inputManager.GetKeyboardPress(DIK_LSHIFT))
+	{
+		instance.attributes.isRunning = true;
+	}
+	else
+	{
+		instance.attributes.isRunning = false;
+	}
+
+	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
+	{
+		XMFLOAT3 pos, dir;
+
+		// 水の弾の速度
+		float speed = 345.0f;
+		if (instance.attributes.isMoving)
+		{
+			if (instance.attributes.isRunning)
+				speed *= VALUE_MOVE * VALUE_RUN_FACTOR * 60.0f;
+			else
+				speed *= VALUE_MOVE * 60.0f;
+		}
+
+		// 水の弾の位置
+		XMStoreFloat3(&pos, m_weapon.GetWorldMatrix().r[3]);
+		float yaw = instance.transform.rot.y;
+		dir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
+		// 武器の位置を少し上にずらす
+		pos.y -= 25.0f;
+		pos.x += sinf(instance.transform.rot.y) * 25.0f;
+		pos.z += cosf(instance.transform.rot.y) * 25.0f;
+
+		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+			m_waterFluid->EmitWater(dir, speed, 35.0f, 1, pos);
+	}
+}
+
+void Lumine::AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName, animPlayMode);
 }
 
 void Lumine::LoadWeapon(char* modelPath, char* modelName)
@@ -197,12 +254,8 @@ void Lumine::Update(void)
 		return;
 	}
 
-	if (!m_inputManager.GetKeyboardPress(DIK_W)
-		&& !m_inputManager.GetKeyboardPress(DIK_S)
-		&& !m_inputManager.GetKeyboardPress(DIK_A)
-		&& !m_inputManager.GetKeyboardPress(DIK_D))
-		instance.attributes.isMoving = false;
-
+	if (m_playerAttr->allowControl)
+		HandleInput();
 
 	if (instance.attributes.attackWindow2 == true
 		|| instance.attributes.attackWindow3 == true)
@@ -215,24 +268,6 @@ void Lumine::Update(void)
 			instance.attributes.attackWindow3 = false;
 			instance.attributes.attackWinwdowCnt = 0;
 		}
-	}
-
-	if (m_inputManager.IsMouseRightPressed())
-	{
-		instance.attributes.aimMode = true;
-	}
-	else
-	{
-		instance.attributes.aimMode = false;
-	}
-
-	if (m_inputManager.GetKeyboardPress(DIK_LSHIFT))
-	{
-		instance.attributes.isRunning = true;
-	}
-	else
-	{
-		instance.attributes.isRunning = false;
 	}
 
 	switch (m_stateMachine->GetCurrentState())
@@ -285,6 +320,24 @@ void Lumine::Update(void)
 	case STATE(PlayerState::CLIMB_WALL):
 		PlayClimbAnim();
 		break;
+	case STATE(PlayerState::PLANT_SEED):
+		PlayGeneralAnim(AnimClipName::ANIM_PLANT_SEED, m_playAnimSpeed);
+		break;
+	case STATE(PlayerState::START_CLIMBING_UP):
+		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, m_playAnimSpeed * 1.2f);
+		break;
+	case STATE(PlayerState::STOP_CLIMBING_UP):
+		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, m_playAnimSpeed);
+		break;
+	case STATE(PlayerState::START_CLIMBING_DOWN):
+		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, -m_playAnimSpeed);
+		break;
+	case STATE(PlayerState::STOP_CLIMBING_DOWN):
+		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, -m_playAnimSpeed * 1.2f);
+		break;
+	case STATE(PlayerState::GLIDE):
+		PlayGeneralAnim(AnimClipName::ANIM_AIR_GLIDE, m_playAnimSpeed);
+		break;
 	default:
 		break;
 	}
@@ -298,33 +351,6 @@ void Lumine::Update(void)
 	if (instance.attributes.isAttacking || instance.attributes.isAttacking2 || instance.attributes.isAttacking3)
 		swordTrail->Update();
 
-	
-	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
-	{
-		XMFLOAT3 pos, dir;
-
-		// 水の弾の速度
-		float speed = 345.0f;
-		if (instance.attributes.isMoving)
-		{
-			if (instance.attributes.isRunning)
-				speed *= VALUE_MOVE * VALUE_RUN_FACTOR * 60.0f;
-			else
-				speed *= VALUE_MOVE * 60.0f;
-		}
-
-		// 水の弾の位置
-		XMStoreFloat3(&pos, m_weapon.GetWorldMatrix().r[3]);
-		float yaw = instance.transform.rot.y;
-		dir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
-		// 武器の位置を少し上にずらす
-		pos.y -= 25.0f;
-		pos.x += sinf(instance.transform.rot.y) * 25.0f;
-		pos.z += cosf(instance.transform.rot.y) * 25.0f;
-
-		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(dir, speed, 35.0f, 1, pos);
-	}
 }
 
 void Lumine::Draw(void)
@@ -408,6 +434,59 @@ void Lumine::DrawEffect(void)
 		swordTrail->Draw();
 }
 
+void Lumine::PlaceItem(ItemType type)
+{
+	if (type == ItemType::Seed)
+	{
+		if (m_playerAttr->hasSeed)
+		{
+			m_playerAttr->hasSeed = false;
+			m_playerAttr->allowControl = false;
+			m_stateMachine->SetCurrentState(STATE(PlayerState::PLANT_SEED));
+		}
+		return;
+	}
+}
+
+void Lumine::SetClimb(PlayerState state)
+{
+	if (state == PlayerState::START_CLIMBING_UP)
+	{
+		m_stateMachine->SetCurrentState(STATE(PlayerState::START_CLIMBING_UP));
+		m_stateMachine->GetCurrentAnimClip()->SetReveresed(false);
+
+		// クライム開始位置と方向を設定
+		SetPosition(XMFLOAT3(8672.0f, 6379.7f, 7871.0f)); 
+		instance.attributes.dir = instance.attributes.targetDir = -5.317f;
+	}
+	else if (state == PlayerState::START_CLIMBING_DOWN)
+	{
+		m_stateMachine->SetCurrentState(STATE(PlayerState::START_CLIMBING_DOWN));
+		m_stateMachine->GetCurrentAnimClip()->SetReveresed(true);
+
+		// クライム開始位置と方向を設定
+		SetPosition(XMFLOAT3(8856.0f, 9626.7f, 8124.0f));
+		instance.attributes.dir = instance.attributes.targetDir = 1.364f;
+	}
+	else if (state == PlayerState::STOP_CLIMBING_UP)
+	{
+		m_stateMachine->SetCurrentState(STATE(PlayerState::STOP_CLIMBING_UP));
+		m_stateMachine->GetCurrentAnimClip()->SetReveresed(false);
+
+		// クライム終了位置を設定
+		SetPosition(XMFLOAT3(8779.0f, 9612.7f, 7968.0f));
+	}
+	else if (state == PlayerState::STOP_CLIMBING_DOWN)
+	{
+		m_stateMachine->SetCurrentState(STATE(PlayerState::STOP_CLIMBING_DOWN));
+		m_stateMachine->GetCurrentAnimClip()->SetReveresed(true);
+
+		// クライム終了位置を設定
+		SetPosition(XMFLOAT3(8666.0f, 6405.7f, 7889.0f));
+		
+	}
+}
+
 AnimStateMachine* Lumine::GetStateMachine(void)
 {
 	return m_stateMachine;
@@ -430,7 +509,7 @@ void Lumine::PlayClimbAnim(void)
 	else
 		animSpeed = 0.0f; // クライミング中はアニメーションを停止
 
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_CLIB_WALL)
+	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_CLIMB_WALL)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
 	instance.pModel->PlayCurrentAnim(animSpeed);
 }
@@ -461,7 +540,14 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddState(STATE(PlayerState::RUN_JUMP_AIMING), instance.pModel->GetAnimationClip(AnimClipName::ANIM_RUN_JUMP_AIMING));
 
 	// Climb関連のアニメーション
-	m_stateMachine->AddState(STATE(PlayerState::CLIMB_WALL), instance.pModel->GetAnimationClip(AnimClipName::ANIM_CLIB_WALL));
+	m_stateMachine->AddState(STATE(PlayerState::CLIMB_WALL), instance.pModel->GetAnimationClip(AnimClipName::ANIM_CLIMB_WALL));
+	m_stateMachine->AddState(STATE(PlayerState::START_CLIMBING_UP), instance.pModel->GetAnimationClip(AnimClipName::ANIM_START_CLIMBING));
+	m_stateMachine->AddState(STATE(PlayerState::STOP_CLIMBING_UP), instance.pModel->GetAnimationClip(AnimClipName::ANIM_CLIMBING_TO_TOP));
+	m_stateMachine->AddState(STATE(PlayerState::START_CLIMBING_DOWN), instance.pModel->GetAnimationClip(AnimClipName::ANIM_CLIMBING_TO_TOP));
+	m_stateMachine->AddState(STATE(PlayerState::STOP_CLIMBING_DOWN), instance.pModel->GetAnimationClip(AnimClipName::ANIM_START_CLIMBING));
+
+	m_stateMachine->AddState(STATE(PlayerState::PLANT_SEED), instance.pModel->GetAnimationClip(AnimClipName::ANIM_PLANT_SEED));
+	m_stateMachine->AddState(STATE(PlayerState::GLIDE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_AIR_GLIDE));
 
 	//状態遷移
 	m_stateMachine->AddTransition(STATE(PlayerState::STANDING), STATE(PlayerState::WALK), &ISkinnedMeshModelChar::CanWalk);
@@ -508,8 +594,18 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_JUMP_AIMING), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 	m_stateMachine->AddTransition(STATE(PlayerState::STAND_JUMP_AIMING), STATE(PlayerState::IDLE_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 
-	m_stateMachine->AddTransition(STATE(PlayerState::STANDING), STATE(PlayerState::CLIMB_WALL), &ISkinnedMeshModelChar::CanClimb, false, false);
-	m_stateMachine->AddTransition(STATE(PlayerState::CLIMB_WALL), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::CanStopClimbing, false, false);
+	m_stateMachine->AddTransition(STATE(PlayerState::START_CLIMBING_UP), STATE(PlayerState::CLIMB_WALL), &ISkinnedMeshModelChar::CanClimb, true, false);
+	m_stateMachine->AddTransition(STATE(PlayerState::START_CLIMBING_DOWN), STATE(PlayerState::CLIMB_WALL), &ISkinnedMeshModelChar::CanClimb, true, false);
+	m_stateMachine->AddTransition(STATE(PlayerState::STOP_CLIMBING_DOWN), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::AlwaysTrue, true, false);
+	m_stateMachine->AddTransition(STATE(PlayerState::STOP_CLIMBING_UP), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::AlwaysTrue, true, false);
+	m_stateMachine->AddTransition(STATE(PlayerState::PLANT_SEED), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::AlwaysTrue, true);
+
+	m_stateMachine->AddTransition(STATE(PlayerState::STANDING), STATE(PlayerState::GLIDE), &ISkinnedMeshModelChar::CanGlide);
+	m_stateMachine->AddTransition(STATE(PlayerState::WALK), STATE(PlayerState::GLIDE), &ISkinnedMeshModelChar::CanGlide);
+	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::GLIDE), &ISkinnedMeshModelChar::CanGlide);
+	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::GLIDE), &ISkinnedMeshModelChar::CanGlide);
+	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::GLIDE), &ISkinnedMeshModelChar::CanGlide);
+	m_stateMachine->AddTransition(STATE(PlayerState::GLIDE), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::CanStopGliding);
 
 	m_stateMachine->SetEndCallback(STATE(PlayerState::ATTACK_1), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(PlayerState::ATTACK_2), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
@@ -518,6 +614,11 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->SetEndCallback(STATE(PlayerState::JUMP), &ISkinnedMeshModelChar::OnJumpAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(PlayerState::STAND_JUMP_AIMING), &ISkinnedMeshModelChar::OnJumpAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(PlayerState::RUN_JUMP_AIMING), &ISkinnedMeshModelChar::OnJumpAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::PLANT_SEED), &ISkinnedMeshModelChar::OnPlantSeedAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::START_CLIMBING_UP), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::STOP_CLIMBING_UP), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::START_CLIMBING_DOWN), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::STOP_CLIMBING_DOWN), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
 
 	m_stateMachine->SetCurrentState(STATE(PlayerState::STANDING));
 }
@@ -684,7 +785,7 @@ void Lumine::InitEffect(void)
 	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
 	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
-	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
+	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
 }
 
 void Lumine::FaceToNearestEnemy(void)
@@ -944,12 +1045,17 @@ bool Lumine::CanRunJumpAim(void) const
 
 bool Lumine::CanClimb(void) const
 {
-	return instance.attributes.climbMode;
+	return instance.attributes.climbUp || instance.attributes.climbDown;
 }
 
-bool Lumine::CanStopClimbing(void) const
+bool Lumine::CanGlide(void) const
 {
-	return !instance.attributes.climbMode;
+	return instance.attributes.glideDuration >= GLIDE_START_TIME;
+}
+
+bool Lumine::CanStopGliding(void) const
+{
+	return !CanGlide();
 }
 
 
@@ -991,6 +1097,61 @@ void Lumine::OnJumpAnimationEnd(void)
 	instance.attributes.isJumping = false;
 }
 
+void Lumine::OnPlantSeedAnimationEnd(void)
+{
+	m_playerAttr->allowControl = true;
+	Item* item = ItemManager::get_instance().GetItem(ItemType::Seed);
+	if (item == nullptr || item->GetUsed())
+		return;
+
+	item->SetPosition(instance.transform.pos);
+	item->SetActive(true);
+	item->SetColliderEnable(false);
+}
+
+void Lumine::OnClimbAnimationEnd(void)
+{
+	if (m_stateMachine->GetCurrentState() == STATE(PlayerState::START_CLIMBING_UP) ||
+		m_stateMachine->GetCurrentState() == STATE(PlayerState::START_CLIMBING_DOWN))
+	{
+		// 登り始めた時の処理
+		instance.attributes.enableClimbUp = true;
+		instance.attributes.enableClimbDown = true;
+		instance.attributes.climbUp = true;
+		UIManager::get_instance().GetFader().StartFadeIn();
+
+		// 登り始めた後の位置調整
+		if (m_stateMachine->GetCurrentState() == STATE(PlayerState::START_CLIMBING_UP))
+			SetPosition(XMFLOAT3(8799.0f, 6578.0f, 7968.0f));
+		else
+			SetPosition(XMFLOAT3(8779.0f, 9612.7f, 7968.0f));
+	}
+	else if (m_stateMachine->GetCurrentState() == STATE(PlayerState::STOP_CLIMBING_UP) ||
+		m_stateMachine->GetCurrentState() == STATE(PlayerState::STOP_CLIMBING_DOWN))
+	{
+		// 登りきった時の処理
+		instance.attributes.climbUp = false;
+		instance.attributes.isMoveBlocked = false;
+		UIManager::get_instance().GetFader().StartFadeIn();
+
+		// 登りきった後の位置調整
+		if (m_stateMachine->GetCurrentState() == STATE(PlayerState::STOP_CLIMBING_DOWN))
+		{
+			SetPosition(XMFLOAT3(8585.0f, 6379.0f, 7761.0f));
+			instance.attributes.dir = instance.attributes.targetDir = -2.08f;
+		}
+		else
+		{
+			SetPosition(XMFLOAT3(9024.0f, 9751.0f, 8225.0f));
+			instance.attributes.dir = instance.attributes.targetDir = -5.3f;
+		}
+
+		// クライムモードを終了
+		SetStaticCollisionEnable(true);
+		SetDynamicCollisionEnable(true);
+	}
+}
+
 void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 {
 	Lumine* self = static_cast<Lumine*>(context);
@@ -1016,7 +1177,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		Item* item = static_cast<Item*>(itemCol->owner);
 		if (item && item->GetItemType() == ItemType::Seed)
 		{
-
+			self->m_playerAttr->hasSeed = true;	
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{

@@ -10,7 +10,7 @@
 #include "Core/Camera.h"
 #include "Core/Async/AsyncModelLoader.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Model/ModelCacheLoader.h"
 #include "Collision/CollisionManager.h"
 
@@ -470,22 +470,10 @@ void Model::BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
 	XMStoreFloat3(&worldPos1, worldPosMax);
 	XMStoreFloat3(&worldPos2, worldPosMin);
 
-	m_modelData->boundingBox.maxPoint = XMFLOAT3(
-		max(worldPos1.x, worldPos2.x),
-		max(worldPos1.y, worldPos2.y),
-		max(worldPos1.z, worldPos2.z)
-	);
-
-	m_modelData->boundingBox.minPoint = XMFLOAT3(
-		min(worldPos1.x, worldPos2.x),
-		min(worldPos1.y, worldPos2.y),
-		min(worldPos1.z, worldPos2.z)
-	);
-
-
 
 	int vertexNum = m_modelData->VertexNum;
 	SimpleArray<XMFLOAT3> triangleVertices(3);
+	m_modelData->triangles.reserve(ceil(vertexNum / 3.0f));
 	for (int i = 0; i < vertexNum; i++)
 	{
 		XMFLOAT3 worldPos;

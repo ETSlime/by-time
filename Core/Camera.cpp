@@ -7,7 +7,7 @@
 #include "main.h"
 #include "Utility/InputManager.h"
 #include "Core/Camera.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Core/GameSystem.h"
 //*****************************************************************************
 // マクロ定義

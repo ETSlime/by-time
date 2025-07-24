@@ -6,7 +6,6 @@
 //=============================================================================
 #include "Scene/Character/GBMonster.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
 #include "Scene/Player.h"
 
 //*****************************************************************************

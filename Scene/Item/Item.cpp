@@ -58,7 +58,7 @@ void Item::Draw(void)
 void Item::Pickup(void)
 {
 	SetActive(false);
-	m_itemAttributes.used = true;
+	m_itemAttributes.pickedUp = true;
 }
 
 void Item::SetActive(bool enable)

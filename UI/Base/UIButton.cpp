@@ -131,6 +131,24 @@ void UIButton::HandleMouseInput(void)
         {
             m_state = next;
             UpdateVisual();
+
+            if (m_useTweenScale)
+            {
+                // ホバー時にTweenで拡大、離れたら元に戻す
+                const XMFLOAT2& scale = m_sprite->GetBaseScale();
+                const XMFLOAT2& normalScale = { 1.0f * scale.x, 1.0f * scale.y};
+                const XMFLOAT2& hoverScale = { 1.3f * scale.x, 1.3f * scale.y}; // 拡大倍率は調整可
+
+                if (m_state == ButtonState::Hovered)
+                {
+                    m_tweenManager.AddScale(this, hoverScale, 0.2f, EaseType::OutCubic);
+                }
+                else if (m_state == ButtonState::Normal)
+                {
+                    m_tweenManager.AddScale(this, normalScale, 0.2f, EaseType::OutCubic);
+                }
+            }
+
         }
     }
 
@@ -151,6 +169,14 @@ void UIButton::SetEnabled(bool enabled)
     UpdateVisual();
 }
 
+void UIButton::SetUseTweenScale(bool useTween)
+{
+    m_useTweenScale = useTween;
+
+	// Tweenを使用する場合は、スプライトのベーススケールを初期化
+    m_sprite->InitBaseScale();
+}
+
 bool UIButton::IsCursorInside(int mouseX, int mouseY) const
 {
     const auto& pos = GetPosition();
@@ -158,12 +184,15 @@ bool UIButton::IsCursorInside(int mouseX, int mouseY) const
     scaledSize.x *= GetScale().x; // スケールを考慮
     scaledSize.y *= GetScale().y; // スケールを考慮
 
+    // マージン（判定を広げるピクセル数）
+    const float margin = 5.0f;
+
     // マウス座標がボタンの範囲内にあるかチェック
 	// ボタンの中心位置からの相対座標を計算
-    const float left = pos.x - scaledSize.x * 0.5f;
-    const float right = pos.x + scaledSize.x * 0.5f;
-    const float top = pos.y - scaledSize.y * 0.5f;
-    const float bottom = pos.y + scaledSize.y * 0.5f;
+    const float left = pos.x - scaledSize.x * 0.5f - margin;
+    const float right = pos.x + scaledSize.x * 0.5f + margin;
+    const float top = pos.y - scaledSize.y * 0.5f - margin;
+    const float bottom = pos.y + scaledSize.y * 0.5f + margin;
 
     return (mouseX >= left && mouseX <= right &&
         mouseY >= top && mouseY <= bottom);

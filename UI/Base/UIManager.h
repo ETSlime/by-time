@@ -50,6 +50,8 @@ public:
     void SetActivePrompt(UIInteractPrompt* prompt);
     void ClearActivePrompt(void);
 
+    bool IsFading(void) { return m_screenFader.IsFading(); }
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     SimpleArray<UIElement*> m_modals; // モーダルUIの保持

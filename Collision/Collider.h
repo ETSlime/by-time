@@ -7,7 +7,7 @@
 //=============================================================================
 #include "main.h"
 #include "Utility/SimpleArray.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -30,11 +30,12 @@ enum class ColliderTag
     PLAYER_PROJECTILE
 };
 
+// 前方宣言
+class Collider;
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
-
-class Collider;
 
 // 衝突イベント構造体：衝突時に発行されるイベントメッセージ
 struct CollisionEvent
@@ -53,6 +54,9 @@ public:
     ColliderTag tag; // 衝突器の種類
     void* owner;
     bool enable;
+	bool enableStaticCollision;         // 静的オブジェクトとの衝突を有効にするか
+	bool enableDynamicCollision;        // 動的オブジェクトとの衝突を有効にするか
+	bool enableTriggerEventCollision;   // イベント衝突を有効にするか
     bool isInitialized;
 
     // 通常コールバック（接触時に呼ばれる）
@@ -64,6 +68,9 @@ public:
         aabb = BOUNDING_BOX();
         tag = ColliderTag::DEFAULT;
         enable = false;
+		enableStaticCollision = true;       // デフォルトでは静的オブジェクトとの衝突を有効
+		enableDynamicCollision = true;      // デフォルトでは動的オブジェクトとの衝突を有効
+        enableTriggerEventCollision = true; // デフォルトではイベント衝突を有効
         isInitialized = false;
         owner = nullptr;
     }

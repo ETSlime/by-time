@@ -12,7 +12,7 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/Mitachurl.h"
-#include "Scene/Item/Item.h"
+#include "Scene/Item/ItemManager.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 
@@ -26,7 +26,7 @@
 #define ROTATION_SPEED				(0.18f)
 #define FALLING_SPEED		(2.50f)
 #define SPD_DECAY_RATE		(0.93f)
-#define PLAYER_INIT_POS		XMFLOAT3(-5371.67f, -4775.0f, -1895.0f)
+#define PLAYER_INIT_POS		XMFLOAT3(4024.0f, 6270.0f, 4453.0f)
 
 class Player : public IDebugUI
 {
@@ -45,15 +45,16 @@ public:
 
 	void PickItem(Item* obj);
 
-	void SetClimbMode(bool enable);
+	void SetClimbMode(PlayerState climbState);
+	void PlaceItem(ItemType type);
 
-	static void OnClimbPromptTriggered(void* userData)
-	{
-		static_cast<Player*>(userData)->SetClimbMode(true);
-	}
+	static void OnClimbPromptTriggered(void* userData);
+
+	static void OnPlaceItemPromptTriggered(void* userData);
 
 	bool GetMeleeMode(void) const { return m_playerAttr.isMeleeMode; }
-	bool GetHasSeed(void) const { return m_playerAttr.hasSeed; }
+	bool HasSeed(void) const { return m_playerAttr.hasSeed; }
+	Attributes* GetAttributes(void) const { return m_attributes; }
 
 private:
 	void UpdateNormalMode(void);
@@ -64,7 +65,7 @@ private:
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Player"; };
 
-	Attributes m_attributes;
+	Attributes* m_attributes;
 	Transform m_transform;
 	PlayerAttributes m_playerAttr;
 	Sigewinne* sigewinne;
@@ -77,7 +78,8 @@ private:
 	bool m_drawBoundingBox = true;
 	int m_currentModelLoadCnt = 0;
 	int m_totalModelLoadCnt = 1;
-	
+	bool m_hasWeapon = false;
+
 	GameObject<SkinnedMeshModelInstance>* m_playerGO;
 
 	Light* m_light;
@@ -87,6 +89,5 @@ private:
 
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
-
-	bool m_hasWeapon = false;
+	ItemManager& m_itemManager = ItemManager::get_instance();
 };

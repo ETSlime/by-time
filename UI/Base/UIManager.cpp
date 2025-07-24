@@ -42,10 +42,14 @@ void UIManager::Update(void)
 
     m_screenFader.Update();
 
-    if (m_activePrompt && m_inputManager.GetKeyboardRelease(KEY_INTERACT))
+    if (m_activePrompt)
     {
-        m_activePrompt->Trigger();
-		ClearActivePrompt(); // プロンプトをクリア
+		m_activePrompt->Update(); // アクティブなプロンプトがある場合は更新
+        if (m_inputManager.GetKeyboardRelease(KEY_INTERACT))
+        {
+            m_activePrompt->Trigger();
+            ClearActivePrompt(); // プロンプトをクリア
+        }
     }
 }
 
@@ -70,6 +74,11 @@ void UIManager::Draw(void)
     // UI要素を描画
     for (auto& e : m_elements)
         e->Draw();
+
+    if (m_activePrompt)
+    {
+		m_activePrompt->Draw(); // アクティブなプロンプトを描画
+    }
 
 	// モーダルが存在する場合はモーダルを描画
     for (UINT i = 0; i < m_modals.getSize(); ++i)
@@ -144,7 +153,6 @@ void UIManager::SetActivePrompt(UIInteractPrompt* prompt)
     m_activePrompt = prompt;
     if (prompt)
     {
-		AddElement(prompt); // UI要素として追加
         prompt->Show();
     }
 }

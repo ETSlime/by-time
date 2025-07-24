@@ -9,6 +9,7 @@
 #include "Effects/SpecialEffects/SwordTrail.h"
 #include "Utility/InputManager.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
+#include "Scene/Item/Item.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`
@@ -35,6 +36,7 @@ struct PlayerAttributes
 	UINT			actionQueueEnd;
 	bool			isMeleeMode;
 	bool			hasSeed;
+	bool			allowControl;
 };
 
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
@@ -54,6 +56,9 @@ public:
 	void DrawEffect(void) override;
 	bool LoadFinished(void) { return this->GetLoad() && m_weapon.GetLoad(); }
 	void SetPlayerAttributes(PlayerAttributes* attr) { m_playerAttr = attr; }
+
+	void PlaceItem(ItemType type);
+	void SetClimb(PlayerState state);
 
 	AnimStateMachine* GetStateMachine(void) override;
 
@@ -87,11 +92,14 @@ public:
 	virtual bool CanJumpAim(void) const override;
 	virtual bool CanRunJumpAim(void) const override;
 	virtual bool CanClimb(void) const override;
-	virtual bool CanStopClimbing(void) const override;
+	virtual bool CanGlide(void) const override;
+	virtual bool CanStopGliding(void) const override;
 
 	virtual void OnAttackAnimationEnd(void) override;
 	virtual void OnHitAnimationEnd(void) override;
 	virtual void OnJumpAnimationEnd(void) override;
+	virtual void OnPlantSeedAnimationEnd(void) override;
+	virtual void OnClimbAnimationEnd(void) override;
 	//virtual const char* GetPanelName(void) const override { return "Lumine"; };
 private:
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
@@ -100,7 +108,8 @@ private:
 	{
 		Lumine* owner;
 	};
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void HandleInput(void);
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP);
 	void LoadWeapon(char* modelPath, char* modelName = nullptr);
 	void SetupAnimStateMachine(void);
 	void InitAnimInfo(void) override;
@@ -113,6 +122,7 @@ private:
 	PlayerAttributes* m_playerAttr = nullptr;
 	GameObject<SkinnedMeshModelInstance> m_weapon;
 	GameObject<ModelInstance> m_gun;
+
 	AnimStateMachine* m_stateMachine;
 	float m_playAnimSpeed;
 	float weaponOnBackTimer;

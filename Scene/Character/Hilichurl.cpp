@@ -6,7 +6,7 @@
 //=============================================================================
 #include "Scene/Character/Hilichurl.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Scene/Player.h"
 //*****************************************************************************
 // É}ÉNÉçíËã`

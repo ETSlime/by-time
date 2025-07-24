@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 自然環境をふわふわ描くクラスちゃん [Environment.h]
@@ -6,11 +7,10 @@
 // 八分木・風向き・ノイズ生成・シャドウ対応までしっかりしてる超がんばり屋さんっ
 // 
 //=============================================================================
-#pragma once
 #include "Core/Graphics/Renderer.h"
 #include "Scene/GameObject.h"
 #include "Collision/OctreeNode.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 #include "Core/Camera.h"
 
 //*****************************************************************************

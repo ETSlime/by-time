@@ -34,7 +34,7 @@ void ProjectileManager::Draw(void)
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);
 
-		if (cur->data->GetAttributes().use)
+		if (cur->data->GetAttributesConst().use)
 			cur->data->Draw();
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)

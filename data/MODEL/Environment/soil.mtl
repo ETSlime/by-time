@@ -1,7 +1,7 @@
 # Blender 4.0.0 MTL File: 'None'
 # www.blender.org
 
-newmtl Material.001
+newmtl Material_0
 Kd 1 1 1
 map_Kd soil.png
 Ka 1.000000 1.000000 1.000000

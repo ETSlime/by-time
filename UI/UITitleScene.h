@@ -13,13 +13,23 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define TITLE_ANIM_TEXTURE_PATH         "data/TEXTURE/bg000.png"
-#define TITLE_NEWGAME_TEXTURE_PATH      "data/TEXTURE/UI/newgame_xlixk.png"
-#define TITLE_BTN_TEXTURE_SIZE_X        380
-#define TITLE_BTN_TEXTURE_SIZE_Y        80
-#define TITLE_ANIM_TILE_X               1
-#define TITLE_ANIM_TILE_Y               1
-#define TITLE_ANIM_SPEED                0.1f
+#define TITLE_ANIM_TEXTURE_PATH                 "data/TEXTURE/bg000.png"
+#define TITLE_ANIM_TILE_X                       1
+#define TITLE_ANIM_TILE_Y                       1
+#define TITLE_ANIM_SPEED                        0.1f
+
+// タイトル画面のボタン設定
+#define TITLE_BTN_TEXTURE_SIZE_X                380
+#define TITLE_BTN_TEXTURE_SIZE_Y                80
+#define TITLE_BTN_TEXTURE_SPACE_X               500 // ボタン間のスペース
+
+#define TITLE_BTN_NEWGAME_TEXTURE_PATH          "data/TEXTURE/UI/newgame_xlixk.png"
+#define TITLE_BTN_NEWGAME_TEXTURE_POS_X         (SCREEN_CENTER_X * 0.48f)
+#define TITLE_BTN_NEWGAME_TEXTURE_POS_Y         (SCREEN_CENTER_Y * 1.6f) // 画面中央の下に配置
+
+#define TITLE_BTN_LOADGAME_TEXTURE_PATH          "data/TEXTURE/UI/loadgame_click.png"
+#define TITLE_BTN_EXITGAME_TEXTURE_PATH          "data/TEXTURE/UI/quit_click.png"
+
 
 class UITitleScene : public UIElement
 {
@@ -43,12 +53,52 @@ public:
         m_titleAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
         m_titleAnim->SetSize({ static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) });
 
-        m_btnNewGame = new UIButton();
-        m_btnNewGame->InitWithSingleTexture(UIManager::get_instance().GetSpriteVertexBuffer(), TITLE_NEWGAME_TEXTURE_PATH);
-        m_btnNewGame->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
-        m_btnNewGame->SetSize({ static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X),  static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) });
+		// 新規ゲームボタンの初期化
+		m_btnNewGame = new UIButton();
+        m_btnNewGame->InitWithSingleTexture(
+            UIManager::get_instance().GetSpriteVertexBuffer(), 
+            TITLE_BTN_NEWGAME_TEXTURE_PATH
+        );
+        m_btnNewGame->SetPosition({ 
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X), 
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y) 
+            });
+        m_btnNewGame->SetSize({ 
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X), 
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) 
+            });
         m_btnNewGame->SetOnClick(OnClick_NewGame, this);
 
+		// ロードゲームボタンの初期化
+        m_btnLoadGame = new UIButton();
+        m_btnLoadGame->InitWithSingleTexture(
+            UIManager::get_instance().GetSpriteVertexBuffer(), 
+            TITLE_BTN_LOADGAME_TEXTURE_PATH
+        );
+        m_btnLoadGame->SetPosition({ 
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X + TITLE_BTN_TEXTURE_SPACE_X), 
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y) 
+            });
+        m_btnLoadGame->SetSize({ 
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X), 
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) 
+            });
+
+		// ゲーム終了ボタンの初期化
+		m_btnExitGame = new UIButton();
+        m_btnExitGame->InitWithSingleTexture(
+            UIManager::get_instance().GetSpriteVertexBuffer(),
+            TITLE_BTN_EXITGAME_TEXTURE_PATH
+        );
+        m_btnExitGame->SetPosition({
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X + TITLE_BTN_TEXTURE_SPACE_X * 2),
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y)
+            });
+        m_btnExitGame->SetSize({
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X),
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y)
+            });
+		m_btnExitGame->SetOnClick(OnClickExitGame, nullptr); // ゲーム終了ボタンのコールバック設定
 
         // 最初はフェードインから始める（必要であれば）
         m_UIManager.GetFader().StartFadeIn(1.0f); // 1秒でフェードイン
@@ -58,7 +108,8 @@ public:
     {
         SAFE_DELETE(m_titleAnim);
         SAFE_DELETE(m_btnNewGame);
-
+		SAFE_DELETE(m_btnLoadGame);
+		SAFE_DELETE(m_btnExitGame);
     }
 
     void Update(void) override
@@ -68,6 +119,12 @@ public:
 
         if (m_btnNewGame)
             m_btnNewGame->Update();
+
+		if (m_btnLoadGame)
+			m_btnLoadGame->Update();
+
+		if (m_btnExitGame)
+			m_btnExitGame->Update();
 
         auto& fader = UIManager::get_instance().GetFader();
 
@@ -92,6 +149,12 @@ public:
 
 		if (m_btnNewGame)
 			m_btnNewGame->Draw();
+
+		if (m_btnLoadGame)
+			m_btnLoadGame->Draw();
+
+		if (m_btnExitGame)
+			m_btnExitGame->Draw();
     }
 
     void RequestStartFadeOut(void)
@@ -108,6 +171,27 @@ public:
         if (scene->IsClickLocked()) return; // 二重クリック防止
         scene->RequestStartFadeOut();
         scene->LockClick(); // ロック！
+    }
+
+    static void OnClickExitGame(void* userData)
+    {
+        UIManager::get_instance().GetFader().StartFadeOut(); // 画面を黒くフェードイン
+
+        DeferredTaskOptions options{};
+        options.async = false; // 同期で実行
+
+        RawDeferredTask::Add(
+            nullptr,
+            [](void* ptr)
+            {
+                ExitGame(); // ゲームを終了する
+            },
+            [](void* ptr)
+            {
+                return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+            },
+            options
+        );
     }
 
 	// クリックロックの管理

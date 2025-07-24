@@ -31,7 +31,7 @@ void ItemManager::Draw(void)
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);
 
-		if (!cur->data->GetItemAttributes().used && cur->data->GetAttributes().use)
+		if (!cur->data->GetItemAttributes().used && cur->data->GetAttributesConst().use)
 			cur->data->Draw();
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
@@ -51,7 +51,6 @@ void ItemManager::Draw(void)
 
 void ItemManager::Update(void)
 {
-
 	// TODO もっと綺麗にアップデートしましょう
 	Node<Item*>* cur = m_itemList.getHead();
 	while (cur != nullptr)
@@ -82,7 +81,6 @@ void ItemManager::Update(void)
 			cur = cur->next;
 	}
 
-
 }
 
 Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
@@ -102,17 +100,22 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 	return item;
 }
 
+Item* ItemManager::GetItem(ItemType itemType) const
+{
+	Node<Item*>* cur = m_itemList.getHead();
+	while (cur != nullptr)
+	{
+		if (cur->data->GetItemType() == itemType)
+		{
+			return cur->data;
+		}
+		cur = cur->next;
+	}
+	return nullptr;
+}
+
 void ItemManager::RenderImGui(void)
 {
 
-	if (ImGui::Checkbox("Draw Enemy Bounding Box", &m_drawBoundingBox))
-	{
-		Node<Item*>* cur = m_itemList.getHead();
-		while (cur != nullptr)
-		{
-			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
-			cur = cur->next;
-		}
-	}
 
 }

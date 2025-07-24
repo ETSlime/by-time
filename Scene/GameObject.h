@@ -16,7 +16,7 @@
 #include "Model/Model.h"
 #include "Model/SkinnedMeshModel.h"
 #include "Collision/CollisionManager.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -89,6 +89,7 @@ struct Attributes
 	bool			isHit1 = false;
 	bool			isHit2 = false;
 	float			hitTimer = 0;
+	float			glideDuration = 0.0f; // グライドの持続時間
 
 	bool			charSwitchEffect = false;
 
@@ -101,6 +102,8 @@ struct Attributes
 	bool			climbMode = false; // クライムモード
 	bool			climbUp = false; // クライムモードで上に移動中かどうか
 	bool 			climbDown = false; // クライムモードで下に移動中かどうか
+	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
+	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
 
 	void Initialize(void)
 	{
@@ -255,7 +258,11 @@ public:
 	~GameObject();
 	void Instantiate(const GameObjectConfig& config);
 	void Instantiate(const SkinnedGameObjectConfig& config);
-	virtual void Destroy() override { instance.markedForDelete = true; }
+	virtual void Destroy() override // GameObject の破棄処理
+	{ 
+		instance.markedForDelete = true; 
+		CollisionManager::get_instance().UnregisterDynamicCollider(&instance.collider);
+	}
 	virtual bool IsMarkedForDelete() const override { return instance.markedForDelete; }
 	void SetPostInitCallback(PostInitCallback cb, void* userData) { instance.onPostInit = cb; instance.userData = userData;}
 
@@ -369,19 +376,28 @@ public:
 	inline void SetIsCursorIn(BOOL cursorIn) { instance.isCursorIn = cursorIn; }
 	inline int GetEditorIndex() { return instance.editorIdx; }
 	inline void SetEditorIndex(int idx) { instance.editorIdx = idx; }
-	inline const Attributes& GetAttributes() { return instance.attributes; }
+	inline const Attributes& GetAttributesConst() { return instance.attributes; }
+	inline Attributes* GetAttributes() { return &instance.attributes; }
 	inline void UpdateAttributes(Attributes attributes) { instance.attributes = attributes; }
 
 	// 物理演算用の当たり判定
 	inline void SetColliderTag(ColliderTag tag) { instance.collider.tag = tag; }
 	inline void SetColliderOwner(void* owner) { instance.collider.owner = owner; }
 	inline void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
+	inline void SetStaticCollisionEnable(bool enable) { instance.collider.enableStaticCollision = enable; }
+	inline void SetDynamicCollisionEnable(bool enable) { instance.collider.enableDynamicCollision = enable; }
+	inline void SetEventTriggerCollisionEnable(bool enable) { instance.collider.enableEventTriggerCollision = enable; }
 	inline void SetColliderBoundingBox(BOUNDING_BOX boundingBox) { instance.collider.aabb = boundingBox; }
 	inline const Collider& GetCollider(void) const { return instance.collider; }
 	inline BOUNDING_BOX GetBoundingBoxWorld(void) const override { return instance.collider.aabb; }
 
+	inline void SetGrounded(bool grounded) 
+	{ 
+		instance.attributes.isGrounded = grounded; 
+		if (grounded) 
+			instance.attributes.glideDuration = 0.0f; // 地面に着地したらグライドの持続時間をリセット
+	}
 
-	inline void SetGrounded(bool grounded) { instance.attributes.isGrounded = grounded; }
 	inline void SetMoveBlock(bool blocked) { instance.attributes.isMoveBlocked = blocked; }
 	inline void SetIsHit(bool isHit) { instance.attributes.isHit1 = isHit; }
 	inline bool GetIsHit(void) { return instance.attributes.isHit1; }
@@ -461,13 +477,16 @@ public:
 	virtual bool CanJumpAim() const { return false; }
 	virtual bool CanRunJumpAim() const { return false; }
 	virtual bool CanClimb() const { return false; }
-	virtual bool CanStopClimbing() const { return false; }
+	virtual bool CanGlide() const { return false; }
+	virtual bool CanStopGliding() const { return false; }
 	virtual void OnAttackAnimationEnd() {};
 	virtual void OnHitAnimationEnd() {};
 	virtual void OnDashAnimationEnd() {}
 	virtual void OnJumpAnimationEnd() {}
 	virtual void OnDieAnimationEnd() {}
 	virtual void OnSurprisedEnd() {}
+	virtual void OnPlantSeedAnimationEnd() {}
+	virtual void OnClimbAnimationEnd() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
 };

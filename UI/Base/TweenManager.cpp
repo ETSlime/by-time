@@ -7,9 +7,9 @@
 #include "UI/Base/TweenManager.h"
 #include "UI/Base/UIElement.h"
 
-void TweenTask::Update(float deltaTime, ISpriteTransformable* target)
+bool TweenTask::Update(float deltaTime, ISpriteTransformable* target)
 {
-    if (finished || !target) return;
+    if (!target) return true;
 
     elapsed += deltaTime;
     float t = min(elapsed / duration, 1.0f);
@@ -33,7 +33,36 @@ void TweenTask::Update(float deltaTime, ISpriteTransformable* target)
         finished = true;
 
 		if (onComplete) onComplete(target); // コールバックが設定されていれば呼び出す
+
+		AdvanceToNextTask(); // 次のタスクに進む
     }
+
+	return finished && !next; // 全てのタスクが完了したかどうかを返す
+}
+
+void TweenTask::AdvanceToNextTask(void)
+{
+    if (!next) return; // 次のタスクが存在しない場合は何もしない
+
+    TweenTask* oldNext = next;
+
+    // 次のタスクのデータを現在のタスクに移行する
+    type = oldNext->type;
+    duration = oldNext->duration;
+    elapsed = 0.0f;              // 経過時間をリセット
+    ease = oldNext->ease;
+    startVec2 = oldNext->startVec2;
+    endVec2 = oldNext->endVec2;
+    startFloat = oldNext->startFloat;
+    endFloat = oldNext->endFloat;
+    onComplete = oldNext->onComplete;
+    finished = false;            // 新しいタスクはまだ未完了
+
+    // oldNext の残りのチェーンを引き継ぐ
+    next = oldNext->next;
+
+    // oldNext を解放する（チェーンは保持したまま）
+    SAFE_DELETE(oldNext);
 }
 
 float TweenTask::ApplyEase(float t, EaseType ease)
@@ -161,13 +190,17 @@ void TweenManager::Update(void)
             }
         }
 
-		// タスクの更新
-        if (!task->tweenTask->finished)
-            task->tweenTask->Update(m_timer.GetDeltaTime(), task->target);
+        // TweenTask::Update が true を返したら、チェーンが完全終了
+        if (task->tweenTask->Update(m_timer.GetDeltaTime(), task->target))
+            m_toRemove.push_back(task);
 
-		// タスクが完了したかどうかをチェック
-        if (task->AllTasksFinished())
-            m_toRemove.push_back(task); // 完了したタスクを削除予定リストに追加
+		//// タスクの更新
+  //      if (!task->tweenTask->finished)
+  //          task->tweenTask->Update(m_timer.GetDeltaTime(), task->target);
+
+		//// タスクが完了したかどうかをチェック
+  //      if (task->AllTasksFinished())
+  //          m_toRemove.push_back(task); // 完了したタスクを削除予定リストに追加
     }
 
     // 完了したタスクを削除
@@ -180,6 +213,7 @@ void TweenManager::Update(void)
             m_tasks.erase(index);
         }
     }
+    m_toRemove.clear();
 }
 
 void TweenManager::Shutdown(void)

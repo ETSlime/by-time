@@ -55,6 +55,7 @@ void UIMainHUD::Initialize(void)
 	m_equipSlot->SetSize(HUD_EQUIPMENT_SLOT_TEXTURE_SIZE_X, HUD_EQUIPMENT_SLOT_TEXTURE_SIZE_Y);
 	m_equipSlot->SetPosition(HUD_EQUIPMENT_SLOT_TEXTURE_POS_X, HUD_EQUIPMENT_SLOT_TEXTURE_POS_Y);
 	m_equipSlot->SetScale(0.82f, 0.82f);
+	m_equipSlot->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)); // 半透明に設定	
 
 	m_weaponIcon = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
@@ -92,7 +93,7 @@ void UIMainHUD::Update(void)
 	// アイコンの表示状態を更新
 	//m_weaponIcon->SetVisible(m_player->HasWeapon());
 	//m_gunIcon->SetVisible(m_player->HasGun());
-	//m_seedIcon->SetVisible(m_player->HasSeed());
+	m_seedIcon->SetVisible(m_player->HasSeed());
 
 	// アイコンの位置を更新
 	if (m_player->GetMeleeMode())

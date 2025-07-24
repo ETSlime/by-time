@@ -10,10 +10,10 @@
 #include "Collision/OctreeNode.h"
 #include "Collision/VoxelGrid.h"
 #include "Utility/SingletonBase.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Collision/Collider.h"
 #include "Model/Model.h"
-
+#include "Utility/Debug/DebugTriangleRenderer.h"
 
 //*****************************************************************************
 // 構造体定義
@@ -77,12 +77,17 @@ public:
     void VoxelGridInsertTriangle(const Triangle* tri);
     void VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles);
 
-    // 動的衝突体の登録
+    // 動的衝突体の登録&解除
     void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
-    // 衝突イベントを発行するためのコライダーを登録
+    void UnregisterDynamicCollider(const Collider* collider);
+    // 衝突イベントを発行するためのコライダーを登録&解除
 	void RegisterEventCollider(Collider* collider) { m_triggerEventColliders.push_back(collider); }
+	void UnregisterEventCollider(Collider* collider);
+
     // 動的衝突体リストのクリア
     void ClearDynamicColliders(void) { dynamicColliders.clear(); }
+	// 衝突イベントコライダーリストのクリア
+	void ClearEventColliders(void) { m_triggerEventColliders.clear(); }
 
     // シーン切り替え時に呼び出すVoxelMapping登録関数
     void PrepareVoxelMappingAfterSceneChange(void);
@@ -92,12 +97,23 @@ private:
 	bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
 	// イベント衝突判定（衝突イベントの発行・購読）
 	void CheckEventCollision(const Collider* dynamicCol, Collider* triggerCol);
+    // 精密衝突判定関数（Collider と Triangle 間の衝突判定）
+    bool IsPointInTriangle(XMVECTOR p, XMVECTOR a, XMVECTOR b, XMVECTOR c);
+    // 三角形上の最近点を求める関数
+    void ClosestPointOnTriangle(const XMFLOAT3& p, const XMFLOAT3& a,
+        const XMFLOAT3& b, const XMFLOAT3& c, XMFLOAT3& out);
+    // 壁との衝突判定のためのイプシロン値を計算
+	float ComputeWallCollisionEpsilon(const BOUNDING_BOX& box);
+
     void TriggerOnExit(void);
     virtual void RenderDebugInfo(void) override;
 
+	bool m_initialized = false; // 初期化フラグ
     bool m_drawBoundingBox = true;
     BOUNDING_BOX m_curCollisionBox; // 現在のバウンディングボックス（デバッグ用）
     DebugBoundingBoxRenderer m_debugBoundingBoxRenderer; // デバッグ用のバウンディングボックス描画
+	DebugTriangleRenderer m_debugTriangleRenderer; // デバッグ用の三角形描画
+	SimpleArray<Triangle> m_debugTriangles; // デバッグ用の三角形リスト
 
     // 静的オブジェクト（例：地面モデル）の八分木
     OctreeNode* m_staticOctree = nullptr;
@@ -120,12 +136,6 @@ private:
 
     // イベントバスのインスタンス
     EventBus eventBus;
-
-    //// 精密衝突判定関数（Collider と Triangle 間の衝突判定）
-    //bool PreciseCollision(Collider* col, Triangle* tri);
-
-    //// 精密衝突判定関数（動的 Collider 同士の衝突判定）
-    //bool PreciseCollision(Collider* col1, Collider* col2);
 };
 
 

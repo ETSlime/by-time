@@ -11,10 +11,8 @@
 #include "Core/Light.h"
 #include "Core/Graphics/CascadedShadowMap.h"
 #include "Core/Shader/ShaderManager.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
 #include "Core/Graphics/ShadowMeshCollector.h"
-#include "Utility/Debugproc.h"
-
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 
 
 class ShadowMapRenderer : public SingletonBase<ShadowMapRenderer>, public IDebugUI
@@ -66,6 +64,7 @@ private:
 
     XMVECTOR m_lightDir;
 
+	bool m_initialized = false;
     float m_alphaCutoff = 0.5f;
 
     bool m_enableStaticShadow = true;

@@ -7,7 +7,7 @@
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 #include "Effects/EffectSystem.h"
 #include "Effects/ParticleStructs.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 
 bool WaterFluidParticleRenderer::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
 {

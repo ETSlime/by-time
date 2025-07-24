@@ -35,6 +35,8 @@ bool ShadowMapRenderer::Init(int shadowMapSize, int numCascades)
 	if (!LoadShaders())
         return false;
 
+	m_initialized = true;
+
     return true;
 }
 
@@ -57,6 +59,9 @@ void ShadowMapRenderer::BeginShadowPass(const DirectionalLight* light)
 
 void ShadowMapRenderer::RenderCSMForLight(DirectionalLight* light, int lightIndex, const SimpleArray<IGameObject*>& sceneObjects)
 {
+	if (!m_initialized || !light || lightIndex < 0 || lightIndex >= m_csm.GetCascadeCount())
+		return;
+
     BeginShadowPass(light);
 
     for (int cascadeIndex = 0; cascadeIndex < m_csm.GetCascadeCount(); cascadeIndex++)

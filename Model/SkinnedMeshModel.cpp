@@ -6,7 +6,7 @@
 //=============================================================================
 #include "Model/SkinnedMeshModel.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "AI/AnimStateMachine.h"
 #include "Collision/CollisionManager.h"
 #include "Core/Async/AsyncModelLoader.h"
@@ -752,12 +752,12 @@ bool SkinnedMeshModel::Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& bo
     return success;
 }
 
-void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip, float startTime)
+void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip)
 {
     if (currAnimClip)
     {
         this->m_modelData.currentAnimClip = currAnimClip;
-        this->m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(currAnimClip->stopTime * startTime);
+        this->m_modelData.currentAnimClip->ResetPlayTime();
     }
 }
 
@@ -772,7 +772,41 @@ AnimationClip* SkinnedMeshModel::GetAnimationClip(AnimClipName clipName)
 
 void SkinnedMeshModel::PlayCurrentAnim(float playSpeed)
 {
-    m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(ANIM_SPD * playSpeed * t.GetScaledDeltaTime());
+    bool reversed;
+    float deltaTime = ANIM_SPD * playSpeed * t.GetScaledDeltaTime();
+    if (deltaTime >= 0.0f)
+    {
+        // 正方向の再生
+        m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(deltaTime);
+        reversed = false;
+    }
+    else
+    {
+        // 逆方向の再生
+        float newCurTime = static_cast<float>(m_modelData.currentAnimClip->currentTime) + deltaTime;
+        if (newCurTime >= 0.0f)
+        {
+            // 0以上ならそのまま
+            m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(newCurTime);
+        }
+        else
+        {
+            if (m_modelData.currentAnimClip->animInfo.playMode == AnimPlayMode::LOOP)
+            {
+                // 0未満なら末尾にラップ（オーバーフロー分をstopTimeから引く）
+                float overflow = -newCurTime; // 超過分
+                m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(m_modelData.currentAnimClip->stopTime - overflow);
+            }
+            else
+            {
+                m_modelData.currentAnimClip->currentTime = 0ULL;
+            }
+        }
+            
+        reversed = true;
+    }
+	
+    m_modelData.currentAnimClip->SetReveresed(reversed);
 }
 
 void SkinnedMeshModel::ResetCurrentAnim(void)

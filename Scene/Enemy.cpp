@@ -8,7 +8,7 @@
 #include "Core/Graphics/Renderer.h"
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Scene/Enemy.h"
 #include "Core/Camera.h"
 #include "Scene/Character/Hilichurl.h"

@@ -92,6 +92,13 @@ public:
     void ToggleMiniMap(void) { m_showMiniMap = !m_showMiniMap; }
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
+    void SetPauseFlag(void) { m_pauseFlag = true; }
+    void ClearPauseFlag(void) { m_pauseFlag = false; }
+    void SetAllowPause(bool allow) { m_allowPause = allow; }
+
+	// ボタンのクリック状態を設定
+    void SetResumeBtnClick(bool clicked) { m_resumeBtnClick = clicked; }
+
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode(void) const { return m_mode; }
 
@@ -140,14 +147,17 @@ private:
     void UpdateLoading(void);
     void UpdateResult(void);
 
+	// モードごとの描画関数
     void DrawTitle(void);
     void DrawGame(void);
     void DrawResult(void);
 
-    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
-    void StartAsyncResourceLoading(void);
+    // 入力処理
     void HandleInput(void);
     void HandlePauseInput(void);
+
+    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
+    void StartAsyncResourceLoading(void);
 
     // 非同期読み込み進行度を0.0～1.0で返す関数
     float CalculateCurrentLoadingProgress(void);
@@ -156,6 +166,9 @@ private:
 
     // 内部状態
     bool m_isPaused = false;
+    bool m_resumeBtnClick = false;
+    bool m_pauseFlag = false;
+    bool m_allowPause = true;
     bool m_inDialogue = false;
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか

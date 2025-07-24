@@ -312,7 +312,8 @@ bool FBXLoader::LoadModel(SkinnedMeshModelData* modelData, const char* modelPath
     return true;
 }
 
-bool FBXLoader::LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName animName)
+bool FBXLoader::LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, 
+    AnimClipName animName, AnimPlayMode animPlayMode)
 {
     char* modelFilename = new char[MODEL_NAME_LENGTH] {};
 
@@ -346,6 +347,7 @@ bool FBXLoader::LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* mod
     modelData->currentAnimClip = new AnimationClip();
     modelData->currentAnimClip->SetModel(model);
     modelData->currentAnimClip->name = animName;
+    modelData->currentAnimClip->animInfo.playMode = animPlayMode;
 
     char buffer[1024];
     bool loadSuccess = true;

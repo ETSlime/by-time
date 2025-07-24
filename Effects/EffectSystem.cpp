@@ -9,10 +9,10 @@
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 
-void EffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
+void EffectSystem::Init(void)
 {
-	m_device = device;
-	m_context = context;
+	m_device = Renderer::get_instance().GetDevice();
+	m_context = Renderer::get_instance().GetDeviceContext();
 
 	// あらかじめリザーブしてメモリ確保（推定数値）
 	m_allEffects.reserve(MAX_EFFECT_NUM);
@@ -20,6 +20,8 @@ void EffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* context
 	m_billboardFlipbookEffects.reserve(MAX_BILLBOARD_FLIPBOOK_NUM);
 	m_waterFluidEffects.reserve(MAX_WATER_FLUID_NUM);
 	m_softBodyEffects.reserve(MAX_SOFTBODY_EFFECT_NUM);
+
+	m_initialized = true; // 初期化フラグを立てる
 }
 
 void EffectSystem::Shutdown(void)
@@ -33,6 +35,8 @@ void EffectSystem::Shutdown(void)
 
 void EffectSystem::Update(void)
 {
+	if (!m_initialized) return; // 初期化されていない場合は何もしない
+
 	// 中身だけお掃除して再利用する
 	m_toRemove.clear();
 
@@ -56,6 +60,8 @@ void EffectSystem::Update(void)
 
 void EffectSystem::Draw(void)
 {
+	if (!m_initialized) return; // 初期化されていない場合は何もしない
+
 	// 毎フレーム頭で分類クリア
 	m_billboardSimpleEffects.clear();
 	m_billboardFlipbookEffects.clear();

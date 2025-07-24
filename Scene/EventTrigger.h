@@ -18,10 +18,11 @@ class IEventBehavior
 {
 public:
     virtual ~IEventBehavior() = default;
-
+    virtual void Initialize(void) {}
     // ƒgƒŠƒK[‚³‚ê‚½Žž‚Ì“®ì
     virtual void OnTrigger(const Collider* activator) = 0;
     virtual void OnExit(const Collider* activator) {}
+    virtual void SetTriggerAABB(BOUNDING_BOX* aabb) {}
 };
 
 
@@ -50,6 +51,12 @@ public:
 #endif
     }
 
+    virtual void Destroy(void) override
+    {
+        CollisionManager::get_instance().UnregisterEventCollider(&m_trigger);
+    }
+		
+
     void SetBoundingBox(const BOUNDING_BOX& box)
     {
         m_trigger.aabb = box;
@@ -58,6 +65,11 @@ public:
     void SetEventBehavior(IEventBehavior* behavior)
     {
         m_behavior = behavior;
+		if (m_behavior)
+		{
+			m_behavior->Initialize();
+            m_behavior->SetTriggerAABB(&m_trigger.aabb);
+		}
     }
 
     TriggerEventCollider* GetCollider()

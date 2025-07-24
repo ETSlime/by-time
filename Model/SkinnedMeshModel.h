@@ -332,7 +332,7 @@ public:
 	bool Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
 	bool Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box);
 
-	void SetCurrentAnim(AnimationClip* currAnimClp, float startTime = 0);
+	void SetCurrentAnim(AnimationClip* currAnimClp);
 	AnimClipName GetCurrentAnim(void) { return m_modelData.currentAnimClip->name; }
 	AnimationClip* GetAnimationClip(AnimClipName clipName);
 	void PlayCurrentAnim(float playSpeed = 1.0f);

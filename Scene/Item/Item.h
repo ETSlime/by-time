@@ -42,6 +42,7 @@ public:
 	bool GetUsed(void) { return m_itemAttributes.used; }
 	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }
 	void SetActive(bool enable);
+	void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
 	ItemType GetItemType(void) const { return m_itemAttributes.itemType; }
 
 protected:

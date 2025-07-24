@@ -9,7 +9,7 @@
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
 #include "UI/UIMainHUD.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
 void GameSystem::Init(void)
@@ -18,7 +18,7 @@ void GameSystem::Init(void)
 
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
-    m_effectSystem.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()); // エフェクトシステムの初期化
+    m_effectSystem.Init(); // エフェクトシステムの初期化
 
     m_UIManager.Init(); // UIManagerの初期化
 
@@ -58,25 +58,21 @@ void GameSystem::Update(void)
 
     bool isPaused = IsPaused(); // ゲームが一時停止中かどうかを確認
 
-    // ゲームが一時停止中の場合、モーダルの更新処理を行う
-    if (!isPaused)
+    // モードによって処理を分ける
+    switch (m_mode)
     {
-        // モードによって処理を分ける
-        switch (m_mode)
-        {
-        case GameMode::TITLE:
-            UpdateTitle(); // タイトル画面の更新処理
-            break;
-        case GameMode::GAME:
-            UpdateGame(); // ゲームの更新処理
-            break;
-        case GameMode::LOADING:
-            UpdateLoading();  // ローディング中は進行状況の更新と完了チェックを行う
-            break;
-        case GameMode::RESULT:
-            UpdateResult(); // リザルト画面の更新処理
-            break;
-        }
+    case GameMode::TITLE:
+        UpdateTitle(); // タイトル画面の更新処理
+        break;
+    case GameMode::GAME:
+        UpdateGame(); // ゲームの更新処理
+        break;
+    case GameMode::LOADING:
+        UpdateLoading();  // ローディング中は進行状況の更新と完了チェックを行う
+        break;
+    case GameMode::RESULT:
+        UpdateResult(); // リザルト画面の更新処理
+        break;
     }
 
     // UI 全体の更新を行う
@@ -189,11 +185,9 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
     case GameMode::TITLE:
         InitTitle();
         break;
-
     case GameMode::GAME:
         InitGame();
         break;
-
     case GameMode::RESULT:
         InitResult();
         break;
@@ -207,12 +201,15 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
 
 void GameSystem::PauseGame(void)
 {
+    if (m_UIManager.IsFading())
+        return;
+
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
     m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
     m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
-
+    m_pauseFlag = false; // フラグをクリア
 }
 
 void GameSystem::ResumeGame(void)
@@ -350,11 +347,15 @@ void GameSystem::HandleInput(void)
 
 void GameSystem::HandlePauseInput(void)
 {
-    if (m_inputManager.GetKeyboardTrigger(KEY_PAUSE) && m_mode == GameMode::GAME && !m_inDialogue)
+    if ((m_inputManager.GetKeyboardTrigger(KEY_PAUSE) && m_mode == GameMode::GAME && !m_inDialogue)
+        || m_resumeBtnClick == true)
     {
         // ゲームが一時停止中かどうかを確認
         if (IsPaused())
         {
+			if (m_UIManager.IsFading())
+				return; // フェード中は何もしない
+
             // ゲームを再開
             ResumeGame();
             m_UIManager.PopAllModals();
@@ -364,6 +365,8 @@ void GameSystem::HandlePauseInput(void)
             // ゲームを一時停止
             PauseGame();
         }
+
+        m_resumeBtnClick = false;
     }
 }
 
@@ -398,6 +401,13 @@ void GameSystem::UpdateTitle(void)
 
 void GameSystem::UpdateGame(void)
 {
+    m_ground.Update(); // 地面の更新処理
+
+    // ポーズフラグが立っている場合はゲームを一時停止
+	if (m_pauseFlag)
+        PauseGame();
+
+    // ゲームが一時停止中
     if (m_isPaused)
         return;
 
@@ -410,7 +420,6 @@ void GameSystem::UpdateGame(void)
 
     m_player->Update(); // プレイヤーの更新処理
     m_skybox.Update(); // Skyboxの更新処理
-    m_ground.Update(); // 地面の更新処理
     m_enemyManager.Update(); // エネミーの更新処理
     m_itemManager.Update();
     m_projectileManager.Update();

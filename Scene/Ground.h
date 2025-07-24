@@ -12,6 +12,7 @@
 #include "Scene/GameObject.h"
 #include "Scene/Item/Item.h"
 #include "Scene/EventTrigger.h"
+#include "Scene/PlayerEnterExitBehavior.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 #include "Effects/Skybox.h"
 
@@ -71,7 +72,7 @@ public:
 
 private:
 	void InitTerrain(void);
-	void CreateTerrainGO(GameObjectConfig config);
+	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);
 	// シーンロードマップの初期化
 	void InitSceneLoadMap(void);
 
@@ -85,6 +86,8 @@ private:
 
 	// モデルのロードマップ登録
 	void RegisterModelLoadMap(const char* modelPath, bool isPersistent = false, bool isTerrain = true);
+
+	EventTrigger* RegisterEventTrigger(const BOUNDING_BOX& triggerBox, PlayerCallbackAction action, SceneID sceneID);
 
 	// ゲームオブジェクトの更新と描画
 	template<typename T>
@@ -111,6 +114,36 @@ private:
 
 	GameObject<ModelInstance>* m_fieldGO = nullptr;
 	bool m_drawBoundingBox = true;
+
+	GameObject<ModelInstance>* debugGO = nullptr;
+	float debugGOPosX = 0.0f;
+	float debugGOPosY = 0.0f;
+	float debugGOPosZ = 0.0f;
+	float debugGOScaleX = 1.0f;
+	float debugGOScaleY = 1.0f;
+	float debugGOScaleZ = 1.0f;
+	float debugGORotY = 0.0f;
+
+	EventTrigger* debugTrigger = nullptr;
+	float debugTriggerMinX = -5000.0f;
+	float debugTriggerMaxX = 5000.0f;
+	float debugTriggerMinY = -5000.0f;
+	float debugTriggerMaxY = 5000.0f;
+	float debugTriggerMinZ = -5000.0f;
+	float debugTriggerMaxZ = 5000.0f;
+
+	Item* debugItem = nullptr;
+	float debugItemPosX = 0.0f;
+	float debugItemPosY = 0.0f;
+	float debugItemPosZ = 0.0f;
+	float debugItemScaleX = 1.0f;
+	float debugItemScaleY = 1.0f;
+	float debugItemScaleZ = 1.0f;
+	float debugItemRotZ = 0.0f;
+	float debugItemRotX = 0.0f;
+	float debugItemRotY = 0.0f;
+
+	bool m_initialized = false; // 初期化フラグ
 
 	Town* m_town = nullptr;
 	Environment* m_environment = nullptr;

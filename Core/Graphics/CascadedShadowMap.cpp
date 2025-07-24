@@ -5,7 +5,7 @@
 //
 //=============================================================================
 #include "Core/Graphics/CascadedShadowMap.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 
 CascadedShadowMap::CascadedShadowMap() {}
 CascadedShadowMap::~CascadedShadowMap() { Shutdown(); }

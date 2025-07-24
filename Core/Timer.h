@@ -7,10 +7,9 @@
 // 固定タイムステップおよびスケーリング対応の時間制御を提供する
 // 
 //=============================================================================
-
-#include "Utility/SingletonBase.h"
 #include "main.h"
-#include "Utility/Debugproc.h"
+#include "Utility/SingletonBase.h"
+#include "Utility/Debug/Debugproc.h"
 
 class Timer : public SingletonBase<Timer>
 {

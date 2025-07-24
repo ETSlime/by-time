@@ -105,7 +105,8 @@ void TextureUploadQueue::CreateAndUploadSRV(TextureUploadTask* task)
         nullptr);
 
     // ƒƒCƒ“‚Ì outSRV ‚Ö‘ã“ü
-    *(task->outSRV) = createdSRV;
+    if (createdSRV)
+        *(task->outSRV) = createdSRV;
     // “o˜^‚³‚ê‚½ onFinish ‚ğŒÄ‚Ño‚µ
     if (task->onFinish)
         task->onFinish(SUCCEEDED(hr), task->userData);

@@ -7,13 +7,14 @@
 // モデルデータの構築や階層構造の構築、頂点データやUV情報の取得も行います
 //
 //=============================================================================
-
 #include "main.h"
 #include "Core/Graphics/Renderer.h"
 #include "Utility/HashMap.h"
 #include "Core/TextureMgr.h"
 #include "Utility/SimpleArray.h"
 #include "Utility/SingletonBase.h"
+#include "AI/AnimStateMachine.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -74,46 +75,6 @@ enum class GeometryType
 {
 	Mesh,
 	Shape,
-};
-
-enum AnimClipName
-{
-	ANIM_NONE,
-	ANIM_STANDING,
-	ANIM_IDLE,
-	ANIM_BREAKDANCE_UPROCK,
-	ANIM_STANDING_DRAW_ARROW,
-	ANIM_STANDING_AIM_WALK_FORWARD,
-	ANIM_STANDING_AIM_WALK_LEFT,
-	ANIM_STANDING_AIM_OVERDRAW,
-	ANIM_WALK,
-	ANIM_RUN,
-	ANIM_DASH,
-	ANIM_JUMP,
-	ANIM_SWORD_SHIELD_SLASH,
-	ANIM_SWORD_SHIELD_SLASH2,
-	ANIM_SWORD_SHIELD_SLASH3,
-	ANIM_STANDING_MELEE_ATTACK,
-
-	ANIM_IDLE_AIMING,
-	ANIM_WALK_AIMING,
-	ANIM_RUN_ANIMING,
-	ANIM_STAND_JUMP_AIMING,
-	ANIM_RUN_JUMP_AIMING,
-
-	ANIM_CLIB_WALL,
-
-
-	ANIM_FALLING_BACK_DEATH,
-	ANIM_FLYING_BACK_DEATH,
-	ANIM_GETTING_UP,
-	ANIM_HIT_REACTION_1,
-	ANIM_HIT_REACTION_2,
-	ANIM_SIT,
-	ANIM_SURPRISED,
-	ANIM_DIE,
-	ANIM_DANCE,
-
 };
 
 enum class SkinnedModelType
@@ -423,7 +384,8 @@ public:
 	bool LoadModel(SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, const char* texturePath, 
 		AnimClipName name = AnimClipName::ANIM_NONE, SkinnedModelType modelType = SkinnedModelType::Default);
 
-	bool LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, AnimClipName name);
+	bool LoadAnimation(SkinnedMeshModel* model, SkinnedMeshModelData* modelData, const char* modelPath, const char* modelName, 
+		AnimClipName name, AnimPlayMode animPlayMode = AnimPlayMode::LOOP);
 
 private:
 	bool ParseObjectDefinitions(FILE* file, SkinnedMeshModelData* model);

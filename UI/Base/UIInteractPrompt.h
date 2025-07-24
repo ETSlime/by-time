@@ -21,8 +21,8 @@ public:
     void Draw(void) override;
 
     
-    void Show(void) {};
-    void Hide(void) {};
+    void Show(void) { m_icon->SetVisible(true); }
+    void Hide(void) { m_icon->SetVisible(false); }
     //void SetFollowWorldPosition(const XMFLOAT3& worldPos); 
 
 	// コールバック設定
@@ -35,7 +35,6 @@ public:
 private:
     UISprite* m_icon = nullptr;
     float m_alpha = 1.0f;
-
     bool m_followWorldPos = false;
     XMFLOAT3 m_worldPos;
 

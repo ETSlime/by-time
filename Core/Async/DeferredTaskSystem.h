@@ -31,6 +31,7 @@ struct DeferredTask
 	DeferredCanRunFunc canRunFunc;    // 実行可否判定
 	void* param;                      // 関数に渡すパラメータ
 	float delayTime;                  // 遅延時間（秒）
+	bool pauseDelay = false;		  // 遅延実行時に一時停止中でも実行するかどうか
 	float elapsedTime;                // 経過時間（秒）
 	float timeoutSec;				  // タイムアウト秒数（-1 は無制限）
 	float timeoutElapsed;			  // タイムアウト経過時間（秒）
@@ -50,14 +51,15 @@ struct DeferredTask
 
 struct DeferredTaskOptions 
 {
-	bool async = false;
-	float delay = 0.0f;
-	float timeout = -1.0f;
-	const char* debugName = nullptr;
+	bool async = false; // 非同期実行かどうか
+	float delay = 0.0f; // 遅延実行時間（秒）
+	bool pauseDelay = false; // 遅延実行時に一時停止中でも実行するかどうか
+	float timeout = -1.0f; // タイムアウト秒数（-1 は無制限）
+	const char* debugName = nullptr; // デバッグ用の名前
 
-	CallbackFunc onComplete = nullptr;
-	void* callbackParam = nullptr;
-	bool callbackAsync = false;
+	CallbackFunc onComplete = nullptr; // タスク完了時のコールバック関数
+	void* callbackParam = nullptr; // コールバック関数に渡すパラメータ
+	bool callbackAsync = false; // コールバックを非同期で実行するかどうか
 }; // タスクのオプション設定
 
 class DeferredTaskSystem : public SingletonBase<DeferredTaskSystem>, public IDebugUI

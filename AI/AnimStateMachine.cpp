@@ -6,8 +6,10 @@
 //=============================================================================
 #include "AI/AnimStateMachine.h"
 #include "Model/SkinnedMeshModel.h"
-#include "Utility/Debugproc.h"
+#include "Model/FBXLoader.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Scene/GameObject.h"
+
 SimpleArray<XMFLOAT4X4>* AnimationClip::GetBoneMatrices(SimpleArray<XMFLOAT4X4>* currBoneTransform)
 {
     if (model)
@@ -38,23 +40,43 @@ void AnimationState::Update(float deltaTime)
 
 NextStateInfo AnimationState::GetNextState(ISkinnedMeshModelChar* character)
 {
-    for (const auto& transition : transitions) 
+    // 現在のアニメーションクリップが存在し、再生が終了したかを確認
+    if (currentClip && currentClip->IsFinished())
+    {
+        // アニメーション終了時のコールバックが設定されている場合、必ず呼び出す
+        if (onEndCallback)
+        {
+            (character->*onEndCallback)(); // アニメーション終了イベント通知
+        }
+
+        // 終了後、状態遷移の条件を順番に確認
+        for (const auto& transition : transitions)
+        {
+            // 遷移条件を満たす場合、新しい状態へ遷移
+            if (transition.value.condition && (character->*transition.value.condition)())
+            {
+                return NextStateInfo(transition.key, transition.value.animBlend);
+            }
+        }
+
+        // 遷移が存在しない場合、現在の状態を維持
+        return NextStateInfo(currentStateName, false);
+    }
+
+    // アニメーションが再生中の場合でも、"waitForAnimationEnd" が false の遷移は即時処理
+    for (const auto& transition : transitions)
     {
         if (transition.value.condition && (character->*transition.value.condition)())
         {
-            if (currentClip && currentClip->IsFinished())
-            {
-                if (onEndCallback)
-                    (character->*onEndCallback)();
-                return NextStateInfo(transition.key, transition.value.animBlend);
-            }
-            else if (!transition.value.waitForAnimationEnd) 
+            if (!transition.value.waitForAnimationEnd)
             {
                 return NextStateInfo(transition.key, transition.value.animBlend);
             }
         }
     }
-    return NextStateInfo(currentStateName, false); // 変更なし
+
+    // 遷移なし：現在の状態を維持
+    return NextStateInfo(currentStateName, false);
 }
 
 void AnimationState::AddTransition(uint64_t currentState, uint64_t nextState,
@@ -167,6 +189,7 @@ void AnimStateMachine::SetCurrentState(uint64_t newStateName)
                 (*newState)->StartBlend(currentState->currentClip);
         }
         currentState = *newState;
+
     }
 }
 

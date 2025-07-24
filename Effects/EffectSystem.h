@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // パーティクルエフェクトの生成・管理・描画を統括する演出管理クラス [EffectSystem.h]
@@ -6,7 +7,6 @@
 // ランタイムでの更新／描画制御・一括管理・リソース解放を行う
 //
 //=============================================================================
-#pragma once
 #include "ParticleEffectRendererBase.h"
 #include "Utility/SingletonBase.h"
 #include "Core/Camera.h"
@@ -71,7 +71,7 @@ struct WaterFluidParams : public ParticleEffectParams
 class EffectSystem : public SingletonBase<EffectSystem>
 {
 public:
-    void Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
+    void Init(void);
     void Shutdown(void);
     void Update(void);
     void Draw(void);
@@ -90,7 +90,7 @@ public:
     void ClearAllEffectBindings(void);
 
 private:
-
+    bool m_initialized = false;
     SimpleArray<IEffectRenderer*> m_allEffects;       // 全特效リスト
 	SimpleArray<IEffectRenderer*> m_billboardSimpleEffects; // ビルボードシンプルエフェクト
 	SimpleArray<IEffectRenderer*> m_billboardFlipbookEffects; // ビルボードフリップブックエフェクト

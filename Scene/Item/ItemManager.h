@@ -20,7 +20,7 @@ public:
 	void Update(void);
 
 	Item* SpawnItem(ItemType itemType, Transform trans);
-
+	Item* GetItem(ItemType itemType) const;
 	int GetTotalItemLoadCnt(void) const { return m_totalItemLoadCnt; }
 	int GetItemLoadedCnt(void) const { return m_currentItemLoadCnt; }
 

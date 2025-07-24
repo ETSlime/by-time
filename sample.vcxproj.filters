@@ -32,9 +32,6 @@
     <Filter Include="Core\Shader">
       <UniqueIdentifier>{edc26051-bc90-4ffa-943f-111098b64513}</UniqueIdentifier>
     </Filter>
-    <Filter Include="UI\imgui">
-      <UniqueIdentifier>{d2731b9e-4a38-4379-908b-ad8bee52fddd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Scene\Character">
       <UniqueIdentifier>{460cb7ef-9a3d-474b-aa85-35a097e1f1a2}</UniqueIdentifier>
     </Filter>
@@ -61,6 +58,12 @@
     </Filter>
     <Filter Include="Scene\Weapon">
       <UniqueIdentifier>{fc6db5bc-5ef4-4f1b-83b7-4ef46ccf8365}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Debug">
+      <UniqueIdentifier>{261d75a0-71a1-4b6e-aa99-571d0a5035da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utility\Debug\imgui">
+      <UniqueIdentifier>{e0099c70-e437-4cae-a353-256ca0973aca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -154,12 +157,6 @@
     <ClInclude Include="Model\SkinnedMeshModel.h">
       <Filter>Model</Filter>
     </ClInclude>
-    <ClInclude Include="Utility\DebugBoundingBoxRenderer.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility\Debugproc.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="Utility\DoubleLinkedList.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -174,30 +171,6 @@
     </ClInclude>
     <ClInclude Include="Utility\SingletonBase.h">
       <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imconfig.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imgui.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imgui_impl_dx11.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imgui_impl_win32.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imgui_internal.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imstb_rectpack.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imstb_textedit.h">
-      <Filter>UI\imgui</Filter>
-    </ClInclude>
-    <ClInclude Include="UI\imgui\imstb_truetype.h">
-      <Filter>UI\imgui</Filter>
     </ClInclude>
     <ClInclude Include="UI\PauseModal.h">
       <Filter>UI</Filter>
@@ -413,6 +386,39 @@
     <ClInclude Include="Scene\Item\ItemManager.h">
       <Filter>Scene\Item</Filter>
     </ClInclude>
+    <ClInclude Include="Utility\Debug\DebugBoundingBoxRenderer.h">
+      <Filter>Utility\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\Debugproc.h">
+      <Filter>Utility\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\DebugTriangleRenderer.h">
+      <Filter>Utility\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imconfig.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imgui.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imgui_impl_dx11.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imgui_impl_win32.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imgui_internal.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imstb_rectpack.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imstb_textedit.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility\Debug\imgui\imstb_truetype.h">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -484,32 +490,8 @@
     <ClCompile Include="Model\SkinnedMeshModel.cpp">
       <Filter>Model</Filter>
     </ClCompile>
-    <ClCompile Include="Utility\DebugBoundingBoxRenderer.cpp">
-      <Filter>Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="Utility\Debugproc.cpp">
-      <Filter>Utility</Filter>
-    </ClCompile>
     <ClCompile Include="Utility\InputManager.cpp">
       <Filter>Utility</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui.cpp">
-      <Filter>UI\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui_draw.cpp">
-      <Filter>UI\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui_impl_dx11.cpp">
-      <Filter>UI\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui_impl_win32.cpp">
-      <Filter>UI\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui_tables.cpp">
-      <Filter>UI\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="UI\imgui\imgui_widgets.cpp">
-      <Filter>UI\imgui</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Enemy.cpp">
       <Filter>Scene</Filter>
@@ -672,6 +654,36 @@
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="UI\UIMainHUD.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\DebugBoundingBoxRenderer.cpp">
+      <Filter>Utility\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\Debugproc.cpp">
+      <Filter>Utility\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\DebugTriangleRenderer.cpp">
+      <Filter>Utility\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui_draw.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui_impl_dx11.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui_impl_win32.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui_tables.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Utility\Debug\imgui\imgui_widgets.cpp">
+      <Filter>Utility\Debug\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\GameMenuModal.cpp">
       <Filter>UI</Filter>
     </ClCompile>
   </ItemGroup>
