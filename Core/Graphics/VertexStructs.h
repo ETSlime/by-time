@@ -142,3 +142,9 @@ struct MarchingCubesVertex
 	XMFLOAT3 position; // 頂点位置
 	XMFLOAT3 normal;   // 法線ベクトル
 };
+
+struct ProjectilePreviewVertex 
+{
+	XMFLOAT3 pos;
+	XMFLOAT3 normal;
+};

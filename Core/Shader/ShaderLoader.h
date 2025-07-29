@@ -36,6 +36,7 @@ enum class ShaderSetID : uint64_t
     FluidSurface,
     FluidMarchingCube,
     FluidMarchingCubeGPU,
+    ProjectilePreview,
     UI,
     Debug,
 };

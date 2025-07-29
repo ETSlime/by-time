@@ -21,6 +21,7 @@
 #define HILI_MIN_COOLDOWN_WAIT_TIME		(0.2f)
 #define	HILI_MAX_COOLDOWN_MOVE_TIME		(0.2f)
 #define HILI_MIN_COOLDOWN_MOVE_TIME		(0.1f)
+
 #define GBMONSTER_SIZE					XMFLOAT3(1.3f, 1.3f, 1.3f)
 
 #define HILI_MAX_HP					(50.0f)
@@ -42,17 +43,8 @@ public:
 
 	AnimStateMachine* GetStateMachine(void) override;
 
-	void PlayWalkAnim(void) override;
-	void PlayRunAnim(void) override;
-	void PlayIdleAnim(void) override;
-
-	void PlayAttackAnim(void) override;
-	void PlayHitAnim(void) override;
-	void PlayHit2Anim(void);
-	void PlaySitAnim(void);
-	void PlaySurprisedAnim(void);
-	void PlayDieAnim(void);
-	void PlayDanceAnim(void);
+	void PlayGeneralAnim(AnimClipName clipName, float speed = 1.0f);
+	void PlayAttackAnim(void);
 
 	virtual void Initialize(void) override;
 
@@ -70,18 +62,21 @@ public:
 	virtual void OnSurprisedEnd(void) override;
 	virtual void OnDieAnimationEnd() override;
 
+	virtual const char* GetPanelName(void) const override { return "GBMonster"; }
 private:
+	virtual void RenderDebugInfo(void) override;
 	struct InitContext
 	{
 		GBMonster* owner;
 	};
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) override;
 	void LoadWeapon(char* modelPath, char* modelName);
 	void InitAnimInfo(void) override;
 
 	void UpdateWeapon(void);
 
 	GameObject<SkinnedMeshModelInstance> m_weapon;
+	EnemyBoneHitCollider m_attackCollider;
 	AnimStateMachine* m_stateMachine;
 	EnemyState m_initState;
 	float m_playAnimSpeed;

@@ -92,7 +92,13 @@ public:
     // シーン切り替え時に呼び出すVoxelMapping登録関数
     void PrepareVoxelMappingAfterSceneChange(void);
 
+    const VoxelGrid* GetVoxelGrid(void) { return m_voxelGrid; }
+
 private:
+    void HandleStaticCollision(const Collider* dynamicCol);
+    void HandleDynamicCollision(const Collider* dynamicCol, UINT startIdx);
+    void HandleEventTriggerCollision(const Collider* dynamicCol);
+
     // 動的オブジェクト同士の衝突判定
 	bool IsSelfCollision(const Collider* collider1, const Collider* collider2);
 	// イベント衝突判定（衝突イベントの発行・購読）

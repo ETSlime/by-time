@@ -46,6 +46,7 @@
 #define WEAPON_ON_HAND_TIME		(200.0f)
 
 #define GLIDE_START_TIME		(0.5f) // グライド開始までの時間
+#define LAST_FIRE_TIME			(0.5f)
 
 Lumine::Lumine()
 {
@@ -57,7 +58,8 @@ Lumine::Lumine()
 	config.colliderTag = ColliderTag::PLAYER;
 	Instantiate(config);
 
-	instance.collider.SetCollisionCallback(OnItemPickupCallback, this);
+	instance.collider.AddCollisionCallback(OnItemPickupCallback, this, CollisionCallbackID::PickUpItem);
+	instance.collider.AddCollisionCallback(OnHitCallback, this, CollisionCallbackID::EnemyAttackHit);
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
 	LoadWeapon("data/MODEL/Weapon/Celestial_Revolver/Celestial_Revolver.obj");
@@ -127,10 +129,10 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Running.fbx", AnimClipName::ANIM_RUN);
 	AddAnimation("data/MODEL/character/Lumine/", "Walking.fbx", AnimClipName::ANIM_WALK);
 	AddAnimation("data/MODEL/character/Lumine/", "Jump.fbx", AnimClipName::ANIM_JUMP, AnimPlayMode::ONCE);
-	AddAnimation("data/MODEL/character/Lumine/", "Standing React Small From Left.fbx", AnimClipName::ANIM_HIT_REACTION_1);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2);
-	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3);
+	AddAnimation("data/MODEL/character/Lumine/", "Standing React Small From Left.fbx", AnimClipName::ANIM_HIT_REACTION_1, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 2.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH2, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Sword And Shield Slash 3.fbx", AnimClipName::ANIM_SWORD_SHIELD_SLASH3, AnimPlayMode::ONCE);
 
 	// Aim
 	AddAnimation("data/MODEL/character/Lumine/", "Walk_Aiming.fbx", AnimClipName::ANIM_WALK_AIMING);
@@ -138,6 +140,8 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Idle_Aiming.fbx", AnimClipName::ANIM_IDLE_AIMING);
 	AddAnimation("data/MODEL/character/Lumine/", "Stand_Jump_Aiming.fbx", AnimClipName::ANIM_STAND_JUMP_AIMING, AnimPlayMode::ONCE);
 	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/character/Lumine/", "Throw.fbx", AnimClipName::ANIM_THROW, AnimPlayMode::ONCE);
 
 	AddAnimation("data/MODEL/character/Lumine/", "Climbing Up Wall.fbx", AnimClipName::ANIM_CLIMB_WALL);
 	AddAnimation("data/MODEL/character/Lumine/", "Climbing.fbx", AnimClipName::ANIM_START_CLIMBING, AnimPlayMode::ONCE);
@@ -152,55 +156,47 @@ void Lumine::InitializeAnimation(void)
 
 void Lumine::HandleInput(void)
 {
-	if (!m_inputManager.GetKeyboardPress(DIK_W)
-		&& !m_inputManager.GetKeyboardPress(DIK_S)
-		&& !m_inputManager.GetKeyboardPress(DIK_A)
-		&& !m_inputManager.GetKeyboardPress(DIK_D))
-		instance.attributes.isMoving = false;
-
-	if (m_inputManager.IsMouseRightPressed())
-	{
-		instance.attributes.aimMode = true;
-	}
-	else
-	{
-		instance.attributes.aimMode = false;
-	}
-
-	if (m_inputManager.GetKeyboardPress(DIK_LSHIFT))
-	{
-		instance.attributes.isRunning = true;
-	}
-	else
-	{
-		instance.attributes.isRunning = false;
-	}
+	
 
 	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
 	{
-		XMFLOAT3 pos, dir;
-
 		// 水の弾の速度
 		float speed = 345.0f;
 		if (instance.attributes.isMoving)
 		{
 			if (instance.attributes.isRunning)
-				speed *= VALUE_MOVE * VALUE_RUN_FACTOR * 60.0f;
+				speed *= VALUE_PLAYER_MOVE * VALUE_PLAYEER_RUN_FACTOR * 60.0f;
 			else
-				speed *= VALUE_MOVE * 60.0f;
+				speed *= VALUE_PLAYER_MOVE * 60.0f;
 		}
 
-		// 水の弾の位置
-		XMStoreFloat3(&pos, m_weapon.GetWorldMatrix().r[3]);
-		float yaw = instance.transform.rot.y;
-		dir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
+		// 水の弾の位置（WorldMatrixの平行移動成分）
+		XMFLOAT3 muzzlePos;
+		XMStoreFloat3(&muzzlePos, m_weapon.GetWorldMatrix().r[3]);
+
+		// Cameraから照準方向を計算
+		XMFLOAT3 fireDir;
+
+		if (m_inputManager.IsMouseRightPressed())
+		{
+			m_camera.ComputeAimDirection(muzzlePos, &fireDir, nullptr);
+		}
+		else
+		{
+			float yaw = instance.transform.rot.y;
+			fireDir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
+		}
+
 		// 武器の位置を少し上にずらす
-		pos.y -= 25.0f;
-		pos.x += sinf(instance.transform.rot.y) * 25.0f;
-		pos.z += cosf(instance.transform.rot.y) * 25.0f;
+		muzzlePos.y -= 25.0f;
+		muzzlePos.x += sinf(instance.transform.rot.y) * 25.0f;
+		muzzlePos.z += cosf(instance.transform.rot.y) * 25.0f;
+
+		if (m_inputManager.IsMouseLeftTriggered())
+			instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // 弾を撃った時間をリセット
 
 		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(dir, speed, 35.0f, 1, pos);
+			m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
 	}
 }
 
@@ -270,73 +266,77 @@ void Lumine::Update(void)
 		}
 	}
 
+	float animSpeed = m_playAnimSpeed * timer.GetScaledDeltaTime();
 	switch (m_stateMachine->GetCurrentState())
 	{
 	case STATE(PlayerState::STANDING):
-		PlayGeneralAnim(AnimClipName::ANIM_STANDING, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_STANDING, animSpeed);
 		break;
 	case STATE(PlayerState::IDLE):
-		PlayGeneralAnim(AnimClipName::ANIM_IDLE, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_IDLE, animSpeed);
 		break;
 	case STATE(PlayerState::WALK):
-		PlayGeneralAnim(AnimClipName::ANIM_WALK, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_WALK, animSpeed);
 		break;
 	case STATE(PlayerState::RUN):
-		PlayGeneralAnim(AnimClipName::ANIM_RUN, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_RUN, animSpeed);
 		break;
 	case STATE(PlayerState::DASH):
-		PlayGeneralAnim(AnimClipName::ANIM_DASH, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_DASH, animSpeed);
 		break;
 	case STATE(PlayerState::JUMP):
-		PlayJumpAnim();
+		PlayJumpAnim(animSpeed);
 		break;
 	case STATE(PlayerState::ATTACK_1):
-		PlayAttackAnim();
+		PlayAttackAnim(animSpeed);
 		break;
 	case STATE(PlayerState::ATTACK_2):
-		PlayAttack2Anim();
+		PlayAttack2Anim(animSpeed);
 		break;
 	case STATE(PlayerState::ATTACK_3):
-		PlayAttack3Anim();
+		PlayAttack3Anim(animSpeed);
 		break;
 	case STATE(PlayerState::HIT):
-		PlayGeneralAnim(AnimClipName::ANIM_HIT_REACTION_1, m_playAnimSpeed * 1.2f);
+		PlayGeneralAnim(AnimClipName::ANIM_HIT_REACTION_1, animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::IDLE_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_IDLE_AIMING, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_IDLE_AIMING, animSpeed);
 		break;
 	case STATE(PlayerState::WALK_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_WALK_AIMING, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_WALK_AIMING, animSpeed);
 		break;
 	case STATE(PlayerState::RUN_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_RUN_ANIMING, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_RUN_ANIMING, animSpeed);
 		break;
 	case STATE(PlayerState::STAND_JUMP_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_STAND_JUMP_AIMING, m_playAnimSpeed * 1.2f);
+		PlayGeneralAnim(AnimClipName::ANIM_STAND_JUMP_AIMING, animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::RUN_JUMP_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_RUN_JUMP_AIMING, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_RUN_JUMP_AIMING, animSpeed);
 		break;
 	case STATE(PlayerState::CLIMB_WALL):
-		PlayClimbAnim();
+		PlayClimbAnim(animSpeed);
 		break;
 	case STATE(PlayerState::PLANT_SEED):
-		PlayGeneralAnim(AnimClipName::ANIM_PLANT_SEED, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_PLANT_SEED, animSpeed);
 		break;
 	case STATE(PlayerState::START_CLIMBING_UP):
-		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, m_playAnimSpeed * 1.2f);
+		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::STOP_CLIMBING_UP):
-		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, animSpeed);
 		break;
 	case STATE(PlayerState::START_CLIMBING_DOWN):
-		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, -m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_CLIMBING_TO_TOP, -animSpeed);
 		break;
 	case STATE(PlayerState::STOP_CLIMBING_DOWN):
-		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, -m_playAnimSpeed * 1.2f);
+		PlayGeneralAnim(AnimClipName::ANIM_START_CLIMBING, -animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::GLIDE):
-		PlayGeneralAnim(AnimClipName::ANIM_AIR_GLIDE, m_playAnimSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_AIR_GLIDE, animSpeed);
+		break;
+	case STATE(PlayerState::THROW):
+		PlayThrowAnim(animSpeed);
 		break;
 	default:
 		break;
@@ -438,9 +438,9 @@ void Lumine::PlaceItem(ItemType type)
 {
 	if (type == ItemType::Seed)
 	{
-		if (m_playerAttr->hasSeed)
+		if (m_playerAttr->seedCount > 0)
 		{
-			m_playerAttr->hasSeed = false;
+			m_playerAttr->seedCount--;
 			m_playerAttr->allowControl = false;
 			m_stateMachine->SetCurrentState(STATE(PlayerState::PLANT_SEED));
 		}
@@ -492,19 +492,18 @@ AnimStateMachine* Lumine::GetStateMachine(void)
 	return m_stateMachine;
 }
 
-void Lumine::PlayJumpAnim(void)
+void Lumine::PlayJumpAnim(float animSpeed)
 {
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_JUMP)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.2f);
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.2f);
 }
 
-void Lumine::PlayClimbAnim(void)
+void Lumine::PlayClimbAnim(float animSpeed)
 {
-	float animSpeed = m_playAnimSpeed;
-	if (instance.attributes.climbDown)
+	if (m_playerAttr->climbDown)
 		animSpeed *= -1.0f; // 下りるときはアニメーションを逆再生
-	else if (instance.attributes.climbUp)
+	else if (m_playerAttr->climbUp)
 		animSpeed *= 1.0f; // 上るときはアニメーションを正再生
 	else
 		animSpeed = 0.0f; // クライミング中はアニメーションを停止
@@ -512,6 +511,18 @@ void Lumine::PlayClimbAnim(void)
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_CLIMB_WALL)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
 	instance.pModel->PlayCurrentAnim(animSpeed);
+}
+
+void Lumine::PlayThrowAnim(float animSpeed)
+{
+	if (m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() < 0.3f)
+		animSpeed *= 1.5f;
+	else if (!m_playerAttr->confirmThrow && m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() > 0.3f)
+		animSpeed = 0.0f;
+
+	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_THROW)
+		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.2f);
 }
 
 void Lumine::SetupAnimStateMachine()
@@ -538,6 +549,7 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddState(STATE(PlayerState::RUN_AIMING), instance.pModel->GetAnimationClip(AnimClipName::ANIM_RUN_ANIMING));
 	m_stateMachine->AddState(STATE(PlayerState::STAND_JUMP_AIMING), instance.pModel->GetAnimationClip(AnimClipName::ANIM_STAND_JUMP_AIMING));
 	m_stateMachine->AddState(STATE(PlayerState::RUN_JUMP_AIMING), instance.pModel->GetAnimationClip(AnimClipName::ANIM_RUN_JUMP_AIMING));
+	m_stateMachine->AddState(STATE(PlayerState::THROW), instance.pModel->GetAnimationClip(AnimClipName::ANIM_THROW));
 
 	// Climb関連のアニメーション
 	m_stateMachine->AddState(STATE(PlayerState::CLIMB_WALL), instance.pModel->GetAnimationClip(AnimClipName::ANIM_CLIMB_WALL));
@@ -594,6 +606,10 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_JUMP_AIMING), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 	m_stateMachine->AddTransition(STATE(PlayerState::STAND_JUMP_AIMING), STATE(PlayerState::IDLE_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 
+	m_stateMachine->AddTransition(STATE(PlayerState::STANDING), STATE(PlayerState::THROW), &ISkinnedMeshModelChar::CanThrow);
+	m_stateMachine->AddTransition(STATE(PlayerState::WALK), STATE(PlayerState::THROW), &ISkinnedMeshModelChar::CanThrow);
+	m_stateMachine->AddTransition(STATE(PlayerState::THROW), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::CanStopThrowing, false, false);
+
 	m_stateMachine->AddTransition(STATE(PlayerState::START_CLIMBING_UP), STATE(PlayerState::CLIMB_WALL), &ISkinnedMeshModelChar::CanClimb, true, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::START_CLIMBING_DOWN), STATE(PlayerState::CLIMB_WALL), &ISkinnedMeshModelChar::CanClimb, true, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::STOP_CLIMBING_DOWN), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::AlwaysTrue, true, false);
@@ -619,6 +635,7 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->SetEndCallback(STATE(PlayerState::STOP_CLIMBING_UP), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(PlayerState::START_CLIMBING_DOWN), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(PlayerState::STOP_CLIMBING_DOWN), &ISkinnedMeshModelChar::OnClimbAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(PlayerState::THROW), &ISkinnedMeshModelChar::OnThrowAnimationEnd);
 
 	m_stateMachine->SetCurrentState(STATE(PlayerState::STANDING));
 }
@@ -649,6 +666,15 @@ void Lumine::InitAnimInfo(void)
 		attack3->animInfo.animPhase.startAttackFraction = 0.3f;
 		attack3->animInfo.animPhase.endAttackFraction = 0.6f;
 	}
+}
+
+void Lumine::ResetStatus(void)
+{
+	m_playerAttr->aimMode = false;
+	m_playerAttr->allowControl = true;
+	m_playerAttr->throwMode = false;
+	m_playerAttr->confirmThrow = false;
+	instance.attributes.isMoveBlocked = false;
 }
 
 void Lumine::PlayGeneralAnim(AnimClipName clipName, float speed)
@@ -702,7 +728,7 @@ bool Lumine::ExecuteAction(ActionEnum action)
 	}
 }
 
-void Lumine::PlayAttackAnim(void)
+void Lumine::PlayAttackAnim(float animSpeed)
 {
 	FaceToNearestEnemy();
 
@@ -718,10 +744,10 @@ void Lumine::PlayAttackAnim(void)
 	}
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_SWORD_SHIELD_SLASH)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.5f);
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.5f);
 }
 
-void Lumine::PlayAttack2Anim(void)
+void Lumine::PlayAttack2Anim(float animSpeed)
 {
 	FaceToNearestEnemy();
 	float curAnimTime = m_stateMachine->GetCurrentAnimTime();
@@ -736,10 +762,10 @@ void Lumine::PlayAttack2Anim(void)
 	}
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_SWORD_SHIELD_SLASH2)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.5f);
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.5f);
 }
 
-void Lumine::PlayAttack3Anim(void)
+void Lumine::PlayAttack3Anim(float animSpeed)
 {
 	FaceToNearestEnemy();
 
@@ -756,7 +782,7 @@ void Lumine::PlayAttack3Anim(void)
 
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_SWORD_SHIELD_SLASH3)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.5f);
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.5f);
 }
 
 void Lumine::InitEffect(void)
@@ -765,7 +791,7 @@ void Lumine::InitEffect(void)
 	waterParams.type = EffectType::WaterFluid;
 	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
 	waterParams.position = XMFLOAT3(0.0f, 0.0f, 0.0f); // 初期生成位置
-	waterParams.acceleration = XMFLOAT3(0.0f, -125.0f, 0.0f); // 重力方向（Y軸マイナス）
+	waterParams.acceleration = XMFLOAT3(0.0f, -95.0f, 0.0f); // 重力方向（Y軸マイナス）
 	waterParams.numParticles = 5000; // 最大粒子数
 	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
 	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
@@ -781,11 +807,11 @@ void Lumine::InitEffect(void)
 	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
 	waterParams.particleMass = 15.0f;		// 粒子質量
 	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
-	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
-	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
+	waterParams.friction = 0.15f;			// 速度減衰（地面との摩擦的な）
+	waterParams.viscosity = 8.0f;			// 粘性係数（流体の粘り気）
 	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
 
-	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
+	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
 }
 
 void Lumine::FaceToNearestEnemy(void)
@@ -902,7 +928,7 @@ void Lumine::UpdateWeapon(void)
 	XMMATRIX weaponMtx, gunMtx;
 
 	if (!weaponOnBack)
-		weaponMtx = instance.pModel->GetWeaponTransformMtx();
+		weaponMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
 	else
 		weaponMtx = instance.pModel->GetBodyTransformMtx();
 
@@ -910,7 +936,7 @@ void Lumine::UpdateWeapon(void)
 	weaponMtx = XMMatrixMultiply(weaponMtx, instance.transform.mtxWorld);
 	m_weapon.SetWorldMatrix(weaponMtx);
 
-	gunMtx = instance.pModel->GetWeaponTransformMtx();
+	gunMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
 	gunMtx = XMMatrixMultiply(m_gun.GetWorldMatrix(), gunMtx);
 	gunMtx = XMMatrixMultiply(gunMtx, instance.transform.mtxWorld);
 	m_gun.SetWorldMatrix(gunMtx);
@@ -1005,7 +1031,7 @@ bool Lumine::CanJump(void) const
 
 bool Lumine::CanAim(void) const
 {
-	return instance.attributes.aimMode;
+	return m_playerAttr->aimMode || instance.attributes.lastFireTimeCountDown > 0.0f;
 }
 
 bool Lumine::CanWalkAim(void) const
@@ -1030,7 +1056,7 @@ bool Lumine::CanRunAimToRun(void) const
 
 bool Lumine::CanStopAiming(void) const
 {
-	return !instance.attributes.aimMode;
+	return !CanAim();
 }
 
 bool Lumine::CanJumpAim(void) const
@@ -1045,7 +1071,7 @@ bool Lumine::CanRunJumpAim(void) const
 
 bool Lumine::CanClimb(void) const
 {
-	return instance.attributes.climbUp || instance.attributes.climbDown;
+	return m_playerAttr->climbUp || m_playerAttr->climbDown;
 }
 
 bool Lumine::CanGlide(void) const
@@ -1056,6 +1082,16 @@ bool Lumine::CanGlide(void) const
 bool Lumine::CanStopGliding(void) const
 {
 	return !CanGlide();
+}
+
+bool Lumine::CanThrow(void) const
+{
+	return m_playerAttr->throwMode || m_playerAttr->confirmThrow;
+}
+
+bool Lumine::CanStopThrowing(void) const
+{
+	return !CanThrow();
 }
 
 
@@ -1090,6 +1126,7 @@ void Lumine::OnAttackAnimationEnd(void)
 void Lumine::OnHitAnimationEnd(void)
 {
 	instance.attributes.isHit1 = false;
+	ResetStatus();
 }
 
 void Lumine::OnJumpAnimationEnd(void)
@@ -1115,9 +1152,9 @@ void Lumine::OnClimbAnimationEnd(void)
 		m_stateMachine->GetCurrentState() == STATE(PlayerState::START_CLIMBING_DOWN))
 	{
 		// 登り始めた時の処理
-		instance.attributes.enableClimbUp = true;
-		instance.attributes.enableClimbDown = true;
-		instance.attributes.climbUp = true;
+		m_playerAttr->enableClimbUp = true;
+		m_playerAttr->enableClimbDown = true;
+		m_playerAttr->climbUp = true;
 		UIManager::get_instance().GetFader().StartFadeIn();
 
 		// 登り始めた後の位置調整
@@ -1130,7 +1167,7 @@ void Lumine::OnClimbAnimationEnd(void)
 		m_stateMachine->GetCurrentState() == STATE(PlayerState::STOP_CLIMBING_DOWN))
 	{
 		// 登りきった時の処理
-		instance.attributes.climbUp = false;
+		m_playerAttr->climbUp = false;
 		instance.attributes.isMoveBlocked = false;
 		UIManager::get_instance().GetFader().StartFadeIn();
 
@@ -1150,6 +1187,12 @@ void Lumine::OnClimbAnimationEnd(void)
 		SetStaticCollisionEnable(true);
 		SetDynamicCollisionEnable(true);
 	}
+}
+
+void Lumine::OnThrowAnimationEnd(void)
+{
+	m_playerAttr->confirmThrow = false;
+	m_playerAttr->allowControl = true;
 }
 
 void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
@@ -1177,7 +1220,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		Item* item = static_cast<Item*>(itemCol->owner);
 		if (item && item->GetItemType() == ItemType::Seed)
 		{
-			self->m_playerAttr->hasSeed = true;	
+			self->m_playerAttr->seedCount++;	
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
@@ -1185,6 +1228,20 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 	}
 
+}
+
+void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
+{
+	Lumine* self = static_cast<Lumine*>(context);
+
+	if (self->instance.attributes.hitTimer <= 0)
+	{
+		self->SetHitTimer(PLAYER_HIT_WINDOW);
+		if (!self->GetIsHit())
+		{
+			self->SetIsHit(true);
+		}
+	}
 }
 
 //void Lumine::RenderImGui(void)

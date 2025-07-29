@@ -89,15 +89,23 @@ public:
 	// ボクセルグリッドを三角形から構築（初期化後に呼び出す）
     void BuildVoxelMapByTriangles(void);
     // グリッドが初期化済みかどうか
-	bool IsReady() const { return m_isReady; } 
+	bool IsReady(void) const { return m_isReady; } 
 
 	// 指定された中心と半径に基づいて、ボクセルグリッドから三角形をクエリする関数
     void Query(const XMFLOAT3& center, float radius, SimpleArray<const Triangle*>& outTriangles) const;
+    // レイキャストによる衝突判定
+	bool Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hitPos) const;
 
     // デバッグ用の統計情報を出力
     void print_debug_stats(void) const;
 
 private:
+    bool VoxelGrid::RayIntersectsTriangle(
+        const XMFLOAT3& rayOrigin,
+        const XMFLOAT3& rayDir,
+        const Triangle* tri,
+        float* outT,
+        XMFLOAT3* outHit) const;
 
     // 各Voxelに登録された三角形
     struct VoxelEntry

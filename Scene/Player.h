@@ -7,26 +7,21 @@
 // SigewinneやKleeたちの切り替えもここで制御して、アクションキューで動きを可愛く整列します
 // 
 //=============================================================================
-#include "Scene/Character/Sigewinne.h"
-#include "Scene/Character/Klee.h"
 #include "Scene/Character/Lumine.h"
-#include "Scene/Character/Hilichurl.h"
-#include "Scene/Character/Mitachurl.h"
 #include "Scene/Item/ItemManager.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
+#include "Effects/ProjectilePreview/ProjectilePreviewRenderer.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define	VALUE_MOVE			(6.5f)							// 移動量
-#define VALUE_CLIMB			(4.0f)							// クライム移動量
-#define VALUE_RUN_FACTOR	(1.5f)
-#define	VALUE_ROTATE		(XM_PI * 0.02f)					// 回転量
-#define ROTATION_SPEED				(0.18f)
-#define FALLING_SPEED		(2.50f)
-#define SPD_DECAY_RATE		(0.93f)
-#define PLAYER_INIT_POS		XMFLOAT3(4024.0f, 6270.0f, 4453.0f)
+#define	VALUE_PLAYER_MOVE			(6.5f)							// 移動量
+#define VALUE_PLAYER_CLIMB			(4.0f)							// クライム移動量
+#define VALUE_PLAYEER_RUN_FACTOR	(1.5f)
+#define	VALUE_PLAYER_ROTATE			(XM_PI * 0.02f)					// 回転量
+
+#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6270.0f, 4453.0f)
 
 class Player : public IDebugUI
 {
@@ -40,7 +35,7 @@ public:
 
 	void InitializePlayerStatus(void);
 
-	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
+	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
 
 	void PickItem(Item* obj);
@@ -53,14 +48,23 @@ public:
 	static void OnPlaceItemPromptTriggered(void* userData);
 
 	bool GetMeleeMode(void) const { return m_playerAttr.isMeleeMode; }
-	bool HasSeed(void) const { return m_playerAttr.hasSeed; }
-	Attributes* GetAttributes(void) const { return m_attributes; }
+	bool HasSeed(void) const { return m_playerAttr.seedCount > 0; }
+	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
+	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
 
 private:
 	void UpdateNormalMode(void);
 	void UpdateClimbMode(void);
 	void UpdateActionQueue(void);
+	void UpdatePlayerStatus(void);
+	void UpdatePlayerMove(void);
+	void UpdatePlayerAttack(void);
+	void UpdateSwitchCharacter(void);
+	void HandleInput(void);
 	void HandlePlayerMove(Transform& transform);
+	void AlignPlayerYawToCamera(void); // プレイヤーのYawをカメラのYawに補間して合わせる関数
+	void ConfirmThrow(void);
+	void CancelThrow(void);
 
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Player"; };
@@ -68,12 +72,9 @@ private:
 	Attributes* m_attributes;
 	Transform m_transform;
 	PlayerAttributes m_playerAttr;
-	Sigewinne* sigewinne;
-	Klee* klee;
+
 	Lumine* lumine;
 
-	Hilichurl* hilichurl;
-	Mitachurl* mitachurl;
 
 	bool m_drawBoundingBox = true;
 	int m_currentModelLoadCnt = 0;
@@ -84,9 +85,12 @@ private:
 
 	Light* m_light;
 
+	ProjectilePreviewRenderer* m_previewRenderer = nullptr;
+	ProjectilePredictor m_predictor;
+
 	Renderer& m_renderer = Renderer::get_instance();
 	LightManager& m_lightMgr = LightManager::get_instance();
-
+	Camera& m_camera = Camera::get_instance();
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 	ItemManager& m_itemManager = ItemManager::get_instance();

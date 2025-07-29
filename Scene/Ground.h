@@ -176,7 +176,7 @@ private:
 
 	Item* m_sceneKey = nullptr;
 	Item* m_sceneSeed = nullptr;
-	Skybox* m_skybox = nullptr;
+	Skybox& m_skybox = Skybox::get_instance();
 };
 
 template<typename T>

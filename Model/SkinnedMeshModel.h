@@ -26,6 +26,13 @@ enum VertexDataLocation
 	Vertex,
 };
 
+enum class BodyTransformIndex
+{
+	Body,
+	LeftHand,
+	RightHand
+};
+
 //*****************************************************************************
 // ç\ë¢ëÃíËã`
 //*****************************************************************************
@@ -182,7 +189,8 @@ struct SkinnedMeshModelData
 	char* modelName = nullptr;
 
 	UINT currentRootNodeID = 0;
-	UINT weaponTransformIdx = 0;
+	UINT leftHandTransformIdx = 0;
+	UINT rightHandTransformIdx = 0;
 	UINT MeshDataCnt = 0;
 	UINT ModelCount = 0;
 	UINT numBones = 0;
@@ -246,7 +254,8 @@ struct SkinnedMeshModelData
 		: modelPath(other.modelPath),
 		modelName(other.modelName),
 		currentRootNodeID(other.currentRootNodeID),
-		weaponTransformIdx(other.weaponTransformIdx),
+		leftHandTransformIdx(other.leftHandTransformIdx),
+		rightHandTransformIdx(other.rightHandTransformIdx),
 		MeshDataCnt(other.MeshDataCnt),
 		ModelCount(other.ModelCount),
 		numBones(other.numBones),
@@ -338,8 +347,8 @@ public:
 	void PlayCurrentAnim(float playSpeed = 1.0f);
 	void ResetCurrentAnim(void);
 
-	XMMATRIX GetWeaponTransformMtx(void);
 	XMMATRIX GetBodyTransformMtx(void);
+	XMMATRIX GetBodyTransformMtx(BodyTransformIndex index);
 	XMMATRIX GetBoneFinalTransform(UINT boneIdx = 0);
 	const XMMATRIX* GetFinalBoneMatrices(void);
 

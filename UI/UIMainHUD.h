@@ -12,7 +12,7 @@ class UIMainHUD : public UIElement
 {
 public:
     UIMainHUD() {};
-    ~UIMainHUD() {};
+    ~UIMainHUD();
 
     void Initialize(void);
     void Update(void) override;
@@ -27,4 +27,8 @@ private:
     UISprite* m_weaponIcon = nullptr;
     UISprite* m_gunIcon = nullptr;
     UISprite* m_seedIcon = nullptr;
+
+    UISprite* m_crosshair = nullptr;
+
+    SimpleArray<UISprite*> m_sprites;
 };

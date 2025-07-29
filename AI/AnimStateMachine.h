@@ -37,6 +37,7 @@ enum class PlayerState : uint64_t
 	RUN_AIMING,
     STAND_JUMP_AIMING,
     RUN_JUMP_AIMING,
+    THROW,
     CLIMB_WALL,
     START_CLIMBING_UP,
     STOP_CLIMBING_UP,
@@ -79,6 +80,7 @@ enum AnimClipName
     ANIM_RUN_ANIMING,
     ANIM_STAND_JUMP_AIMING,
     ANIM_RUN_JUMP_AIMING,
+    ANIM_THROW,
 
     ANIM_CLIMB_WALL,
     ANIM_START_CLIMBING,
@@ -101,16 +103,16 @@ enum AnimClipName
 enum class EnemyState : uint64_t
 {
     IDLE,
-    HILI_DANCE,
-    HILI_STAND_UP,
-    HILI_SIT,
-    HILI_WALK,
-    HILI_RUN,
-    HILI_ATTACK,
-    HILI_HIT1,
-    HILI_HIT2,
-    HILI_SURPRISED,
-    HILI_DIE,
+    DANCE,
+    STAND_UP,
+    SIT,
+    WALK,
+    RUN,
+    ATTACK,
+    HIT1,
+    HIT2,
+    SURPRISED,
+    DIE,
 };
 
 enum class AnimPlayMode
@@ -201,9 +203,9 @@ struct AnimationClip
     inline void ResetPlayTime(void)
     {
         if (animInfo.isReversed)
-            this->currentTime = this->stopTime;
+            currentTime = stopTime;
         else
-            this->currentTime = 0;
+            currentTime = 0;
     }
 
     inline void SetReveresed(bool reverse)
@@ -212,6 +214,11 @@ struct AnimationClip
 		{
 			animInfo.isReversed = reverse;
 		}
+    }
+
+    float GetCurrentPlayTime(void)
+    {
+        return static_cast<float>(currentTime) / static_cast<float>(stopTime);
     }
 
     SimpleArray<XMFLOAT4X4>* GetBoneMatrices(SimpleArray<XMFLOAT4X4>* currBoneTransform);

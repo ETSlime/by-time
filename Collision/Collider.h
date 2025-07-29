@@ -30,6 +30,12 @@ enum class ColliderTag
     PLAYER_PROJECTILE
 };
 
+enum class CollisionCallbackID
+{
+    PickUpItem,
+    EnemyAttackHit,
+};
+
 // 前方宣言
 class Collider;
 
@@ -44,8 +50,15 @@ struct CollisionEvent
     const Collider* colliderB;
 };
 
-// 通常のコライダーにもコールバックを追加する
+// 通常のコライダーにコールバックを追加
 typedef void (*CollisionCallback)(const CollisionEvent& event, void* context);
+struct CollisionCallbackEntry
+{
+    //void (*callback)(const CollisionEvent& event, void* context, CollisionCallbackID callbackID);
+    CollisionCallback callback;
+    void* context;
+    CollisionCallbackID callbackID; // コールバック識別ID（種類を区別するため）
+};
 
 class Collider
 {
@@ -60,8 +73,9 @@ public:
     bool isInitialized;
 
     // 通常コールバック（接触時に呼ばれる）
-    CollisionCallback onCollisionCallback = nullptr;
-    void* collisionContext = nullptr;
+    SimpleArray<CollisionCallbackEntry> collisionCallbacks; // 複数コールバックを保持する配列
+    //CollisionCallback onCollisionCallback = nullptr;
+    //void* collisionContext = nullptr;
 
     Collider()
     {
@@ -82,19 +96,38 @@ public:
         isInitialized = true;
     }
 
-    void SetCollisionCallback(CollisionCallback callback, void* context)
+    //void SetCollisionCallback(CollisionCallback callback, void* context)
+    //{
+    //    onCollisionCallback = callback;
+    //    collisionContext = context;
+    //}
+
+    void AddCollisionCallback(CollisionCallback callback, void* context, CollisionCallbackID callbackID)
     {
-        onCollisionCallback = callback;
-        collisionContext = context;
+        CollisionCallbackEntry entry;
+        entry.callback = callback;
+        entry.context = context;
+        entry.callbackID = callbackID;
+        collisionCallbacks.push_back(entry);
     }
 
-    void CallCollisionCallback(const CollisionEvent& event) const
+    void CallCollisionCallbacks(const CollisionEvent& event, CollisionCallbackID callbackID) const
     {
-        if (onCollisionCallback)
+        for (UINT i = 0; i < collisionCallbacks.getSize(); ++i)
         {
-            onCollisionCallback(event, collisionContext);
+            const auto& entry = collisionCallbacks[i];
+            if (entry.callback && entry.callbackID == callbackID)
+                entry.callback(event, entry.context);
         }
     }
+
+    //void CallCollisionCallback(const CollisionEvent& event) const
+    //{
+    //    if (onCollisionCallback)
+    //    {
+    //        onCollisionCallback(event, collisionContext);
+    //    }
+    //}
 };
 
 // コールバック関数

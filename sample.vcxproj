@@ -182,6 +182,8 @@
     <ClInclude Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
     <ClInclude Include="Effects\ParticleStructs.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h" />
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\SmokeEffectRenderer.h" />
@@ -284,6 +286,8 @@
     <ClCompile Include="Effects\MarchingCubes\MCVoxelClusterUploader.cpp" />
     <ClCompile Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.cpp" />
     <ClCompile Include="Effects\ParticleEffectRendererBase.cpp" />
+    <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp" />
+    <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\SmokeEffectRenderer.cpp" />

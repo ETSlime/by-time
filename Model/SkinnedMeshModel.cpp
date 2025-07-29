@@ -814,18 +814,6 @@ void SkinnedMeshModel::ResetCurrentAnim(void)
     m_modelData.currentAnimClip->currentTime = 0;
 }
 
-XMMATRIX SkinnedMeshModel::GetWeaponTransformMtx(void)
-{
-    if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.weaponTransformIdx)
-    {
-        XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.weaponTransformIdx];
-
-        return XMLoadFloat4x4(&transform);
-    }
-
-    return XMMatrixIdentity();
-}
-
 XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
 {
     if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > 1)
@@ -834,6 +822,43 @@ XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
 
         return XMLoadFloat4x4(&transform);
     }
+
+    return XMMatrixIdentity();
+}
+
+XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(BodyTransformIndex index)
+{
+    switch (index)
+    {
+    case BodyTransformIndex::Body:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > 1)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[1];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    case BodyTransformIndex::LeftHand:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.leftHandTransformIdx)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.leftHandTransformIdx];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    case BodyTransformIndex::RightHand:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.rightHandTransformIdx)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.rightHandTransformIdx];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    }
+
 
     return XMMatrixIdentity();
 }

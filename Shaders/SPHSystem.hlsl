@@ -755,7 +755,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
             float4 rayDirWS = mul(float4(deltaPos, 0.0), g_World);
             float3 rayDir = normalize(rayDirWS.xyz);
             float rayLength = length(rayDirWS.xyz);
-            float3 rayStart = rayStartWS.xyz + rayDir * 0.00005f;
+            float3 rayStart = rayStartWS.xyz + rayDir * 0.00001f;
 
             [allow_uav_condition]
             for (uint i = 0; i < trip.count; ++i)
@@ -773,7 +773,7 @@ void SPHSimulateSparseCS(uint3 dispatchThreadID : SV_DispatchThreadID)
             if (closestDist < 1e19)
             {
                 float3 normal = normalize(bestNormal);
-                float3 corrected = rayStart + rayDir * closestDist + normal * 0.1f;
+                float3 corrected = rayStart + rayDir * closestDist + normal * 0.2f;
                 p.predictedPosition = mul(float4(corrected, 1.0f), g_WorldInv).xyz;
                 // 速度を法線に投影して滑りを適用
                 p.velocity = ApplyCollisionResponseVelocity(p.velocity, normal, SPHParams.restitution, SPHParams.friction, 0.1f);

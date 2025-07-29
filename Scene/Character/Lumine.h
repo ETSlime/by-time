@@ -34,9 +34,20 @@ struct PlayerAttributes
 	PlayerAction	actionQueue[ACTION_QUEUE_SIZE];
 	UINT			actionQueueStart;
 	UINT			actionQueueEnd;
+
+	int				seedCount;
+
 	bool			isMeleeMode;
-	bool			hasSeed;
 	bool			allowControl;
+	bool			aimMode = false;	// エイムモード
+	bool			throwMode = false;
+	bool			confirmThrow = false;
+	bool			climbMode = false; // クライムモード
+	bool			climbUp = false; // クライムモードで上に移動中かどうか
+	bool 			climbDown = false; // クライムモードで下に移動中かどうか
+	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
+	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
+	
 };
 
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
@@ -66,11 +77,12 @@ public:
 
 	virtual bool ExecuteAction(ActionEnum action) override;
 
-	void PlayAttackAnim(void) override;
-	void PlayAttack2Anim(void);
-	void PlayAttack3Anim(void);
-	void PlayJumpAnim(void) override;
-	void PlayClimbAnim(void);
+	void PlayAttackAnim(float animSpeed);
+	void PlayAttack2Anim(float animSpeed);
+	void PlayAttack3Anim(float animSpeed);
+	void PlayJumpAnim(float animSpeed);
+	void PlayClimbAnim(float animSpeed);
+	void PlayThrowAnim(float animSpeed);
 
 	void InitEffect(void);
 
@@ -94,26 +106,31 @@ public:
 	virtual bool CanClimb(void) const override;
 	virtual bool CanGlide(void) const override;
 	virtual bool CanStopGliding(void) const override;
+	virtual bool CanThrow(void) const override;
+	virtual bool CanStopThrowing(void) const override;
 
 	virtual void OnAttackAnimationEnd(void) override;
 	virtual void OnHitAnimationEnd(void) override;
 	virtual void OnJumpAnimationEnd(void) override;
 	virtual void OnPlantSeedAnimationEnd(void) override;
 	virtual void OnClimbAnimationEnd(void) override;
+	virtual void OnThrowAnimationEnd(void) override;
 	//virtual const char* GetPanelName(void) const override { return "Lumine"; };
 private:
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
+	static void OnHitCallback(const CollisionEvent& event, void* context);
+
 	//virtual void RenderImGui(void) override;
 	struct InitContext
 	{
 		Lumine* owner;
 	};
 	void HandleInput(void);
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP);
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) override;
 	void LoadWeapon(char* modelPath, char* modelName = nullptr);
 	void SetupAnimStateMachine(void);
 	void InitAnimInfo(void) override;
-
+	void ResetStatus(void);
 	void FaceToNearestEnemy(void);
 	void UpdateWeapon(void);
 
@@ -131,7 +148,9 @@ private:
 	bool weaponOnBack;
 	bool storeWeaponOnBack;
 	bool storeWeapon;
+
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 	Renderer& m_renderer = Renderer::get_instance();
+	Camera& m_camera = Camera::get_instance();
 };

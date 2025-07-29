@@ -116,17 +116,17 @@ void Ground::Initialize(void)
 	//}
 
 	
-	//DeferredTaskOptions options{};
-	//options.async = false; // 同期実行
-	//options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
-	//// タスクを DeferredTaskSystem に登録
-	//DeferredTaskBinder<Ground>::Add(
-	//	this,
-	//	nullptr,
-	//	&Ground::GenerateEnvironmentObj,
-	//	&Ground::DeferredIsFieldReady,
-	//	options
-	//);
+	DeferredTaskOptions options{};
+	options.async = false; // 同期実行
+	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	DeferredTaskBinder<Ground>::Add(
+		this,
+		nullptr,
+		&Ground::GenerateEnvironmentObj,
+		&Ground::DeferredIsFieldReady,
+		options
+	);
 
 	m_initialized = true;
 }
@@ -288,7 +288,7 @@ void Ground::InitTerrain(void)
 	terrainBuildConfig.position = TERRAIN_POS;
 	terrainBuildConfig.drawWorldAABB = false;
 	terrainBuildConfig.flip = AxisFlip::FlipX;
-	terrainBuildConfig.loadAsync = true;
+	terrainBuildConfig.loadAsync = false;
 	terrainGO->Instantiate(terrainBuildConfig);
 	m_persistentStaticGOs.push_back(terrainGO);
 	m_fieldGO = terrainGO;
@@ -356,8 +356,7 @@ void Ground::LoadScene1(void)
 	if(m_sceneKey != nullptr)
 		m_sceneKey->SetActive(false);
 
-	if (m_skybox != nullptr)
-		m_skybox->SetCurrentTime(DAY_TIME);
+	m_skybox.SetCurrentTime(DAY_TIME);
 
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;
@@ -457,8 +456,7 @@ void Ground::LoadScene2(void)
 		m_sceneKey->SetActive(true);
 	
 
-	if (m_skybox != nullptr) 
-		m_skybox->SetCurrentTime(NIGHT_TIME);
+	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
 
 	FireBallEffectParams fireparams;
@@ -533,15 +531,15 @@ void Ground::GenerateEnvironmentObj(void*)
 	InstanceParams instanceParams;
 	instanceParams.type = EnvironmentObjectType::Bush_2;
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12882.0f,
-		-18385.0f,
+		3024.0f,
+		3453.0f,
 		0.5 * XM_PI,
 		0.3f
 	));
 
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12482.0f,
-		-17385.0f,
+		2453.0f,
+		2453.0f,
 		0.5,
 		0.3f
 	));
@@ -596,7 +594,8 @@ void Ground::GenerateEnvironmentObj(void*)
 			options
 		);
 	}
-	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+
+	//m_environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, 15);
 }
 
 void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool isTerrain)

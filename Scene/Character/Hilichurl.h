@@ -42,12 +42,12 @@ public:
 
 	AnimStateMachine* GetStateMachine(void) override;
 
-	void PlayWalkAnim(void) override;
-	void PlayRunAnim(void) override;
-	void PlayIdleAnim(void) override;
+	void PlayWalkAnim(void);
+	void PlayRunAnim(void);
+	void PlayIdleAnim(void);
 
-	void PlayAttackAnim(void) override;
-	void PlayHitAnim(void) override;
+	void PlayAttackAnim(void);
+	void PlayHitAnim(void);
 	void PlayHit2Anim(void);
 	void PlaySitAnim(void);
 	void PlaySurprisedAnim(void);
@@ -75,7 +75,7 @@ private:
 	{
 		Hilichurl* owner;
 	};
-	void AddAnimation(char* animPath, char* animName, AnimClipName clipName);
+	void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) override;
 	void LoadWeapon(char* modelPath, char* modelName);
 	void InitAnimInfo(void) override;
 

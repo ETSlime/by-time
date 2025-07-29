@@ -65,6 +65,9 @@
     <Filter Include="Utility\Debug\imgui">
       <UniqueIdentifier>{e0099c70-e437-4cae-a353-256ca0973aca}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Effects\ProjectilePreview">
+      <UniqueIdentifier>{1f991843-b466-42ba-9406-61ecff2be659}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -419,6 +422,12 @@
     <ClInclude Include="Utility\Debug\imgui\imstb_truetype.h">
       <Filter>Utility\Debug\imgui</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -685,6 +694,12 @@
     </ClCompile>
     <ClCompile Include="UI\GameMenuModal.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp">
+      <Filter>Effects\ProjectilePreview</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

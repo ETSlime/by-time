@@ -200,8 +200,8 @@ Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
 
     auto* task = static_cast<StaticModelLoadTask*>(it->value);
     StaticModelData* parsedData = task->GetParsedData();
-    //if (!task->isDone || !parsedData || !task->texturesReady) return nullptr;
-    if (!task->isDone || !parsedData) return nullptr;
+    if (!task->isDone || !parsedData || !task->texturesReady) return nullptr;
+    //if (!task->isDone || !parsedData) return nullptr;
 
     // Model ƒNƒ‰ƒX‚ÉŠ—LŒ ‚ğˆÚ÷
     Model* model = new Model(parsedData);

@@ -37,12 +37,13 @@ void EnemyManager::Init(const Player* player)
 	//	SpawnEnemy(EnemyType::Hilichurl, t, EnemyState::IDLE);
 	//}
 
-	trans.pos = XMFLOAT3(-5871.0f, -4670.0f, -1295.0f);
+	trans.pos = XMFLOAT3(4024.0f, 6270.0f, 3453.0f);
 	trans.scl = GBMONSTER_SIZE;
 	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE);
 
-	//trans.pos = XMFLOAT3(12759.5f, -2110.0f, -19177.56f);
-	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);
+	trans.pos = XMFLOAT3(3024.0f, 6270.0f, 4453.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::DANCE);
 
 	//trans.pos = XMFLOAT3(12404.5f, -2110.0f, -19177.56f);
 	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);

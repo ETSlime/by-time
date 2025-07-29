@@ -44,8 +44,25 @@
 #define HUD_SEED_ICON_TEXTURE_SIZE_X			1165.0f
 #define HUD_SEED_ICON_TEXTURE_SIZE_Y			1413.0f
 
+#define HUD_CROSSHAIR_TEXTURE_PATH				"data/TEXTURE/UI/crosshair.png"
+#define HUD_CROSSHAIR_TEXTURE_SIZE_X			48.0f
+#define HUD_CROSSHAIR_TEXTURE_SIZE_Y			48.0f
+
+UIMainHUD::~UIMainHUD()
+{
+	for (UINT i = 0; i < m_sprites.getSize(); ++i)
+	{
+		if (m_sprites[i])
+		{
+			SAFE_DELETE(m_sprites[i]);
+		}
+	}
+}
+
 void UIMainHUD::Initialize(void)
 {
+	m_sprites.reserve(12);
+
 	m_player = GameSystem::get_instance().GetPlayer();
 
 	m_equipSlot = new UISprite(
@@ -55,7 +72,8 @@ void UIMainHUD::Initialize(void)
 	m_equipSlot->SetSize(HUD_EQUIPMENT_SLOT_TEXTURE_SIZE_X, HUD_EQUIPMENT_SLOT_TEXTURE_SIZE_Y);
 	m_equipSlot->SetPosition(HUD_EQUIPMENT_SLOT_TEXTURE_POS_X, HUD_EQUIPMENT_SLOT_TEXTURE_POS_Y);
 	m_equipSlot->SetScale(0.82f, 0.82f);
-	m_equipSlot->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)); // 半透明に設定	
+	m_equipSlot->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)); // 半透明に設定
+	m_sprites.push_back(m_equipSlot);
 
 	m_weaponIcon = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
@@ -64,6 +82,7 @@ void UIMainHUD::Initialize(void)
 	m_weaponIcon->SetSize(HUD_WEAPON_ICON_TEXTURE_SIZE_X, HUD_WEAPON_ICON_TEXTURE_SIZE_Y);
 	m_weaponIcon->SetPosition(HUD_MAIN_WEAPON_ICON_TEXTURE_POS_X, HUD_MAIN_WEAPON_ICON_TEXTURE_POS_Y);
 	m_weaponIcon->SetScale(HUD_MAIN_WEAPON_ICON_TEXTURE_SCALE, HUD_MAIN_WEAPON_ICON_TEXTURE_SCALE);
+	m_sprites.push_back(m_weaponIcon);
 
 	m_gunIcon = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
@@ -72,6 +91,7 @@ void UIMainHUD::Initialize(void)
 	m_gunIcon->SetSize(HUD_GUN_ICON_TEXTURE_SIZE_X, HUD_GUN_ICON_TEXTURE_SIZE_Y);
 	m_gunIcon->SetPosition(HUD_SUB_GUN_ICON_TEXTURE_POS_X, HUD_SUB_GUN_ICON_TEXTURE_POS_Y);
 	m_gunIcon->SetScale(HUD_SUB_GUN_ICON_TEXTURE_SCALE, HUD_SUB_GUN_ICON_TEXTURE_SCALE);
+	m_sprites.push_back(m_gunIcon);
 
 	m_seedIcon = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
@@ -80,6 +100,16 @@ void UIMainHUD::Initialize(void)
 	m_seedIcon->SetSize(HUD_SEED_ICON_TEXTURE_SIZE_X, HUD_SEED_ICON_TEXTURE_SIZE_Y);
 	m_seedIcon->SetPosition(HUD_SEED_ICON_TEXTURE_POS_X, HUD_SEED_ICON_TEXTURE_POS_Y);
 	m_seedIcon->SetScale(0.08f, 0.08f);
+	m_sprites.push_back(m_seedIcon);
+
+	m_crosshair = new UISprite(
+		UIManager::get_instance().GetSpriteVertexBuffer(),
+		TextureMgr::get_instance().CreateTexture(HUD_CROSSHAIR_TEXTURE_PATH)
+	);
+	m_crosshair->SetSize(HUD_CROSSHAIR_TEXTURE_SIZE_X, HUD_CROSSHAIR_TEXTURE_SIZE_Y);
+	m_crosshair->SetPosition(SCREEN_CENTER_X, SCREEN_CENTER_Y);
+	m_crosshair->SetScale(1.0f, 1.0f);
+	m_sprites.push_back(m_crosshair);
 }
 
 void UIMainHUD::Update(void)
@@ -94,6 +124,8 @@ void UIMainHUD::Update(void)
 	//m_weaponIcon->SetVisible(m_player->HasWeapon());
 	//m_gunIcon->SetVisible(m_player->HasGun());
 	m_seedIcon->SetVisible(m_player->HasSeed());
+
+	m_crosshair->SetVisible(m_player->GetPlayerAttributes().aimMode);
 
 	// アイコンの位置を更新
 	if (m_player->GetMeleeMode())
@@ -114,8 +146,11 @@ void UIMainHUD::Update(void)
 
 void UIMainHUD::Draw(void)
 {
-	m_equipSlot->Draw();
-	m_weaponIcon->Draw();
-	m_gunIcon->Draw();
-	m_seedIcon->Draw();
+	for (UINT i = 0; i < m_sprites.getSize(); ++i)
+	{
+		if (m_sprites[i] && m_sprites[i]->IsVisible())
+		{
+			m_sprites[i]->Draw();
+		}
+	}
 }

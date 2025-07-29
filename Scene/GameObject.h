@@ -64,6 +64,39 @@ struct Transform
 		scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
 		mtxWorld = XMMatrixIdentity();
 	}
+
+	// オブジェクトの前方向ベクトルを取得する関数
+	XMFLOAT3 GetForward(void)
+	{
+		// Yaw (水平回転) を利用してXZ平面上の方向を求める
+		float yaw = rot.y;
+
+		// 前方向ベクトルを計算（右手座標系のZ前提）
+		XMFLOAT3 forward;
+		forward.x = sinf(yaw);
+		forward.y = 0.0f;
+		forward.z = cosf(yaw);
+
+		// 正規化（必要なら）
+		XMVECTOR f = XMVector3Normalize(XMLoadFloat3(&forward));
+		XMStoreFloat3(&forward, f);
+
+		return forward;
+	}
+
+	XMFLOAT3 GetRight(void)
+	{
+		// Forwardから右方向を計算
+		XMFLOAT3 forward = GetForward();
+		XMVECTOR f = XMLoadFloat3(&forward);
+		XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+
+		XMVECTOR r = XMVector3Normalize(XMVector3Cross(up, f));
+
+		XMFLOAT3 right;
+		XMStoreFloat3(&right, r);
+		return right;
+	}
 };
 
 struct Attributes
@@ -90,7 +123,7 @@ struct Attributes
 	bool			isHit2 = false;
 	float			hitTimer = 0;
 	float			glideDuration = 0.0f; // グライドの持続時間
-
+	float			lastFireTimeCountDown = 0.0f; // 最後に弾を撃った時間（カウントダウン用）
 	bool			charSwitchEffect = false;
 
 	bool			attackWindow2 = false;
@@ -98,12 +131,6 @@ struct Attributes
 	float			attackWinwdowCnt = 0;
 	bool			hasWeapon = false;
 	bool			hasGun = false;
-	bool			aimMode = false;	// エイムモード
-	bool			climbMode = false; // クライムモード
-	bool			climbUp = false; // クライムモードで上に移動中かどうか
-	bool 			climbDown = false; // クライムモードで下に移動中かどうか
-	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
-	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
 
 	void Initialize(void)
 	{
@@ -439,21 +466,6 @@ class ISkinnedMeshModelChar
 {
 public:
 	virtual void InitializeAnimation() = 0;
-
-	virtual void PlayWalkAnim() {};
-	virtual void PlayRunAnim() {};
-	virtual void PlayIdleAnim() {};
-	virtual void PlayStandingAnim() {};
-	virtual void PlayAttackAnim() {};
-	virtual void PlayHitAnim() {};
-	virtual void PlayDashAnim() {}
-	virtual void PlayJumpAnim() {}
-	virtual void PlaySurprisedAnim() {}
-	virtual void PlayIdleAimAnim() {}
-	virtual void PlayWalkAimAnim() {}
-	virtual void PlayRunAimAnim() {}
-	virtual void PlayStandJumpAnim() {}
-	virtual void PlayRunJumpAnim() {}
 	virtual void InitAnimInfo() {}
 
 	virtual bool CanWalk() const = 0;
@@ -476,6 +488,8 @@ public:
 	virtual bool CanStopAiming() const { return false; }
 	virtual bool CanJumpAim() const { return false; }
 	virtual bool CanRunJumpAim() const { return false; }
+	virtual bool CanThrow() const { return false; }
+	virtual bool CanStopThrowing() const { return false; }
 	virtual bool CanClimb() const { return false; }
 	virtual bool CanGlide() const { return false; }
 	virtual bool CanStopGliding() const { return false; }
@@ -487,8 +501,10 @@ public:
 	virtual void OnSurprisedEnd() {}
 	virtual void OnPlantSeedAnimationEnd() {}
 	virtual void OnClimbAnimationEnd() {}
+	virtual void OnThrowAnimationEnd() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
+	virtual void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) = 0;
 };
 
 

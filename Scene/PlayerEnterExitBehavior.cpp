@@ -73,7 +73,7 @@ void PlayerEnterExitBehavior::OnTrigger(const Collider* activator)
             };
 
         m_prompt->SetCallback(m_player->OnClimbPromptTriggered, climbCtx);
-        m_player->GetAttributes()->enableClimbUp = false; // クライムダウンを無効化
+        m_player->GetPlayerAttributes().enableClimbUp = false; // クライムダウンを無効化
         break;
     }
     case PlayerCallbackAction::StartClimbDown:
@@ -108,7 +108,7 @@ void PlayerEnterExitBehavior::OnTrigger(const Collider* activator)
             };
 
         m_prompt->SetCallback(m_player->OnClimbPromptTriggered, climbCtx);
-        m_player->GetAttributes()->enableClimbDown = false; // クライムダウンを無効化
+        m_player->GetPlayerAttributes().enableClimbDown = false; // クライムダウンを無効化
         break;
     }
     default:
@@ -126,10 +126,10 @@ void PlayerEnterExitBehavior::OnExit(const Collider* activator)
     switch (m_actionType)
     {
     case PlayerCallbackAction::StopClimbUp:
-        m_player->GetAttributes()->enableClimbUp = true; // クライムアップを有効化
+        m_player->GetPlayerAttributes().enableClimbUp = true; // クライムアップを有効化
         break;
     case PlayerCallbackAction::StopClimbDown:
-		m_player->GetAttributes()->enableClimbDown = true; // クライムダウンを有効化
+		m_player->GetPlayerAttributes().enableClimbDown = true; // クライムダウンを有効化
         break;
     default:
         break;

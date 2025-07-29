@@ -49,19 +49,9 @@ bool FBXLoader::LoadModel(SkinnedMeshModelData* modelData, const char* modelPath
         modelData->currentAnimClip->name = animName;
     }
 
-    switch (modelType)
-    {
-    case SkinnedModelType::Sigewinne:
-        modelData->weaponTransformIdx = LEFT_HAND_BONE_IDX;
-        break;
-    case SkinnedModelType::Lumine:
-    case SkinnedModelType::Hilichurl:
-    case SkinnedModelType::Mitachurl:
-        modelData->weaponTransformIdx = RIGHT_HAND_BONE_IDX;
-        break;
-    default:
-        break;
-    }
+    modelData->leftHandTransformIdx = LEFT_HAND_BONE_IDX;
+    modelData->rightHandTransformIdx = RIGHT_HAND_BONE_IDX;
+
 
     char buffer[1024];
     bool loadSuccess = true;

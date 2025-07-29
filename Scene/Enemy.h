@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // エネミーの行動管理クラス [Enemy.h]
@@ -6,10 +7,10 @@
 // ビヘイビアツリーを使って、驚いたり座ったり追いかけたり、いろんなモードで生きてます
 // 
 //=============================================================================
-#pragma once
 #include "Scene/GameObject.h"
 #include "Utility/SimpleArray.h"
 #include "Core/Timer.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -128,10 +129,13 @@ struct EnemyUI
 
 };
 
-struct MoveTable
+// 敵の各骨格部位に基づくコライダー（攻撃用 or 被弾用）
+struct EnemyBoneHitCollider
 {
-	INTERPOLATION_DATA* moveTblAddr;
-	int size;
+	Collider collider;			// 実際の衝突形状
+	BOUNDING_BOX localAABB;		// ローカル空間のAABB
+	XMMATRIX boneMatrix;         // このコライダーが追従する骨の変換行列
+	bool isHitbox;               // true: 攻撃判定, false: 被弾判定
 };
 
 //*****************************************************************************
@@ -176,6 +180,8 @@ public:
 	bool CheckAvailableToMove(void);
 
 protected:
+	void InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag);
+	void UpdateBoneHitCollider(EnemyBoneHitCollider& hitCollider, BodyTransformIndex transformIdx);
 	EnemyAttributes m_enemyAttr;
 	const Player* m_player;
 private:

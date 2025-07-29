@@ -47,7 +47,7 @@ void Item::Initialize(void)
 
 	m_itemAttributes.initialized = true;
 
-	instance.collider.SetCollisionCallback(OnItemPickupCallback, this);
+	instance.collider.AddCollisionCallback(OnItemPickupCallback, this, CollisionCallbackID::PickUpItem);
 }
 
 void Item::Draw(void)
@@ -89,12 +89,10 @@ void Item::Update(void)
 		return;
 	}
 
-	if (instance.use == true)		// このエネミーが使われている？
+	if (instance.use == true)
 	{
 
 		GameObject::Update();
-
-		instance.transform.rot.y = 10 * timer.GetScaledDeltaTime();
 
 	}
 

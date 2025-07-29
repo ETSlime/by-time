@@ -19,7 +19,7 @@ private:
     float elapsedTime;
     float deltaTime;
     float scaledDeltaTime;
-    const float targetFrameRate = 60.0f;
+    const float targetFrameRate = 50.0f;
     const float timeScale = targetFrameRate;
     const float maxDeltaTime = 1.0f / 10.0f;
     DebugProc& debugProc = DebugProc::get_instance();
@@ -47,7 +47,6 @@ public:
         {
             deltaTime = maxDeltaTime; // 制限をかける
         }
-        deltaTime = 1.0f / 60.0f;
         lastTime = currentTime;
         scaledDeltaTime = deltaTime * timeScale; // スケーリング
         elapsedTime += deltaTime;
@@ -61,6 +60,6 @@ public:
 
     float GetDeltaTime(void) { return deltaTime; }
     float GetScaledDeltaTime(void) { return scaledDeltaTime; }
-    //float GetScaledDeltaTime(void) { return 1; };// scaledDeltaTime; }
+    //float GetScaledDeltaTime(void) { return 1; }}
     float GetElapsedTime(void) { return elapsedTime; }
 };

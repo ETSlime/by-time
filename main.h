@@ -86,6 +86,7 @@ bool GetWindowActive(void);
 int GetRand(int min, int max);
 float GetRandFloat(float min, float max);
 float Lerp(float a, float b, float t);
+float SmoothAngleLerp(float current, float target, float t);
 void ExitGame(void);
 
 // Declare additional functions for releasing interfaces, 
