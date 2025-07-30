@@ -98,7 +98,6 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
-	//For debugging : Automatic HP reduction(1 per second)
 		if (m_autoHPDrain)
 		{
 			float deltaTime = 1.0f / 60.0f;
@@ -106,7 +105,7 @@ void Player::Update(void)
 
 			if (m_hpDrainTimer >= 1.0f)
 			{
-				TakeDamage(1);
+				TakeDamage(10);
 				m_hpDrainTimer = 0.0f;
 			}
 		}
@@ -115,13 +114,6 @@ void Player::Update(void)
 		{
 			m_currentHP = 100.0f;
 		}
-
-	// --- テスト用リザルト遷移 ---
-	if (m_inputManager.GetKeyboardPress(DIK_R))  // Rキーが押されたとき
-	{
-		GameSystem::get_instance().ChangeMode(GameMode::RESULT, true);
-
-	}
 
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", m_transform.pos.x, m_transform.pos.y, m_transform.pos.z);

@@ -222,6 +222,7 @@
     <ClInclude Include="Scene\Weapon\Projectile.h" />
     <ClInclude Include="Scene\Weapon\ProjectileManager.h" />
     <ClInclude Include="UI\Base\ISpriteUI.h" />
+    <ClInclude Include="UI\Base\ResultType.h" />
     <ClInclude Include="UI\Base\ScreenFader.h" />
     <ClInclude Include="UI\Base\TweenManager.h" />
     <ClInclude Include="UI\Base\UIAnimatedSprite.h" />

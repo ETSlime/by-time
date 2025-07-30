@@ -29,6 +29,7 @@
 #include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
 #include "UI/UIResultScene.h"
+#include "UI/Base/ResultType.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -43,7 +44,6 @@ enum class GameMode : int		// ゲームモード
     RESULT,				        // リザルト画面
     MAX
 };
-
 
 struct ResourceLoadContext
 {
@@ -103,6 +103,7 @@ public:
 
     void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
     GameMode GetMode(void) const { return m_mode; }
+    ResultType GetResultType() const { return m_resultType; }
 
 	Player* GetPlayer(void) const { return m_player; }
 
@@ -178,6 +179,9 @@ private:
     bool m_isAltDown = false; // Altキーが押されているかどうか
     bool m_skipLoadingFadeIn = false;
 
+
+    ResultType m_resultType = ResultType::NONE;
+
     GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
@@ -206,7 +210,4 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
     TweenManager& m_tweenManager;
-
-    // GameSystem.h 内の private:
-    ResultType m_resultType = ResultType::GAME_OVER; // デフォルトはゲームオーバー
 };

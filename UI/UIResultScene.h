@@ -3,12 +3,7 @@
 #include "UI/Base/UIAnimatedSprite.h"
 #include "Core/TextureMgr.h"
 #include "Utility/InputManager.h"
-
-enum class ResultType
-{
-    CLEAR,
-    GAME_OVER
-};
+#include "UI/Base/ResultType.h"
 
 // ‘O•ûéŒ¾‚Ì‚İ
 class GameSystem;

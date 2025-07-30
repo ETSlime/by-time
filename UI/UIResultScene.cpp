@@ -10,8 +10,8 @@ UIResultScene::UIResultScene(ResultType type)
 void UIResultScene::Init()
 {
     const char* path = (m_resultType == ResultType::CLEAR)
-        ? "data/TEXTURE/UI/gemeclear.jpg"
-        : "data/TEXTURE/UI/gameover.png";
+        ? "data/TEXTURE/gemeclear.jpg"
+        : "data/TEXTURE/gameover.png";
 
     m_resultSprite = new UIAnimatedSprite();
     m_resultSprite->Init(

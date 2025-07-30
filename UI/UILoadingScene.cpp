@@ -18,21 +18,28 @@ constexpr float ANIM_PROGRESS_EPSILON = 0.09f;
 
 void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 {
+    // もし前回のアニメが残っていれば解放
+    if (m_loadingAnim) {
+        delete m_loadingAnim;
+        m_loadingAnim = nullptr;
+    }
+
     m_state = skipFadeIn ? LoadingState::WaitForResources : LoadingState::FadeInBlack;
 
-    // ローディングアニメーション用スプライト
+    m_resourceLoaded = false;
+    m_loadProgress = 0.0f;
+    m_animProgress = 0.0f;
+    m_elapsedTime = 0.0f;
+    m_showLoadingUI = false;
+
     m_loadingAnim = new UIAnimatedSprite();
     m_loadingAnim->Init(tex,
         m_UIManager.GetSpriteVertexBuffer(),
         LOADING_ANIM_TILE_X,
         LOADING_ANIM_TILE_Y,
         LOADING_ANIM_SPD,
-        false
-    );
+        false);
 
-    //m_loadingAnim->SetPlaybackSpeed(0.6f);
-
-    // 表示位置とサイズを設定
     m_loadingAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
     m_loadingAnim->SetSize({ static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) });
     m_loadingAnim->Play();
@@ -43,6 +50,7 @@ void UILoadingScene::Init(ID3D11ShaderResourceView* tex, bool skipFadeIn)
 
 void UILoadingScene::Update(void)
 {
+
     m_elapsedTime += m_timer.GetDeltaTime();
 
     // 読み込み完了前までは進行度に合わせて滑らかにアニメバー更新

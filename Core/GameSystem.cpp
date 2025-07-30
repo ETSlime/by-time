@@ -440,6 +440,13 @@ void GameSystem::UpdateGame(void)
 #ifdef _DEBUG
     m_shaderManager.CollectAndReloadShaders(m_renderer.GetDevice());
 #endif // !_ DEBUG
+    // プレイヤーが死亡していたらゲームオーバーに遷移
+    if (m_player && m_player->GetCurrentHP() <= 0.0f)
+    {
+        m_resultType = ResultType::GAMEOVER; // ゲームオーバーとして扱う（ResultTypeがあれば）
+        ChangeMode(GameMode::RESULT);
+        return;
+    }
 }
 
 void GameSystem::UpdateLoading(void)
