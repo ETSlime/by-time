@@ -12,6 +12,7 @@
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/PlayerEnterExitBehavior.h"
+#include "Core/GameSystem.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -97,15 +98,35 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
+	//For debugging : Automatic HP reduction(1 per second)
+		if (m_autoHPDrain)
+		{
+			float deltaTime = 1.0f / 60.0f;
+				m_hpDrainTimer += deltaTime;
+
+			if (m_hpDrainTimer >= 1.0f)
+			{
+				TakeDamage(1);
+				m_hpDrainTimer = 0.0f;
+			}
+		}
+	//For Debugging : HP Recovery
+		if (m_inputManager.GetKeyboardPress(DIK_L))
+		{
+			m_currentHP = 100.0f;
+		}
+
 
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", m_transform.pos.x, m_transform.pos.y, m_transform.pos.z);
+	m_debugProc.PrintDebugProc("HP: %f\n", m_currentHP);
 #endif
 }
 
 void Player::Draw(void)
 {
 	m_playerGO->Draw();
+
 }
 
 void Player::DrawEffect(void)
@@ -215,6 +236,10 @@ void Player::InitializePlayerStatus(void)
 		lumine->SetTransform(transform);
 		lumine->InitializeStatus();
 	}
+
+	m_maxHP = 100.0f;
+	m_currentHP = 100.0f;
+	SetHP(1.0f);
 
 	Update();
 }
@@ -664,4 +689,56 @@ void Player::RenderImGui(void)
 			m_playerGO->SetDrawWorldAABB(m_drawBoundingBox);
 		}
 	}
+}
+
+
+void Player::InitHPBar(UIManager* uiManager)
+{
+	if (m_hpBar)
+	{
+		delete m_hpBar;
+		m_hpBar = nullptr;
+	}
+
+	m_hpBar = new HPBarUI();
+
+	// Please adjust the position and size of the HP bar accordingly.
+	m_hpBar->SetPosition({ 180.0f, 120.0f });
+	m_hpBar->SetSize({ 440.0f, 50.0f });
+	m_hpBar->SetHP(1.0f);
+
+
+	ID3D11ShaderResourceView* decoTex = TextureMgr::get_instance().CreateTexture("data/TEXTURE/ui2hp_.png");
+	m_hpBar->SetDecorationTexture(decoTex);
+
+	if (uiManager)
+	{
+		uiManager->AddElement(m_hpBar);
+	}
+}
+
+void Player::SetHP(float hp)
+{
+	if (m_hpBar)
+	{
+		m_hpBar->SetHP(hp);
+	}
+}
+
+void Player::TakeDamage(int damage)
+{
+	m_currentHP -= damage;
+	if (m_currentHP < 0) m_currentHP = 0;
+
+	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
+	SetHP(hpRatio);  // HPバー更新
+}
+
+void Player::Heal(int amount)
+{
+	m_currentHP += amount;
+	if (m_currentHP > m_maxHP) m_currentHP = m_maxHP;
+
+	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
+	SetHP(hpRatio);  // HPバー更新
 }

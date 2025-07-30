@@ -12,6 +12,8 @@
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 #include "Effects/ProjectilePreview/ProjectilePreviewRenderer.h"
+#include "Scene/HPBarUI.h"
+#include "UI/Base/UIManager.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`
@@ -51,6 +53,15 @@ public:
 	bool HasSeed(void) const { return m_playerAttr.seedCount > 0; }
 	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
 	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
+
+	float GetCurrentHP() const { return m_currentHP; }
+	float GetMaxHP() const { return m_maxHP; }
+
+	void TakeDamage(int damage);
+	void Heal(int amount);
+
+	void InitHPBar(UIManager* uiManager);
+	void SetHP(float hp);
 
 private:
 	void UpdateNormalMode(void);
@@ -94,4 +105,12 @@ private:
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 	ItemManager& m_itemManager = ItemManager::get_instance();
+
+	float m_currentHP = 100;
+	float m_maxHP = 100;        // ç≈ëÂHP
+
+	HPBarUI* m_hpBar = nullptr;
+
+	float m_hpDrainTimer = 0.0f;
+	bool m_autoHPDrain = true;
 };

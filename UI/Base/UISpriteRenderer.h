@@ -39,4 +39,6 @@ public:
     static void SetSpriteWithRotation(ID3D11Buffer* buf, float X, float Y, float Width, float Height,
         float U, float V, float UW, float VH,
         XMFLOAT4 color, float rotationRad);
+
+    static void SetSpriteParallelogram(ID3D11Buffer* buf, float x, float y, float width, float height, float skewX, float U, float V, float UW, float VH, XMFLOAT4 color);
 };
