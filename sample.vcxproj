@@ -238,6 +238,7 @@
     <ClInclude Include="UI\UIGameOver.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
     <ClInclude Include="UI\UIMainHUD.h" />
+    <ClInclude Include="UI\UIResultScene.h" />
     <ClInclude Include="UI\UITitleScene.h" />
     <ClInclude Include="Utility\Debug\DebugBoundingBoxRenderer.h" />
     <ClInclude Include="Utility\Debug\Debugproc.h" />
@@ -338,6 +339,7 @@
     <ClCompile Include="UI\GameMenuModal.cpp" />
     <ClCompile Include="UI\UILoadingScene.cpp" />
     <ClCompile Include="UI\UIMainHUD.cpp" />
+    <ClCompile Include="UI\UIResultScene.cpp" />
     <ClCompile Include="Utility\Debug\DebugBoundingBoxRenderer.cpp" />
     <ClCompile Include="Utility\Debug\Debugproc.cpp" />
     <ClCompile Include="Utility\Debug\DebugTriangleRenderer.cpp" />

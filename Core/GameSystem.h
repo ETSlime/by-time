@@ -28,6 +28,7 @@
 #include "Effects/EffectSystem.h"
 #include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
+#include "UI/UIResultScene.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -104,6 +105,8 @@ public:
     GameMode GetMode(void) const { return m_mode; }
 
 	Player* GetPlayer(void) const { return m_player; }
+
+    void SetResultType(ResultType type) { m_resultType = type; }
 
 protected:
     // プライベートコンストラクタ
@@ -203,4 +206,7 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
     TweenManager& m_tweenManager;
+
+    // GameSystem.h 内の private:
+    ResultType m_resultType = ResultType::GAME_OVER; // デフォルトはゲームオーバー
 };

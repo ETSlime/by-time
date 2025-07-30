@@ -91,7 +91,7 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
     );
 }
 
-ID3D11ShaderResourceView* TextureMgr::CreateTexture(char* filename)
+ID3D11ShaderResourceView* TextureMgr::CreateTexture(const char* filename)
 {
 	if (filename == nullptr)
 		return nullptr;

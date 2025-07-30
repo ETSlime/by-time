@@ -79,7 +79,7 @@ public:
 		void (*onFinish)(bool success, void* userData), void* userData = nullptr);
 
 	// 同期ロード（使用推奨せず）
-	ID3D11ShaderResourceView* CreateTexture(char* filename);
+	ID3D11ShaderResourceView* CreateTexture(const char* filename);
 
 
 	void RegisterSRV(const char* path, ID3D11ShaderResourceView* srv);

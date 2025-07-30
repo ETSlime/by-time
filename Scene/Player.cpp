@@ -116,6 +116,12 @@ void Player::Update(void)
 			m_currentHP = 100.0f;
 		}
 
+	// --- テスト用リザルト遷移 ---
+	if (m_inputManager.GetKeyboardPress(DIK_R))  // Rキーが押されたとき
+	{
+		GameSystem::get_instance().ChangeMode(GameMode::RESULT, true);
+
+	}
 
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", m_transform.pos.x, m_transform.pos.y, m_transform.pos.z);
@@ -694,9 +700,8 @@ void Player::RenderImGui(void)
 
 void Player::InitHPBar(UIManager* uiManager)
 {
-	if (m_hpBar)
+	if (m_hpBar != nullptr)
 	{
-		delete m_hpBar;
 		m_hpBar = nullptr;
 	}
 

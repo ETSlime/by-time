@@ -138,7 +138,13 @@ void GameSystem::InitGame(void)
 
 void GameSystem::InitResult(void)
 {
+    // UIResultScene を生成
+    UIResultScene* resultScene = new UIResultScene(m_resultType);
+    resultScene->Init();
+    m_UIManager.AddElement(resultScene);
 
+    // UIモードに移行（カーソル復活）
+    m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
 
 void GameSystem::ProcessModeLoading(void)
