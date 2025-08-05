@@ -93,26 +93,39 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
 
 ID3D11ShaderResourceView* TextureMgr::CreateTexture(const char* filename)
 {
-	if (filename == nullptr)
-		return nullptr;
+    if (filename == nullptr)
+        return nullptr;
 
-	SRV_POOL** ppSrvPool = m_TextureSRVMap.search(filename);
-	
-	if (ppSrvPool == nullptr)
-	{
-		SRV_POOL* pSrvPool = new SRV_POOL();
-		ppSrvPool = &pSrvPool;
-		D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
-			filename,
-			NULL,
-			NULL,
-			&pSrvPool->srv,
-			NULL);
+    SRV_POOL** ppSrvPool = m_TextureSRVMap.search(filename);
+
+    if (ppSrvPool == nullptr)
+    {
+        SRV_POOL* pSrvPool = new SRV_POOL();
+
+        HRESULT hr = D3DX11CreateShaderResourceViewFromFile(
+            m_renderer.GetDevice(),
+            filename,
+            NULL,
+            NULL,
+            &pSrvPool->srv,
+            NULL);
+
+        if (FAILED(hr))
+        {
+            delete pSrvPool;
+            return nullptr;
+        }
+
         pSrvPool->count = 1;
-		m_TextureSRVMap.insert(filename, *ppSrvPool);
-	}
 
-	return (*ppSrvPool)->srv;
+        // ³‚µ‚­ƒq[ƒvã‚Ìƒ|ƒCƒ“ƒ^‚ð“o˜^
+        m_TextureSRVMap.insert(filename, pSrvPool);
+
+        return pSrvPool->srv;
+    }
+
+    // Šù‚É‘¶Ý‚µ‚Ä‚¢‚½ê‡
+    return (*ppSrvPool)->srv;
 }
 
 void TextureMgr::RegisterSRV(const char* path, ID3D11ShaderResourceView* srv)

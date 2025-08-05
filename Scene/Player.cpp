@@ -100,12 +100,12 @@ void Player::Update(void)
 
 		if (m_autoHPDrain)
 		{
-			float deltaTime = 1.0f / 60.0f;
+			float deltaTime = 10.0f / 60.0f;
 				m_hpDrainTimer += deltaTime;
 
 			if (m_hpDrainTimer >= 1.0f)
 			{
-				TakeDamage(10);
+				TakeDamage(1);
 				m_hpDrainTimer = 0.0f;
 			}
 		}

@@ -235,8 +235,6 @@
     <ClInclude Include="UI\Base\UISpriteRenderer.h" />
     <ClInclude Include="UI\GameMenuModal.h" />
     <ClInclude Include="UI\PauseModal.h" />
-    <ClInclude Include="UI\UIGameClear.h" />
-    <ClInclude Include="UI\UIGameOver.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
     <ClInclude Include="UI\UIMainHUD.h" />
     <ClInclude Include="UI\UIResultScene.h" />

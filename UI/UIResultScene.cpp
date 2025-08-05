@@ -10,7 +10,7 @@ UIResultScene::UIResultScene(ResultType type)
 void UIResultScene::Init()
 {
     const char* path = (m_resultType == ResultType::CLEAR)
-        ? "data/TEXTURE/gemeclear.jpg"
+        ? "data/TEXTURE/gameclear.jpg"
         : "data/TEXTURE/gameover.png";
 
     m_resultSprite = new UIAnimatedSprite();
@@ -38,7 +38,7 @@ void UIResultScene::Update()
 
     auto& fader = UIManager::get_instance().GetFader();
 
-    if (!m_fadeOutStarted && m_input.IsMouseLeftTriggered())
+    if (!m_fadeOutStarted && !fader.IsFading() && m_input.IsMouseLeftTriggered())
     {
         m_fadeOutStarted = true;
         fader.StartFadeOut(1.0f);
