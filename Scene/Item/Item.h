@@ -10,6 +10,10 @@ enum class ItemType
 	GB,
 	Key,
 	Seed,
+	Interactable,// Interactableの方は手に入れない
+	IntSoil,
+	IntPSeed,
+	IntVines,
 	Max
 };
 
@@ -37,17 +41,26 @@ public:
 	void Update(void) override;
 	void Draw(void) override;
 
-	void Use(void) {};
+	void Use(void);
 	void Pickup(void);
 	bool GetUsed(void) { return m_itemAttributes.used; }
 	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }
-	void SetActive(bool enable);
+	virtual void SetActive(bool enable);
 	void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
 	ItemType GetItemType(void) const { return m_itemAttributes.itemType; }
+
+	virtual void Interact() {};
 
 protected:
 	// プレイヤーがアイテムを拾ったときのコールバック
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
+
+	struct InitContext {
+		Item* owner;
+	};
+
 	ItemAttributes m_itemAttributes;
+
+	Collider m_triggerCollider;
 
 };

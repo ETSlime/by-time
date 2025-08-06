@@ -389,6 +389,9 @@
     <ClInclude Include="Scene\Item\ItemManager.h">
       <Filter>Scene\Item</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\Item\Interactable.h">
+      <Filter>Scene\Item</Filter>
+    </ClInclude>
     <ClInclude Include="Utility\Debug\DebugBoundingBoxRenderer.h">
       <Filter>Utility\Debug</Filter>
     </ClInclude>
@@ -694,6 +697,9 @@
     </ClCompile>
     <ClCompile Include="UI\GameMenuModal.cpp">
       <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Interactable.cpp">
+      <Filter>Scene\Item</Filter>
     </ClCompile>
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp">
       <Filter>Effects\ProjectilePreview</Filter>

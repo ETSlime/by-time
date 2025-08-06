@@ -130,6 +130,7 @@ struct Attributes
 	bool			attackWindow3 = false;
 	float			attackWinwdowCnt = 0;
 	bool			hasWeapon = false;
+	bool			hasSeed = false;
 	bool			hasGun = false;
 
 	void Initialize(void)
@@ -433,6 +434,8 @@ public:
 	inline int	GetHitTimer(void) { return instance.attributes.hitTimer; }
 	inline void SetHitTimer(float hitTimer) { instance.attributes.hitTimer = hitTimer; }
 	inline void EnableWeapon(bool enable) { instance.attributes.hasWeapon = enable; }
+	inline void EnableSeed(bool enable) { instance.attributes.hasSeed = enable; }
+	inline long GetID() { return m_id; }
 	//inline void SetRenderProgress(float progress) { instance.attributes.renderProgress.progress = progress; }
 	//inline void SetSwitchCharEffect(bool effectON) { instance.attributes.charSwitchEffect = effectOn; }
 	virtual AnimStateMachine* GetStateMachine() { return nullptr; }
@@ -454,6 +457,7 @@ protected:
 	GameObjectConfig m_config;
 	SkinnedGameObjectConfig m_skinnedConfig;
 	DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
+	long m_id = 0;
 };
 
 template<typename T>

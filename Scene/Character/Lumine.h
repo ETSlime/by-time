@@ -53,6 +53,7 @@ struct PlayerAttributes
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
 public:
+
 	Lumine();
 	~Lumine();
 
@@ -116,6 +117,10 @@ public:
 	virtual void OnClimbAnimationEnd(void) override;
 	virtual void OnThrowAnimationEnd(void) override;
 	//virtual const char* GetPanelName(void) const override { return "Lumine"; };
+	
+	void SetPlayerComponent(void* player);
+	void* GetPlayerComponent(void);
+
 private:
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
 	static void OnHitCallback(const CollisionEvent& event, void* context);
@@ -152,5 +157,6 @@ private:
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 	Renderer& m_renderer = Renderer::get_instance();
+	void* m_player;
 	Camera& m_camera = Camera::get_instance();
 };

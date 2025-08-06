@@ -1,6 +1,7 @@
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Item.h"
 #include "Scene/Ground.h"
+#include "Scene/Item/Interactable.h"
 
 void ItemManager::Init(void)
 {
@@ -59,12 +60,13 @@ void ItemManager::Update(void)
 
 		if (m_currentItemLoadCnt < m_totalItemLoadCnt)
 		{
-			ItemType itemType = cur->data->GetItemAttributes().itemType;
-			if (itemLoadMap.contains(TO_UINT64(itemType)))
+
+			long id = cur->data->GetID();
+			if (itemLoadMap.contains(TO_UINT64(id)))
 			{
-				if (cur->data->GetLoad() && itemLoadMap[TO_UINT64(itemType)] == 0)
+				if (cur->data->GetLoad() && itemLoadMap[TO_UINT64(id)] == 0)
 				{
-					itemLoadMap[TO_UINT64(itemType)] = 1;
+					itemLoadMap[TO_UINT64(id)] = 1;
 					m_currentItemLoadCnt++;
 				}
 			}
@@ -86,12 +88,26 @@ void ItemManager::Update(void)
 Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 {
 
-	Item* item = new Item(itemType, trans);
+	Item* item;
+	
+	
+	// = new Item(itemType, trans);
+
+	if (itemType < ItemType::Interactable) {
+	
+		item = new Item(itemType, trans);
+	}
+	else {
+	
+		item = new Interactable(itemType, trans);
+	
+	}
+
 	item->Initialize();
 
-	if (!itemLoadMap.contains(TO_UINT64(itemType)))
+	if (!itemLoadMap.contains(TO_UINT64(item->GetID())))
 	{
-		itemLoadMap[TO_UINT64(itemType)] = 0;
+		itemLoadMap[TO_UINT64(item->GetID())] = 0;
 		m_totalItemLoadCnt++;
 	}
 

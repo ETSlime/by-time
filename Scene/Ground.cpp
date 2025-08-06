@@ -24,6 +24,8 @@
 #define TREE_SIZE			(350.0f)
 #define KEY_SIZE			(15.0f)
 #define SEED_SIZE			(0.2f)
+#define SEEDSOIL_SIZE       (10)
+#define SOIL_SIZE			(100.0f)
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(12.0f)
 #define BONFIRE_SIZE		(12.0f)
@@ -154,6 +156,26 @@ void Ground::Update(void)
 
 	if (m_environment)
 		m_environment->Update();
+
+	/// INTERACTABLE-IMPLEMENTATION
+	/*if (GetCurrentScene() == SceneID::SCENE_1) {
+	
+		if (m_sceneSoil != nullptr) {
+		
+			if (m_sceneSoil->GetItemAttributes().used && m_scenePSeed == nullptr)
+			{
+				Transform trans;
+				trans.pos = m_sceneSoil->GetTransform().pos;
+				//trans.pos.y -= 100;
+				trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+				trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+				m_scenePSeed = ItemManager::get_instance().SpawnItem(ItemType::IntPSeed, trans);
+			}
+
+		}
+	
+	}*/
 
 	if (debugGO)
 	{
@@ -356,6 +378,13 @@ void Ground::LoadScene1(void)
 	if(m_sceneKey != nullptr)
 		m_sceneKey->SetActive(false);
 
+	/// INTERACTABLE-IMPLEMENTATION
+	/*if (m_sceneVines != nullptr)
+		m_sceneVines->SetActive(false);
+
+	if (m_skybox != nullptr)
+		m_skybox->SetCurrentTime(DAY_TIME);*/
+
 	m_skybox.SetCurrentTime(DAY_TIME);
 
 	ParticleEffectParams params;
@@ -437,6 +466,28 @@ void Ground::LoadScene1(void)
 	}
 	else if (!m_sceneSeed->GetPickedUp())
 		m_sceneSeed->SetActive(true);
+
+	if (m_sceneSoil == nullptr)
+	{
+
+		Transform trans;
+		trans.pos = XMFLOAT3(-1000.0f, -5050.0f, 800.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		trans.scl = XMFLOAT3(SEEDSOIL_SIZE, SEEDSOIL_SIZE, SEEDSOIL_SIZE);
+
+		m_sceneSoil = ItemManager::get_instance().SpawnItem(ItemType::IntSoil, trans);
+
+	}
+	else {
+		if (!m_sceneSoil->GetUsed())
+			m_sceneSoil->SetActive(true);
+		else {
+		
+			if (m_scenePSeed != nullptr)
+				m_scenePSeed->SetActive(true);
+			
+		}
+	}
 }
 
 void Ground::LoadScene2(void)
@@ -445,7 +496,7 @@ void Ground::LoadScene2(void)
 	{
 
 		Transform trans;
-		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
+		trans.pos = XMFLOAT3(280.0f, -300.0f, 1295.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
@@ -454,7 +505,34 @@ void Ground::LoadScene2(void)
 	}
 	else if (!m_sceneKey->GetPickedUp())
 		m_sceneKey->SetActive(true);
+
+	if (m_scenePSeed != nullptr)
+	{
+
+		if(m_sceneVines == nullptr){
+
+			Transform trans = m_scenePSeed->GetTransform();
+
+			trans.pos.y -= 200;
+			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			trans.scl = XMFLOAT3(120, 120, 120);
+
+			m_sceneVines = ItemManager::get_instance().SpawnItem(ItemType::IntVines, trans);
+		}
+		else if (!m_sceneVines->GetUsed())
+			m_sceneVines->SetActive(true);
+		
+
+	}
+
+	if (m_sceneSoil != nullptr)
+		m_sceneSoil->SetActive(false);
 	
+	if (m_scenePSeed != nullptr)
+		m_scenePSeed->SetActive(false);
+
+	if (m_sceneSeed != nullptr)
+		m_sceneSeed->SetActive(false);
 
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 	

@@ -1134,6 +1134,16 @@ void Lumine::OnJumpAnimationEnd(void)
 	instance.attributes.isJumping = false;
 }
 
+void Lumine::SetPlayerComponent(void* player)
+{
+	m_player = player;
+}
+
+void* Lumine::GetPlayerComponent(void)
+{
+	return m_player;
+}
+
 void Lumine::OnPlantSeedAnimationEnd(void)
 {
 	m_playerAttr->allowControl = true;
@@ -1220,6 +1230,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		Item* item = static_cast<Item*>(itemCol->owner);
 		if (item && item->GetItemType() == ItemType::Seed)
 		{
+			//self->EnableSeed(true);
 			self->m_playerAttr->seedCount++;	
 		}
 		else if (item && item->GetItemType() == ItemType::Key)

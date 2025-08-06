@@ -11,6 +11,7 @@
 #include "Scene/Player.h"
 #include "Scene/Weapon/Projectile.h"
 #include "Scene/Ground.h"
+#include "Scene/Item/Interactable.h"
 #include "Utility/Debug/Debugproc.h"
 
 //*****************************************************************************
@@ -533,6 +534,19 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     // コールバックを持っていれば呼ぶ
                     dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
+
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::INTERACTABLE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::INTERACTABLE))
+                {
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
+                    Lumine* player = static_cast<Lumine*>(playerCol->owner);
+                    Player* playerComp = static_cast<Player*>(player->GetPlayerComponent());
+
+                    const Collider* itemCol = dynamicCol->tag == ColliderTag::INTERACTABLE ? dynamicCol : dynamicCol2;
+                    auto itemColOwner = static_cast<Interactable*>(itemCol->owner);
+
+                    playerComp->LinkInteractable(itemColOwner);
 
                 }
                 else

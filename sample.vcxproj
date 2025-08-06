@@ -213,6 +213,7 @@
     <ClInclude Include="Scene\Ground.h" />
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
+    <ClInclude Include="Scene\Item\Interactable.h" />
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\PlayerEnterExitBehavior.h" />
     <ClInclude Include="Scene\Scene.h" />
@@ -316,6 +317,7 @@
     <ClCompile Include="Scene\Ground.cpp" />
     <ClCompile Include="Scene\Item\Item.cpp" />
     <ClCompile Include="Scene\Item\ItemManager.cpp" />
+    <ClCompile Include="Scene\Item\Interactable.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
     <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />

@@ -8,6 +8,10 @@
 // 
 //=============================================================================
 #include "Scene/Character/Lumine.h"
+#include "Scene/Character/Hilichurl.h"
+#include "Scene/Character/Mitachurl.h"
+#include "Scene/Item/Item.h"
+#include "Scene/Item/Interactable.h"
 #include "Scene/Item/ItemManager.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
@@ -52,6 +56,8 @@ public:
 	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
 	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
 
+	void LinkInteractable(Interactable* interactable);
+
 private:
 	void UpdateNormalMode(void);
 	void UpdateClimbMode(void);
@@ -93,5 +99,9 @@ private:
 	Camera& m_camera = Camera::get_instance();
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
+
+	Interactable*   m_linkedInteractable = nullptr;
+
+	bool m_hasWeapon = false;
 	ItemManager& m_itemManager = ItemManager::get_instance();
 };

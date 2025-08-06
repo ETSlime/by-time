@@ -27,7 +27,8 @@ enum class ColliderTag
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
-    PLAYER_PROJECTILE
+    PLAYER_PROJECTILE,
+    INTERACTABLE
 };
 
 enum class CollisionCallbackID

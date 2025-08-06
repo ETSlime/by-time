@@ -34,6 +34,7 @@ Player::Player()
 	//klee =  new Klee();
 
 	lumine = new Lumine();
+	lumine->SetPlayerComponent(this);
 
 	//hilichurl = new Hilichurl();
 
@@ -362,6 +363,27 @@ void Player::UpdateNormalMode(void)
 		m_transform.pos.y -= 50;
 	}
 #endif
+
+	/// INTERACTABLE-IMPLEMENTATION
+	/*if (m_inputManager.GetKeyboardTrigger(DIK_SPACE))
+	{
+		m_attributes.isJumping = true;
+	}
+
+	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
+		if (m_linkedInteractable != nullptr)
+		{
+			if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
+				m_linkedInteractable->Use();
+				m_linkedInteractable->SetActive(false);
+			}
+			else if (m_linkedInteractable->GetItemType() == ItemType::IntVines) {
+				m_transform.pos.y += 500;
+			}
+		}
+		m_linkedInteractable = nullptr;
+	}*/
+
 }
 
 void Player::UpdateClimbMode(void)
@@ -638,6 +660,11 @@ void Player::HandleInput(void)
 	{
 		m_attributes->isRunning = false;
 	}
+}
+
+void Player::LinkInteractable(Interactable* interactable)
+{
+	m_linkedInteractable = interactable;
 }
 
 void Player::ConfirmThrow(void)
