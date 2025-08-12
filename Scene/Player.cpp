@@ -297,7 +297,7 @@ void Player::PlaceItem(ItemType type)
 	if (item == nullptr || item->GetUsed())
 		return;
 
-	item->Use();
+	//item->Use();
 	lumine->PlaceItem(type);
 }
 

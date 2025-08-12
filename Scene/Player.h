@@ -9,7 +9,6 @@
 //=============================================================================
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
-#include "Scene/Character/Mitachurl.h"
 #include "Scene/Item/Item.h"
 #include "Scene/Item/Interactable.h"
 #include "Scene/Item/ItemManager.h"
@@ -102,6 +101,5 @@ private:
 
 	Interactable*   m_linkedInteractable = nullptr;
 
-	bool m_hasWeapon = false;
 	ItemManager& m_itemManager = ItemManager::get_instance();
 };
