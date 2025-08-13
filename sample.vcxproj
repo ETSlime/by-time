@@ -211,6 +211,7 @@
     <ClInclude Include="Scene\EventTrigger.h" />
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Ground.h" />
+    <ClInclude Include="Scene\HPBarUI.h" />
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
     <ClInclude Include="Scene\Item\Interactable.h" />
@@ -234,6 +235,8 @@
     <ClInclude Include="UI\Base\UISpriteRenderer.h" />
     <ClInclude Include="UI\GameMenuModal.h" />
     <ClInclude Include="UI\PauseModal.h" />
+    <ClInclude Include="UI\UIGameClear.h" />
+    <ClInclude Include="UI\UIGameOver.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
     <ClInclude Include="UI\UIMainHUD.h" />
     <ClInclude Include="UI\UITitleScene.h" />
@@ -315,6 +318,7 @@
     <ClCompile Include="Scene\Environment.cpp" />
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Ground.cpp" />
+    <ClCompile Include="Scene\HPBarUI.cpp" />
     <ClCompile Include="Scene\Item\Item.cpp" />
     <ClCompile Include="Scene\Item\ItemManager.cpp" />
     <ClCompile Include="Scene\Item\Interactable.cpp" />

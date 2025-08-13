@@ -23,6 +23,7 @@
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
+#include "Scene/HPBarUI.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
 #include "Utility/SingletonBase.h"

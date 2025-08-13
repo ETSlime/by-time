@@ -125,6 +125,11 @@ void GameSystem::InitGame(void)
 {
     ResumeGame();
 
+    if (m_player)
+    {
+        m_player->InitHPBar(&m_UIManager);
+    }
+
     UIMainHUD* hud = new UIMainHUD();
     hud->Initialize();
     m_UIManager.AddElement(hud);
@@ -133,6 +138,7 @@ void GameSystem::InitGame(void)
 
 void GameSystem::InitResult(void)
 {
+
 }
 
 void GameSystem::ProcessModeLoading(void)

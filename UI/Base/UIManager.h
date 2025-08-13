@@ -52,6 +52,9 @@ public:
 
     bool IsFading(void) { return m_screenFader.IsFading(); }
 
+    UIOverlayRenderer& GetOverlayRenderer();
+    Renderer& GetRenderer() { return m_renderer; }
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     SimpleArray<UIElement*> m_modals; // モーダルUIの保持
