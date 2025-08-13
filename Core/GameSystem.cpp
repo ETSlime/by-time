@@ -138,12 +138,9 @@ void GameSystem::InitGame(void)
 
 void GameSystem::InitResult(void)
 {
-    // UIResultScene を生成
-    UIResultScene* resultScene = new UIResultScene(m_resultType);
-    resultScene->Init();
-    m_UIManager.AddElement(resultScene);
-
-    // UIモードに移行（カーソル復活）
+    m_resultScene = new UIResultScene(m_resultType);
+    m_resultScene->Init();
+//    m_UIManager.AddElement(m_resultScene);
     m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
 
@@ -440,10 +437,18 @@ void GameSystem::UpdateGame(void)
 #ifdef _DEBUG
     m_shaderManager.CollectAndReloadShaders(m_renderer.GetDevice());
 #endif // !_ DEBUG
+
+#ifdef _DEBUG
+    m_debugProc.PrintDebugProc("GameSystem::UpdateGame() called\n");
+#endif
+
     // プレイヤーが死亡していたらゲームオーバーに遷移
     if (m_player && m_player->GetCurrentHP() <= 0.0f)
     {
-        m_resultType = ResultType::GAMEOVER; // ゲームオーバーとして扱う（ResultTypeがあれば）
+#ifdef _DEBUG
+        m_debugProc.PrintDebugProc("Player HP <= 0, ChangeMode(RESULT) called\n");
+#endif
+        m_resultType = ResultType::GAMEOVER;
         ChangeMode(GameMode::RESULT);
         return;
     }
@@ -484,9 +489,15 @@ void GameSystem::UpdateLoading(void)
     }
 }
 
-void GameSystem::UpdateResult(void)
+void GameSystem::UpdateResult()
 {
-    // リザルト画面のロジック
+    //if (m_resultScene)
+    //    m_resultScene->Update();
+    //
+    //if (m_resultScene && m_resultScene->IsRequestChangeMode())
+    //{
+    //    ChangeMode(GameMode::TITLE, true);
+    //}
 }
 
 // 各モードの描画
@@ -550,5 +561,12 @@ void GameSystem::DrawGame(void)
 
 void GameSystem::DrawResult(void)
 {
-    // リザルト画面の描画
+#ifdef _DEBUG
+    m_debugProc.PrintDebugProc("GameSystem::DrawResult() called\n");
+#endif
+
+    if (m_resultScene)
+    {
+        m_resultScene->Draw();
+    }
 }

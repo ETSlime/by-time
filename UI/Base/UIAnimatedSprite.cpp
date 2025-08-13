@@ -9,6 +9,13 @@
 void UIAnimatedSprite::Init(ID3D11ShaderResourceView* tex, ID3D11Buffer* sharedVB,
     int columns, int rows, float frameTime, bool loop)
 {
+#ifdef _DEBUG
+    if (!tex)
+        m_debugProc.PrintDebugProc("UIAnimatedSprite::Init() tex is nullptr!\n");
+    else
+        m_debugProc.PrintDebugProc("UIAnimatedSprite::Init() tex is valid.\n");
+#endif
+
     m_sprite = new UISprite(sharedVB, tex);
     m_sprite->SetDrawMode(SpriteDrawMode::CenterWithColor); // ’†S‚ğŠî€‚ÉF‚ğw’è‚µ‚Ä•`‰æ‚·‚é
     //m_texture = tex;
@@ -82,6 +89,10 @@ void UIAnimatedSprite::Update(void)
 
 void UIAnimatedSprite::Draw()
 {
+#ifdef _DEBUG
+    m_debugProc.PrintDebugProc("UIAnimatedSprite::Draw() called\n");
+#endif
+
     //if (!m_texture || !m_vertexBuffer) return;
 
     int totalFrames = m_columns * m_rows;

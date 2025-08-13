@@ -428,6 +428,15 @@
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
       <Filter>Effects\ProjectilePreview</Filter>
     </ClInclude>
+    <ClInclude Include="UI\Base\ResultType.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIResultScene.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\HPBarUI.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -700,6 +709,12 @@
     </ClCompile>
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp">
       <Filter>Effects\ProjectilePreview</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UIResultScene.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\HPBarUI.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

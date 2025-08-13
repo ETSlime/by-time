@@ -93,39 +93,39 @@ void TextureMgr::RequestTextureAsync(const char* filename, ID3D11ShaderResourceV
 
 ID3D11ShaderResourceView* TextureMgr::CreateTexture(const char* filename)
 {
-    if (filename == nullptr)
-        return nullptr;
+    if (!filename) return nullptr;
 
-    SRV_POOL** ppSrvPool = m_TextureSRVMap.search(filename);
+    // 文字列キーを std::string に変換して検索（もしくはHashMapをstd::string版に変更済みなら不要）
+    std::string key(filename);
 
-    if (ppSrvPool == nullptr)
+    SRV_POOL** ppSrvPool = m_TextureSRVMap.search(key);
+    if (ppSrvPool)
     {
-        SRV_POOL* pSrvPool = new SRV_POOL();
-
-        HRESULT hr = D3DX11CreateShaderResourceViewFromFile(
-            m_renderer.GetDevice(),
-            filename,
-            NULL,
-            NULL,
-            &pSrvPool->srv,
-            NULL);
-
-        if (FAILED(hr))
-        {
-            delete pSrvPool;
-            return nullptr;
-        }
-
-        pSrvPool->count = 1;
-
-        // 正しくヒープ上のポインタを登録
-        m_TextureSRVMap.insert(filename, pSrvPool);
-
-        return pSrvPool->srv;
+        return (*ppSrvPool)->srv;
     }
 
-    // 既に存在していた場合
-    return (*ppSrvPool)->srv;
+    // 新規読み込み
+    SRV_POOL* pSrvPool = new SRV_POOL();
+    HRESULT hr = D3DX11CreateShaderResourceViewFromFile(
+        m_renderer.GetDevice(),
+        filename,
+        NULL,
+        NULL,
+        &pSrvPool->srv,
+        NULL);
+
+    if (FAILED(hr))
+    {
+        delete pSrvPool;
+        return nullptr;
+    }
+
+    pSrvPool->count = 1;
+
+    // insert時に文字列のコピーを入れてあげる必要がある
+    m_TextureSRVMap.insert(key, pSrvPool);
+
+    return pSrvPool->srv;
 }
 
 void TextureMgr::RegisterSRV(const char* path, ID3D11ShaderResourceView* srv)

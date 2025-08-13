@@ -2,7 +2,7 @@
 
 enum class ResultType
 {
-    NONE,
+//    NONE,
     GAMEOVER,
     CLEAR
 };

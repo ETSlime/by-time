@@ -85,7 +85,7 @@ public:
 	void RegisterSRV(const char* path, ID3D11ShaderResourceView* srv);
 
 private:
-	HashMap<const char*, SRV_POOL*, CharPtrHash, CharPtrEquals> m_TextureSRVMap;
+	HashMap<std::string, SRV_POOL*, std::hash<std::string>, std::equal_to<std::string>> m_TextureSRVMap;
 	SpinLock m_lock;
 	Renderer& m_renderer = Renderer::get_instance();
 };

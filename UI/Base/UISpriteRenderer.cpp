@@ -28,6 +28,11 @@ void UISpriteRenderer::SetSpriteCenter(ID3D11Buffer* buf, float X, float Y, floa
     vertex[2].TexCoord = XMFLOAT2(U, V + VH);
     vertex[3].TexCoord = XMFLOAT2(U + UW, V + VH);
 
+    vertex[0].Color = XMFLOAT4(1, 1, 1, 1);
+    vertex[1].Color = XMFLOAT4(1, 1, 1, 1);
+    vertex[2].Color = XMFLOAT4(1, 1, 1, 1);
+    vertex[3].Color = XMFLOAT4(1, 1, 1, 1);
+
     Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
 }
 

@@ -109,6 +109,7 @@ public:
 
     void SetResultType(ResultType type) { m_resultType = type; }
 
+
 protected:
     // プライベートコンストラクタ
     GameSystem()
@@ -180,7 +181,9 @@ private:
     bool m_skipLoadingFadeIn = false;
 
 
-    ResultType m_resultType = ResultType::NONE;
+    ResultType m_resultType = ResultType::GAMEOVER;
+
+    UIResultScene* m_resultScene = nullptr;
 
     GameMode m_mode = GameMode::TITLE;
 
@@ -210,4 +213,6 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
     TweenManager& m_tweenManager;
+
+    DebugProc& m_debugProc = DebugProc::get_instance();
 };

@@ -62,4 +62,6 @@ private:
     Timer& m_timer = Timer::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
     ShaderResourceBinder& m_resourceBinder = ShaderResourceBinder::get_instance();
+
+    DebugProc& m_debugProc = DebugProc::get_instance();
 };
