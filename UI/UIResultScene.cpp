@@ -48,13 +48,12 @@ void UIResultScene::Update()
 
     auto& input = InputManager::get_instance();
 
-    if (!m_fadeOutStarted && !fader.IsFading() && input.IsMouseLeftTriggered())
+    // 左クリックでフェードアウト開始（未開始時のみ）
+    if (!m_fadeOutStarted && input.IsMouseLeftTriggered())
     {
         m_fadeOutStarted = true;
-        fader.StartFadeOut(1.0f);
+        fader.StartFadeOut(1.0f);  // 1秒でフェードアウト
     }
-
-    // ここでは ChangeMode は呼ばない
 }
 
 

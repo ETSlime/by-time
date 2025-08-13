@@ -452,6 +452,16 @@ void GameSystem::UpdateGame(void)
         ChangeMode(GameMode::RESULT);
         return;
     }
+
+    if (m_inputManager.GetKeyboardTrigger(DIK_K))  // 押した瞬間だけ
+    {
+#ifdef _DEBUG
+        m_debugProc.PrintDebugProc("P key pressed, ChangeMode(RESULT: CLEAR) called\n");
+#endif
+        m_resultType = ResultType::CLEAR;
+        ChangeMode(GameMode::RESULT);
+        return;
+    }
 }
 
 void GameSystem::UpdateLoading(void)
@@ -491,13 +501,20 @@ void GameSystem::UpdateLoading(void)
 
 void GameSystem::UpdateResult()
 {
-    //if (m_resultScene)
-    //    m_resultScene->Update();
-    //
-    //if (m_resultScene && m_resultScene->IsRequestChangeMode())
-    //{
-    //    ChangeMode(GameMode::TITLE, true);
-    //}
+//    if (m_resultScene)
+//        m_resultScene->Update();
+//
+//    auto& fader = UIManager::get_instance().GetFader();
+//
+//    // フェードアウトが開始され、かつ完全に暗くなったらタイトルに戻る
+//    if (m_resultScene && m_resultScene->IsFadeOutStarted() && fader.IsFullyHidden())
+//    {
+//        // フェード完了後にタイトルへ遷移
+//        ChangeMode(GameMode::TITLE, true);
+//
+//        // m_resultScene は UIManager 側で Clear されるので解放は不要
+//        m_resultScene = nullptr;
+//    }
 }
 
 // 各モードの描画

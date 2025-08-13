@@ -21,8 +21,8 @@ public:
     void Update() override;
     void Draw() override;
 
-    // UIResultScene.h に
-    bool IsRequestChangeMode() const { return m_fadeOutStarted && UIManager::get_instance().GetFader().IsFadeOutComplete(); }
+    // フェードアウト開始状態を取得
+    bool IsFadeOutStarted() const { return m_fadeOutStarted; }
 
 private:
     ResultType m_resultType;
