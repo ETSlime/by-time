@@ -7,6 +7,7 @@
 //=============================================================================
 #include "UI/Base/UIElement.h"
 #include "UI/Base/UISprite.h"
+#include "UI/Base/TweenManager.h"
 #include "Core/TextureMgr.h"
 #include "Utility/InputManager.h"
 
@@ -65,6 +66,8 @@ public:
     void SetEnabled(bool enabled);
     bool IsEnabled(void) const { return m_isEnabled; }
 
+    void SetUseTweenScale(bool useTween);
+
 	// ISpriteUI インターフェースの実装
     DELEGATE_SPRITE_ALL_INTERFACE(m_sprite);
 
@@ -87,6 +90,8 @@ private:
 
     //--- 描画 ---
     bool m_useTintMode = false; // true=色変更方式
+	bool m_useTweenScale = false; // true=Tweenで拡大縮小
+
     ID3D11ShaderResourceView* m_tex[4] = { nullptr }; // 0:Normal 1:Hover 2:Pressed 3:Disabled
     XMFLOAT4 m_tint[4]; // 各状態の色
     ID3D11ShaderResourceView* m_currentTex = nullptr;
@@ -101,4 +106,5 @@ private:
 	Renderer& m_renderer = Renderer::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
     ShaderResourceBinder& m_resourceBinder = ShaderResourceBinder::get_instance();
+	TweenManager& m_tweenManager = TweenManager::get_instance();
 };

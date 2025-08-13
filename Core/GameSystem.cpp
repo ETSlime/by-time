@@ -8,7 +8,8 @@
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
-#include "Utility/Debugproc.h"
+#include "UI/UIMainHUD.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
 void GameSystem::Init(void)
@@ -17,7 +18,7 @@ void GameSystem::Init(void)
 
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
-    m_effectSystem.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()); // エフェクトシステムの初期化
+    m_effectSystem.Init(); // エフェクトシステムの初期化
 
     m_UIManager.Init(); // UIManagerの初期化
 
@@ -36,17 +37,13 @@ void GameSystem::Shutdown(void)
 {
     SAFE_DELETE(m_player); // プレイヤーの解放
 
-    SAFE_DELETE(m_ground); // 地面の解放
-
-    SAFE_DELETE(m_skybox); // Skyboxの解放
-
     m_UIManager.Shutdown(); // UIManagerの解放
 
-	m_tweenManager.Shutdown(); // TweenManagerの解放
+    m_tweenManager.Shutdown(); // TweenManagerの解放
 
 	m_effectSystem.Shutdown(); // エフェクトシステムの解放
 
-	m_textureUploadQueue.ShutDown(); // テクスチャアップロードキューの解放
+    m_textureUploadQueue.ShutDown(); // テクスチャアップロードキューの解放
 
 	m_deferredTaskSystem.ShutDown(); // DeferredTaskSystemの解放
 }
@@ -61,29 +58,25 @@ void GameSystem::Update(void)
 
     bool isPaused = IsPaused(); // ゲームが一時停止中かどうかを確認
 
-    // ゲームが一時停止中の場合、モーダルの更新処理を行う
-    if (!isPaused)
+    // モードによって処理を分ける
+    switch (m_mode)
     {
-        // モードによって処理を分ける
-        switch (m_mode)
-        {
-        case GameMode::TITLE:
-            UpdateTitle(); // タイトル画面の更新処理
-            break;
-        case GameMode::GAME:
-            UpdateGame(); // ゲームの更新処理
-            break;
-        case GameMode::LOADING:
-            UpdateLoading();  // ローディング中は進行状況の更新と完了チェックを行う
-            break;
-        case GameMode::RESULT:
-            UpdateResult(); // リザルト画面の更新処理
-            break;
-        }
+    case GameMode::TITLE:
+        UpdateTitle(); // タイトル画面の更新処理
+        break;
+    case GameMode::GAME:
+        UpdateGame(); // ゲームの更新処理
+        break;
+    case GameMode::LOADING:
+        UpdateLoading();  // ローディング中は進行状況の更新と完了チェックを行う
+        break;
+    case GameMode::RESULT:
+        UpdateResult(); // リザルト画面の更新処理
+        break;
     }
 
     // UI 全体の更新を行う
-	m_tweenManager.Update(); // TweenManagerの更新
+    m_tweenManager.Update(); // TweenManagerの更新
     m_UIManager.Update();
 }
 
@@ -122,8 +115,8 @@ void GameSystem::Draw(void)
 
 void GameSystem::InitTitle(void)
 {
-	UITitleScene* titleScene = new UITitleScene();
-	titleScene->Init(this);
+    UITitleScene* titleScene = new UITitleScene();
+    titleScene->Init(this);
     m_UIManager.AddElement(titleScene);
     m_cursorManager.RestoreCursorAndEnterUIExclusive();
 }
@@ -131,10 +124,21 @@ void GameSystem::InitTitle(void)
 void GameSystem::InitGame(void)
 {
     ResumeGame();
+
+    if (m_player)
+    {
+        m_player->InitHPBar(&m_UIManager);
+    }
+
+    UIMainHUD* hud = new UIMainHUD();
+    hud->Initialize();
+    m_UIManager.AddElement(hud);
+
 }
 
 void GameSystem::InitResult(void)
 {
+
 }
 
 void GameSystem::ProcessModeLoading(void)
@@ -146,7 +150,6 @@ void GameSystem::ProcessModeLoading(void)
     );
     m_UIManager.AddElement(loadingUI);
     m_loadingScene = loadingUI;
-
     StartAsyncResourceLoading(); // 非同期ロード開始
 }
 
@@ -188,11 +191,9 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
     case GameMode::TITLE:
         InitTitle();
         break;
-
     case GameMode::GAME:
         InitGame();
         break;
-
     case GameMode::RESULT:
         InitResult();
         break;
@@ -206,13 +207,15 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
 
 void GameSystem::PauseGame(void)
 {
+    if (m_UIManager.IsFading())
+        return;
+
     m_isPaused = true;    
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
-
     m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
-	m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
-
+    m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
+    m_pauseFlag = false; // フラグをクリア
 }
 
 void GameSystem::ResumeGame(void)
@@ -232,9 +235,9 @@ void GameSystem::StartAsyncResourceLoading(void)
     {
         m_player = new Player(); // プレイヤーの初期化
 
-        m_skybox = new Skybox(0.0f); // Skyboxの初期化
+        m_skybox.Initialize(0.0f); // Skyboxの初期化
 
-        m_ground = new Ground(m_skybox); // 地面の初期化
+        m_ground.Initialize(); // 地面の初期化
 
         m_enemyManager.Init(m_player); // エネミーの初期化
 
@@ -246,9 +249,10 @@ void GameSystem::StartAsyncResourceLoading(void)
     }
     else
     {
-        m_ground->LoadScene(SceneID::SCENE_1);
+        m_ground.LoadScene(SceneID::SCENE_1);
         m_player->InitializePlayerStatus();
         m_enemyManager.InitializeEnemyStatus();
+        CollisionManager::get_instance().PrepareVoxelMappingAfterSceneChange(); // ボクセルマッピングの準備
         m_itemManager.InitializeItemStatus();
         m_projectileManager.InitializeObjectsStatus();
     }
@@ -259,7 +263,7 @@ void GameSystem::StartAsyncResourceLoading(void)
         m_loadStatus.totalTasks += m_itemManager.GetTotalItemLoadCnt();
         m_loadStatus.totalTasks += m_projectileManager.GetTotalProjectileLoadCnt();
         m_loadStatus.totalTasks += m_player->GetTotalModelLoadCnt();
-        m_loadStatus.totalTasks += m_ground->GetTotalModelLoadCnt();
+        m_loadStatus.totalTasks += m_ground.GetTotalModelLoadCnt();
     }
 
 }
@@ -293,10 +297,10 @@ void GameSystem::HandleInput(void)
                     [](void* ptr)
                     {
                         GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        if (self->m_ground->GetCurrentScene() == SceneID::SCENE_1)
-                            self->m_ground->LoadScene(SceneID::SCENE_2);
+                        if (self->m_ground.GetCurrentScene() == SceneID::SCENE_1)
+                            self->m_ground.LoadScene(SceneID::SCENE_2);
                         else
-                            self->m_ground->LoadScene(SceneID::SCENE_1);
+                            self->m_ground.LoadScene(SceneID::SCENE_1);
                         UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
                     },
                     [](void* ptr)
@@ -329,7 +333,7 @@ void GameSystem::HandleInput(void)
                     [](void* ptr)
                     {
                         GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        self->m_ground->UnloadCurrentScene();
+                        self->m_ground.UnloadCurrentScene();
                         self->Update();
                         self->ChangeMode(GameMode::TITLE);
                         UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
@@ -349,11 +353,15 @@ void GameSystem::HandleInput(void)
 
 void GameSystem::HandlePauseInput(void)
 {
-    if (m_inputManager.GetKeyboardTrigger(KEY_PAUSE) && m_mode == GameMode::GAME && !m_inDialogue)
+    if ((m_inputManager.GetKeyboardTrigger(KEY_PAUSE) && m_mode == GameMode::GAME && !m_inDialogue)
+        || m_resumeBtnClick == true)
     {
         // ゲームが一時停止中かどうかを確認
         if (IsPaused())
         {
+			if (m_UIManager.IsFading())
+				return; // フェード中は何もしない
+
             // ゲームを再開
             ResumeGame();
             m_UIManager.PopAllModals();
@@ -363,6 +371,8 @@ void GameSystem::HandlePauseInput(void)
             // ゲームを一時停止
             PauseGame();
         }
+
+        m_resumeBtnClick = false;
     }
 }
 
@@ -375,7 +385,7 @@ float GameSystem::CalculateCurrentLoadingProgress(void)
         doneTasks += m_itemManager.GetItemLoadedCnt();
         doneTasks += m_projectileManager.GetProjectileLoadedCnt();
         doneTasks += m_player->GetCurrentModelLoadCnt();
-        doneTasks += m_ground->GetCurrentModelLoadCnt();
+        doneTasks += m_ground.GetCurrentModelLoadCnt();
     }
 
     m_loadStatus.doneTasks = doneTasks;
@@ -397,6 +407,13 @@ void GameSystem::UpdateTitle(void)
 
 void GameSystem::UpdateGame(void)
 {
+    m_ground.Update(); // 地面の更新処理
+
+    // ポーズフラグが立っている場合はゲームを一時停止
+	if (m_pauseFlag)
+        PauseGame();
+
+    // ゲームが一時停止中
     if (m_isPaused)
         return;
 
@@ -408,8 +425,7 @@ void GameSystem::UpdateGame(void)
         m_cursorManager.OnExitVisibleTemp();
 
     m_player->Update(); // プレイヤーの更新処理
-    m_ground->Update(); // 地面の更新処理
-    m_skybox->Update(); // Skyboxの更新処理
+    m_skybox.Update(); // Skyboxの更新処理
     m_enemyManager.Update(); // エネミーの更新処理
     m_itemManager.Update();
     m_projectileManager.Update();
@@ -430,7 +446,7 @@ void GameSystem::UpdateLoading(void)
             m_itemManager.Update();
             m_projectileManager.Update();
             m_player->Update();
-            m_ground->Update();
+            m_ground.Update();
         }
 
         // 現在の読み込み進行を設定（0.0～1.0）
@@ -470,7 +486,7 @@ void GameSystem::DrawTitle(void)
 void GameSystem::DrawGame(void)
 {
     // スカイボックスの描画
-    m_skybox->Draw(XMLoadFloat4x4(&m_camera.GetViewMatrix()), XMLoadFloat4x4(&m_camera.GetProjMatrix()));
+    m_skybox.Draw(XMLoadFloat4x4(&m_camera.GetViewMatrix()), XMLoadFloat4x4(&m_camera.GetProjMatrix()));
 
     m_renderer.SetDepthMode(DepthMode::Enable); // 深度テストを有効に
     m_renderer.SetCullingMode(CULL_MODE_BACK); // カリングモードを有効に
@@ -487,7 +503,8 @@ void GameSystem::DrawGame(void)
     // ライティングを有効に
     m_lightManager.SetLightEnable(TRUE);
 
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
+
     m_itemManager.Draw();
     m_projectileManager.Draw();
     
@@ -495,10 +512,10 @@ void GameSystem::DrawGame(void)
     m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
     m_player->Draw(); // プレイヤーの描画
     m_enemyManager.Draw(); // エネミーの描画
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
 
     m_renderer.SetRenderInstance(); // インスタンスの描画を設定
-    m_ground->Draw(); // 地面の描画
+    m_ground.Draw(); // 地面の描画
 
     m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
     m_renderer.SetRenderVFX(); // VFXの描画を設定

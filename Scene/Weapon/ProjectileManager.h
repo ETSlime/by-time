@@ -1,5 +1,5 @@
 #pragma once
-
+#include "Core/Graphics/ConstantBufferStructs.h"
 #include "Scene/Weapon/Projectile.h"
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"

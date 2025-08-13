@@ -30,12 +30,12 @@ struct SkyBoxBuffer
     float blendFactor;
 };
 
-class Skybox 
+class Skybox : public SingletonBase<Skybox>
 {
 public:
-    Skybox(float timeSpeed = 1);
-    Skybox::~Skybox();
 
+    bool Initialize(float timeSpeed);
+    void ShutDown(void);
     void Update(void);
     void Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix);
     void SetCurrentTime(float time);
@@ -45,13 +45,12 @@ public:
 
 private:
 
-    bool Initialize(void);
     void CreateCube();
     void LoadShaders();
     float AdjustBlendFactor(float time);
 
-    ID3D11Device* m_device;
-    ID3D11DeviceContext* m_context;
+    ID3D11Device* m_device = nullptr;
+    ID3D11DeviceContext* m_context = nullptr;
 
     float m_timeOfDay;
     bool m_dayToNight;
@@ -59,12 +58,12 @@ private:
 
     ShaderSet m_shaderSet;
 
-    ID3D11Buffer* m_vertexBuffer;
-    ID3D11Buffer* m_skyboxBuffer;
-    ID3D11DepthStencilState* m_depthStencilState;
+    ID3D11Buffer* m_vertexBuffer = nullptr;
+    ID3D11Buffer* m_skyboxBuffer = nullptr;
+    ID3D11DepthStencilState* m_depthStencilState = nullptr;
 
-    ID3D11ShaderResourceView* m_skyboxDaySRVs[6];
-    ID3D11ShaderResourceView* m_skyboxNightSRVs[6];
+    ID3D11ShaderResourceView* m_skyboxDaySRVs[6]{};
+    ID3D11ShaderResourceView* m_skyboxNightSRVs[6]{};
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
     Renderer& m_renderer = Renderer::get_instance();

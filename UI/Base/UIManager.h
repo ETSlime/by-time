@@ -10,10 +10,12 @@
 #include "main.h"
 #include "Utility/SimpleArray.h"
 #include "Utility/SingletonBase.h"
+#include "Utility/InputManager.h"
 #include "UI/Base/UIElement.h"
 #include "UI/Base/UIOverlayRenderer.h"
 #include "UI/Base/ScreenFader.h"
 #include "UI/Base/TweenManager.h"
+#include "UI/Base/UIInteractPrompt.h"
 
 class UIManager : public SingletonBase<UIManager>
 {
@@ -44,12 +46,23 @@ public:
     ID3D11Buffer* GetSpriteVertexBuffer(void) const { return m_spriteVB; }
     ScreenFader& GetFader(void) { return m_screenFader; }
 
+	// アクティブなインタラクションプロンプトを設定
+    void SetActivePrompt(UIInteractPrompt* prompt);
+    void ClearActivePrompt(void);
+
+    bool IsFading(void) { return m_screenFader.IsFading(); }
+
+    UIOverlayRenderer& GetOverlayRenderer();
+    Renderer& GetRenderer() { return m_renderer; }
+
 private:
     SimpleArray<UIElement*> m_elements; // UI要素の配列
     SimpleArray<UIElement*> m_modals; // モーダルUIの保持
     UIOverlayRenderer m_overlay; // UIオーバーレイ描画
     ScreenFader m_screenFader;
     ID3D11Buffer* m_spriteVB = nullptr;
+    UIInteractPrompt* m_activePrompt = nullptr;
 	TweenManager& m_tweenManager = TweenManager::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
+	InputManager& m_inputManager = InputManager::get_instance();
 };

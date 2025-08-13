@@ -12,6 +12,11 @@ void TextureUploadQueue::Init(void)
         MAX_TEXTURE_UPLOAD_SIZE,
         CharPtrHash(),
         CharPtrEquals());
+
+    m_pendingCallbackMap = HashMap<const char*, SimpleArray<PendingCallback>, CharPtrHash, CharPtrEquals>(
+        MAX_TEXTURE_UPLOAD_SIZE,
+        CharPtrHash(),
+        CharPtrEquals());
 }
 
 bool TextureUploadQueue::TextureUploadQueue::HasTask(const char* path)
@@ -100,7 +105,8 @@ void TextureUploadQueue::CreateAndUploadSRV(TextureUploadTask* task)
         nullptr);
 
     // ƒƒCƒ“‚Ì outSRV ‚Ö‘ã“ü
-    *(task->outSRV) = createdSRV;
+    if (createdSRV)
+        *(task->outSRV) = createdSRV;
     // “o˜^‚³‚ê‚½ onFinish ‚ðŒÄ‚Ño‚µ
     if (task->onFinish)
         task->onFinish(SUCCEEDED(hr), task->userData);
@@ -125,7 +131,12 @@ void TextureUploadQueue::Update()
     for (auto& it = m_taskMap.begin(); it != m_taskMap.end();)
     {
         TextureUploadTask* task = (*it).value;
-
+        if (!task)
+        {
+            it = m_taskMap.erase(it);
+            continue;
+        }
+            
         if (task->finishEvent && WaitForSingleObject(task->finishEvent, 0) != WAIT_OBJECT_0)
         {
             ++it;
@@ -148,7 +159,11 @@ void TextureUploadQueue::RegisterPendingCallback(
     void(*onFinish)(bool, void*),
     void* userData)
 {
+    m_lock.Lock();
+
     m_pendingCallbackMap[filename].push_back({ outSRV, onFinish, userData });
+
+    m_lock.Unlock();
 }
 
 void TextureUploadQueue::NotifyPendingCallbacks(

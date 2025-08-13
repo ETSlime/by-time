@@ -8,7 +8,7 @@
 #include "Core/Graphics/Renderer.h"
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Scene/Enemy.h"
 #include "Core/Camera.h"
 #include "Scene/Character/Hilichurl.h"
@@ -21,12 +21,6 @@
 #define	VALUE_MOVE			(3.5f)							// 移動量
 #define VALUE_RUN			(120.0f)
 #define	VALUE_ROTATE		(XM_PI * 0.02f)					// 回転量
-
-#define ENEMY_SHADOW_SIZE	(1.1f)						// 影の大きさ
-#define ENEMY_OFFSET_Y		(7.0f)						// エネミーの足元をあわせる
-#define ENEMY_SCALE			(1.8f)
-
-#define	TEXTURE_MAX			(2)
 
 #define ROTATION_SPEED		(0.09f)
 #define FALLING_SPEED		(5.0f)
@@ -451,6 +445,82 @@ bool Enemy::CheckAvailableToMove(void)
 		return false;
 	else
 		return true;
+}
+
+void Enemy::InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag)
+{
+	hitCollider.collider.tag = tag;
+
+	XMMATRIX scaleMtx = XMMatrixScaling(scale.x, scale.y, scale.z);
+	XMMATRIX mtxTranslate = XMMatrixTranslation(pos.x, pos.y, pos.z);
+
+	hitCollider.boneMatrix = XMMatrixIdentity();
+	hitCollider.boneMatrix = XMMatrixMultiply(hitCollider.boneMatrix, scaleMtx);
+	hitCollider.boneMatrix = XMMatrixMultiply(hitCollider.boneMatrix, mtxTranslate);
+
+	// ローカル空間のAABBを取得
+	BOUNDING_BOX localBox = instance.pModel->GetBoundingBox();
+	XMVECTOR corners[8] = {
+		XMVectorSet(localBox.minPoint.x, localBox.minPoint.y, localBox.minPoint.z, 1.0f),
+		XMVectorSet(localBox.maxPoint.x, localBox.minPoint.y, localBox.minPoint.z, 1.0f),
+		XMVectorSet(localBox.minPoint.x, localBox.maxPoint.y, localBox.minPoint.z, 1.0f),
+		XMVectorSet(localBox.maxPoint.x, localBox.maxPoint.y, localBox.minPoint.z, 1.0f),
+		XMVectorSet(localBox.minPoint.x, localBox.minPoint.y, localBox.maxPoint.z, 1.0f),
+		XMVectorSet(localBox.maxPoint.x, localBox.minPoint.y, localBox.maxPoint.z, 1.0f),
+		XMVectorSet(localBox.minPoint.x, localBox.maxPoint.y, localBox.maxPoint.z, 1.0f),
+		XMVectorSet(localBox.maxPoint.x, localBox.maxPoint.y, localBox.maxPoint.z, 1.0f),
+	};
+
+	XMVECTOR minV = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
+	XMVECTOR maxV = XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 1.0f);
+	for (int i = 0; i < 8; ++i) {
+		XMVECTOR transformed = XMVector3TransformCoord(corners[i], hitCollider.boneMatrix);
+		minV = XMVectorMin(minV, transformed);
+		maxV = XMVectorMax(maxV, transformed);
+	}
+	XMStoreFloat3(&hitCollider.localAABB.minPoint, minV);
+	XMStoreFloat3(&hitCollider.localAABB.maxPoint, maxV);
+
+	CollisionManager::get_instance().RegisterDynamicCollider(&hitCollider.collider);
+}
+
+void Enemy::UpdateBoneHitCollider(EnemyBoneHitCollider& hitCollider, BodyTransformIndex transformIdx)
+{
+	XMMATRIX bodyMtx = instance.pModel->GetBodyTransformMtx(transformIdx);
+	XMMATRIX boneMatrix = hitCollider.boneMatrix;
+	boneMatrix = XMMatrixMultiply(boneMatrix, bodyMtx);
+	boneMatrix = XMMatrixMultiply(boneMatrix, instance.transform.mtxWorld);
+
+	XMFLOAT3 localMin = hitCollider.localAABB.minPoint;
+	XMFLOAT3 localMax = hitCollider.localAABB.maxPoint;
+
+	// ローカルAABBの8頂点を生成
+	XMVECTOR localCorners[8] = {
+		XMVectorSet(localMin.x, localMin.y, localMin.z, 1.0f),
+		XMVectorSet(localMax.x, localMin.y, localMin.z, 1.0f),
+		XMVectorSet(localMin.x, localMax.y, localMin.z, 1.0f),
+		XMVectorSet(localMax.x, localMax.y, localMin.z, 1.0f),
+		XMVectorSet(localMin.x, localMin.y, localMax.z, 1.0f),
+		XMVectorSet(localMax.x, localMin.y, localMax.z, 1.0f),
+		XMVectorSet(localMin.x, localMax.y, localMax.z, 1.0f),
+		XMVectorSet(localMax.x, localMax.y, localMax.z, 1.0f),
+	};
+
+	// AABB初期化（最大／最小を初期値に設定）
+	XMVECTOR worldMin = XMVectorSet(FLT_MAX, FLT_MAX, FLT_MAX, 1.0f);
+	XMVECTOR worldMax = XMVectorSet(-FLT_MAX, -FLT_MAX, -FLT_MAX, 1.0f);
+
+	// 各頂点を変換してAABB範囲を更新
+	for (int i = 0; i < 8; ++i)
+	{
+		XMVECTOR transformed = XMVector3TransformCoord(localCorners[i], boneMatrix);
+		worldMin = XMVectorMin(worldMin, transformed);
+		worldMax = XMVectorMax(worldMax, transformed);
+	}
+
+	// ワールド空間のAABBを格納
+	XMStoreFloat3(&hitCollider.collider.aabb.minPoint, worldMin);
+	XMStoreFloat3(&hitCollider.collider.aabb.maxPoint, worldMax);
 }
 
 void Enemy::ChasePlayer(void)

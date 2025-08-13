@@ -1,6 +1,6 @@
 //=============================================================================
 //
-// Ground処理 [Ground.cpp]
+// Gound処理 [Ground.cpp]
 // Author : 
 //
 //=============================================================================
@@ -9,33 +9,45 @@
 #include "Core/Async//DeferredTaskAPI.h"
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
-#include "Effects/FireBallEffectRenderer.h"
-#include "Scene/ItemManager.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
+#include "Scene/Item/ItemManager.h"
 
 //*****************************************************************************
-// マクロ定義
+// マクロ定義r
 //*****************************************************************************
 #define MAX_TREE			(0)
 
 #define TREE_SIZE			(350.0f)
+#define KEY_SIZE			(5.0f)
+#define SEED_SIZE			(0.2f)
+#define SEEDSOIL_SIZE       (10)
+#define SOIL_SIZE			(100.0f)
 #define FIELD_SIZE			(46850.0f)
-#define TERRAIN_SIZE		(11111)
+#define TERRAIN_SIZE		(12.0f)
 #define BONFIRE_SIZE		(12.0f)
 
-#define PLAYER_INIT_POS		XMFLOAT3(12582.0f, -2111.0f, -19485.0f)
+#define TERRAIN_POS			XMFLOAT3(5371.67f, 5775.0f, 5895.0f)
 
+#define SOIL_POS			XMFLOAT3(8833.67f, 6229.0f, 8084.0f)
+#define SOIL_SCALE			XMFLOAT3(48.0f, 31.0f, 46.0f)
+#define SOIL_ROT_Y			(-0.55f)
+
+#define IVY_POS				XMFLOAT3(8881.0f, 7338.0f, 8112.0f)
+#define IVY_SCALE			XMFLOAT3(148.0f, 265.0f, 58.0f)
+#define IVY_ROT_Y			(1.2f)
 //=============================================================================
 // 初期化処理
 //=============================================================================
-Ground::Ground(Skybox* skybox)
+
+void Ground::Initialize(void)
 {
 #ifdef _DEBUG
 	DebugProc::get_instance().Register(this);
-#endif // DEBUG
+#endif // _DEBUG
 
 	InitSceneLoadMap();
 
@@ -44,20 +56,59 @@ Ground::Ground(Skybox* skybox)
 	worldBB.minPoint = WORLD_MIN;
 	CollisionManager::get_instance().InitOctree(worldBB);
 
-	//m_town = new Town();
+	InitTerrain();
+
+	GameObjectConfig soilConfig{};
+	soilConfig.modelPath = "data/MODEL/Environment/soil.obj";
+	soilConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	soilConfig.scale = SOIL_SCALE;
+	soilConfig.position = SOIL_POS;
+	soilConfig.rotation = XMFLOAT3(0.0f, SOIL_ROT_Y, 0.0f);
+	soilConfig.drawWorldAABB = false;
+	soilConfig.loadAsync = false;
+	soilConfig.castShadow = false;
+	CreateTerrainGO(soilConfig);
+
+
 
 	//SkinnedGameObjectConfig config;
-	//config.modelPath = MODEL_ENVIRONMENT_PATH;
-	//config.modelName = MODEL_FIELD_NAME;
+	//config.modelPath = MODEL_TERRAIN_PATH;
+	//config.modelName = MODEL_TERRAIN_NAME;
 	//config.modelType = SkinnedModelType::Field;
-	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
+	//config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
 	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
 	//config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
 	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	//GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
+
+	//fieldGO->SetPostInitCallback([](void* userData) {
+	//	// 遅延用コンテキスト構築
+	//	auto* go = static_cast<GameObject<SkinnedMeshModelInstance>*>(userData);
+	//	auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ go };
+
+	//	DeferredTaskOptions options{};
+	//	options.async = true; // 非同期実行
+	//	options.debugName = "AsyncFbxModelLoader_InitializeAnim_Ground"; // デバッグ用の名前
+	//	// タスクを DeferredTaskSystem に登録
+	//	RawDeferredTask::Add(
+	//		ctx,
+	//		[](void* ptr)
+	//		{
+	//			auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
+
+	//			ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
+	//			ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
+	//			ctx->owner->SetPostInit(true);
+	//		},
+	//		nullptr,
+	//		options
+	//	);
+	//	}, fieldGO);
+
 	//fieldGO->Instantiate(config);
 	//m_persistentSkinnedGOs.push_back(fieldGO);
-	//m_fieldGO = fieldGO;
+	//m_fieldGO = fieldGO; 
+
 
 	//if (!m_modelLoadMap.contains(config.modelName))
 	//{
@@ -66,91 +117,20 @@ Ground::Ground(Skybox* skybox)
 	//	m_persistentModelLoadCnt++;
 	//}
 
-	SkinnedGameObjectConfig config;
-	config.modelPath = MODEL_TERRAIN_PATH;
-	config.modelName = MODEL_TERRAIN_NAME;
-	config.modelType = SkinnedModelType::Field;
-	config.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
-	config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
-	config.rotation = XMFLOAT3(XM_PI / 2, XM_PI, 0.0f);
-	config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	GameObject<SkinnedMeshModelInstance>* fieldGO = new GameObject<SkinnedMeshModelInstance>();
-
-	fieldGO->SetPostInitCallback([](void* userData) {
-		// 遅延用コンテキスト構築
-		auto* go = static_cast<GameObject<SkinnedMeshModelInstance>*>(userData);
-		auto* ctx = new InstantiateTaskContext<SkinnedMeshModelInstance>{ go };
-
-		DeferredTaskOptions options{};
-		options.async = true; // 非同期実行
-		options.debugName = "AsyncFbxModelLoader_InitializeAnim_Ground"; // デバッグ用の名前
-		// タスクを DeferredTaskSystem に登録
-		RawDeferredTask::Add(
-			ctx,
-			[](void* ptr)
-			{
-				auto* ctx = static_cast<InstantiateTaskContext<SkinnedMeshModelInstance>*>(ptr);
-
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture("data/MODEL/Environment/Terrain/holographic_bright_white_panel_blurry_ultra_realistic.jpg");
-				ctx->owner->GetSkinnedMeshModel()->SetTerrainDiffuseTexture2("data/MODEL/Environment/Terrain/12.jpg");
-				ctx->owner->SetPostInit(true);
-			},
-			nullptr,
-			options
-		);
-		}, fieldGO);
-
-	fieldGO->Instantiate(config);
-	m_persistentSkinnedGOs.push_back(fieldGO);
-	m_fieldGO = fieldGO; 
-
-
-	if (!m_modelLoadMap.contains(config.modelName))
-	{
-		m_modelLoadMap[config.modelName] = 0;
-		m_totalModelLoadCnt++;
-		m_persistentModelLoadCnt++;
-	}
-
-	//GameObjectConfig config{};
-	//config.modelPath = MODEL_LAND_PATH;
-	//config.scale = XMFLOAT3(FIELD_SIZE, FIELD_SIZE, FIELD_SIZE);
-	//config.position = XMFLOAT3(0.0f, -650.0f, 0.0f);
-	//config.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	//GameObject<ModelInstance>* fieldGO = new GameObject<ModelInstance>();
-	//fieldGO->Instantiate(config);
-	//m_groundGO.push_back(fieldGO);
-	//m_fieldGO = fieldGO;
-
-	//GameObject<ModelInstance>* banyanGO = new GameObject<ModelInstance>();
-	//GameObjectConfig banyanConfig{};
-	//banyanConfig.modelPath = MODEL_BANYAN_PATH;
-	//banyanConfig.scale = XMFLOAT3(50.0f, 50.0f, 50.0f);
-	//banyanConfig.position = XMFLOAT3(-12280.0f, -2254.0f, -4650.0f);
-	//banyanGO->Instantiate(banyanConfig);
-	//m_groundGO.push_back(banyanGO);
-
 	
-	//DeferredTaskOptions options{};
-	//options.async = false; // 同期実行
-	//options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
-	//// タスクを DeferredTaskSystem に登録
-	//DeferredTaskBinder<Ground>::Add(
-	//	this,
-	//	nullptr,
-	//	&Ground::GenerateEnvironmentObj,
-	//	&Ground::DeferredIsFieldReady,
-	//	options
-	//);
+	DeferredTaskOptions options{};
+	options.async = false; // 同期実行
+	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
+	// タスクを DeferredTaskSystem に登録
+	DeferredTaskBinder<Ground>::Add(
+		this,
+		nullptr,
+		&Ground::GenerateEnvironmentObj,
+		&Ground::DeferredIsFieldReady,
+		options
+	);
 
-	m_skybox = skybox;
-}
-
-//=============================================================================
-// 終了処理
-//=============================================================================
-Ground::~Ground()
-{
+	m_initialized = true;
 }
 
 //=============================================================================
@@ -158,16 +138,66 @@ Ground::~Ground()
 //=============================================================================
 void Ground::Update(void)
 {
+	if (!m_initialized) return;
+
 	UpdateGameObjectArray<GameObject<ModelInstance>>(m_staticGOs);
 	UpdateGameObjectArray<GameObject<ModelInstance>>(m_persistentStaticGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
+
+	//if (InputManager::get_instance().GetKeyboardPress(DIK_K))
+	//{
+	//	if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+	//		m_waterFluid->EmitWater(35.0f, 1);
+	//}
 
 	if (m_town)
 		m_town->Update();
 
 	if (m_environment)
 		m_environment->Update();
+
+	/// INTERACTABLE-IMPLEMENTATION
+	/*if (GetCurrentScene() == SceneID::SCENE_1) {
+	
+		if (m_sceneSoil != nullptr) {
+		
+			if (m_sceneSoil->GetItemAttributes().used && m_scenePSeed == nullptr)
+			{
+				Transform trans;
+				trans.pos = m_sceneSoil->GetTransform().pos;
+				//trans.pos.y -= 100;
+				trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+				trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+				m_scenePSeed = ItemManager::get_instance().SpawnItem(ItemType::IntPSeed, trans);
+			}
+
+		}
+	
+	}*/
+
+	if (debugGO)
+	{
+		debugGO->SetPosition(XMFLOAT3(debugGOPosX, debugGOPosY, debugGOPosZ));
+		debugGO->SetScale(XMFLOAT3(debugGOScaleX, debugGOScaleY, debugGOScaleZ));
+		debugGO->SetRotation(XMFLOAT3(0.0f, debugGORotY, 0.0f));
+	}
+
+	if (debugTrigger)
+	{
+		BOUNDING_BOX triggerBox;
+		triggerBox.minPoint = XMFLOAT3(debugTriggerMinX, debugTriggerMinY, debugTriggerMinZ);
+		triggerBox.maxPoint = XMFLOAT3(debugTriggerMaxX, debugTriggerMaxY, debugTriggerMaxZ);
+		debugTrigger->SetBoundingBox(triggerBox);
+	}
+
+	if (debugItem)
+	{
+		debugItem->SetPosition(XMFLOAT3(debugItemPosX, debugItemPosY, debugItemPosZ));
+		debugItem->SetScale(XMFLOAT3(debugItemScaleX, debugItemScaleY, debugItemScaleZ));
+		debugItem->SetRotation(XMFLOAT3(debugItemRotX, debugItemRotY, debugItemRotZ));
+	}
 }
 
 //=============================================================================
@@ -175,6 +205,8 @@ void Ground::Update(void)
 //=============================================================================
 void Ground::Draw(void)
 {
+	if (!m_initialized) return;
+
 	m_renderer.SetLightModeBuffer(1);
 
 	if (m_town)
@@ -201,19 +233,28 @@ void Ground::Draw(void)
 
 void Ground::UnloadCurrentScene(void)
 {
+	if (!m_initialized) return;
+
 	for (auto it = m_modelLoadMap.begin(); it != m_modelLoadMap.end();)
 	{
+		// モデルロード済みのものは削除
 		if ((*it).value == 1)
 			it = m_modelLoadMap.erase(it);
 		else
 			++it;
 	}
 
+	// 現在のシーンの GameObject をクリア
 	m_staticGOs.clear();
 	m_skinnedGOs.clear();
-	m_totalModelLoadCnt = m_persistentModelLoadCnt;
-	m_currentModelLoadCnt = 0;
 
+	// 現在のシーンのモデルロードカウントをリセット
+	m_totalModelLoadCnt = m_persistentModelLoadCnt;
+	m_totalTerrainModelLoadCnt = m_persistentTerrainModelLoadCnt;
+	m_currentModelLoadCnt = 0;
+	m_currentTerrainModelLoadCnt = 0;
+
+	// 現在のシーンが存在しない場合は何もしない
 	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentScene)))
 		return;
 
@@ -242,6 +283,9 @@ void Ground::UnloadCurrentScene(void)
 
 void Ground::LoadScene(SceneID sceneID)
 {
+	if (!m_initialized) return;
+
+	// 現在のシーンと同じ場合は何もしない
 	if (m_currentScene == sceneID)
 		return;
 
@@ -256,6 +300,73 @@ void Ground::LoadScene(SceneID sceneID)
 	}
 }
 
+void Ground::InitTerrain(void)
+{
+	GameObject<ModelInstance>* terrainGO = new GameObject<ModelInstance>();
+	GameObjectConfig terrainBuildConfig{};
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/ground.obj";
+	terrainBuildConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	terrainBuildConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	terrainBuildConfig.position = TERRAIN_POS;
+	terrainBuildConfig.drawWorldAABB = false;
+	terrainBuildConfig.flip = AxisFlip::FlipX;
+	terrainBuildConfig.loadAsync = false;
+	terrainGO->Instantiate(terrainBuildConfig);
+	m_persistentStaticGOs.push_back(terrainGO);
+	m_fieldGO = terrainGO;
+
+	if (!m_modelLoadMap.contains(terrainBuildConfig.modelPath))
+	{
+		m_modelLoadMap[terrainBuildConfig.modelPath] = 0;
+		m_totalModelLoadCnt++;
+		m_persistentModelLoadCnt++;
+	}
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/house.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/bridge1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge2.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/CD1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/cubes.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/lines.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain2.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/tree.obj";
+	CreateTerrainGO(terrainBuildConfig);
+}
+
+GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
+{
+	GameObject<ModelInstance>* terrainGO = new GameObject<ModelInstance>();
+	terrainGO->Instantiate(config);
+	m_persistentStaticGOs.push_back(terrainGO);
+
+	RegisterModelLoadMap(config.modelPath, true, true);
+
+	return terrainGO;
+}
+
 void Ground::InitSceneLoadMap(void)
 {
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
@@ -264,11 +375,17 @@ void Ground::InitSceneLoadMap(void)
 
 void Ground::LoadScene1(void)
 {
-	if(m_sceneSword != nullptr)
-		m_sceneSword->SetActive(false);
+	if(m_sceneKey != nullptr)
+		m_sceneKey->SetActive(false);
+
+	/// INTERACTABLE-IMPLEMENTATION
+	/*if (m_sceneVines != nullptr)
+		m_sceneVines->SetActive(false);
 
 	if (m_skybox != nullptr)
-		m_skybox->SetCurrentTime(DAY_TIME);
+		m_skybox->SetCurrentTime(DAY_TIME);*/
+
+	m_skybox.SetCurrentTime(DAY_TIME);
 
 	ParticleEffectParams params;
 	params.type = EffectType::Smoke;
@@ -280,46 +397,144 @@ void Ground::LoadScene1(void)
 	params.lifeMin = 3.0f;
 	params.lifeMax = 6.0f;
 	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
-	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(params);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(effect);
+	//IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
 
-	GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
-	GameObjectConfig bonfireConfig{};
-	bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
-	bonfireConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
-	bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE, BONFIRE_SIZE, BONFIRE_SIZE);
-	bonfireConfig.position = XMFLOAT3(12582.0f, -2051.0f, -19485.0f);
-	bonfireConfig.drawWorldAABB = true;
-	bonfireGO->Instantiate(bonfireConfig);
-	m_staticGOs.push_back(bonfireGO);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
+	WaterFluidParams waterParams;
+	waterParams.type = EffectType::WaterFluid;
+	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
+	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
+	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
+	waterParams.numParticles = 5000; // 最大粒子数
+	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
+	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
 
-	if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
+	// エミット制御（あまり使わないが、baseクラス必須）
+	waterParams.spawnRateMin = 0;
+	waterParams.spawnRateMax = 0;
+	waterParams.lifeMin = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
+
+	// 水の物理パラメータ
+	waterParams.supportRadius = 15.0f;		// サポート半径（粒子影響範囲）
+	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
+	waterParams.particleMass = 15.0f;		// 粒子質量
+	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
+	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
+	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
+	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
+
+	//IEffectRenderer* waterFluid =  EffectSystem::get_instance().SpawnParticleEffect(waterParams);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
+	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
+
+	BOUNDING_BOX triggerBox;
+	triggerBox.minPoint = XMFLOAT3(8547.6f, 6394.0f , 7774.6f);
+	triggerBox.maxPoint = XMFLOAT3(8848.2f, 6490.0f, 8133.0f);
+
+	RegisterEventTrigger(triggerBox, PlayerCallbackAction::PlaceItem, SceneID::SCENE_1);
+
+
+	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
+	//GameObjectConfig bonfireConfig{};
+	////bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
+	//bonfireConfig.modelPath = "data/MODEL/Level/terrain_prototype3.obj";
+	//bonfireConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	//bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE * 1, BONFIRE_SIZE * 1, BONFIRE_SIZE * 1);
+	//bonfireConfig.position = XMFLOAT3(-5371.67f, -5775.0f, -1895.0f);
+	//bonfireConfig.drawWorldAABB = false;
+	//bonfireGO->Instantiate(bonfireConfig);
+	//m_staticGOs.push_back(bonfireGO);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
+
+	//if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
+	//{
+	//	m_modelLoadMap[bonfireConfig.modelPath] = 0;
+	//	m_totalModelLoadCnt++;
+	//}
+
+	if (m_sceneSeed == nullptr) 
 	{
-		m_modelLoadMap[bonfireConfig.modelPath] = 0;
-		m_totalModelLoadCnt++;
+
+		Transform trans;
+		trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+
+	}
+	else if (!m_sceneSeed->GetPickedUp())
+		m_sceneSeed->SetActive(true);
+
+	if (m_sceneSoil == nullptr)
+	{
+
+		Transform trans;
+		trans.pos = XMFLOAT3(-1000.0f, -5050.0f, 800.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		trans.scl = XMFLOAT3(SEEDSOIL_SIZE, SEEDSOIL_SIZE, SEEDSOIL_SIZE);
+
+		m_sceneSoil = ItemManager::get_instance().SpawnItem(ItemType::IntSoil, trans);
+
+	}
+	else {
+		if (!m_sceneSoil->GetUsed())
+			m_sceneSoil->SetActive(true);
+		else {
+		
+			if (m_scenePSeed != nullptr)
+				m_scenePSeed->SetActive(true);
+			
+		}
 	}
 }
 
 void Ground::LoadScene2(void)
 {
-	if (m_sceneSword == nullptr) {
+	if (m_sceneKey == nullptr) 
+	{
 
 		Transform trans;
-		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
+		trans.pos = XMFLOAT3(10000.0f, 9950.0f, 8770.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
-		trans.scl = SWORD_SIZE;
+		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
-		m_sceneSword = ItemManager::get_instance().SpawnItem(ItemType::Weapon, trans);
+		m_sceneKey = ItemManager::get_instance().SpawnItem(ItemType::Key, trans);
 
-		m_sceneSword->Initialize();
+	}
+	else if (!m_sceneKey->GetPickedUp())
+		m_sceneKey->SetActive(true);
+
+	if (m_scenePSeed != nullptr)
+	{
+
+		if(m_sceneVines == nullptr){
+
+			Transform trans = m_scenePSeed->GetTransform();
+
+			trans.pos.y -= 200;
+			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+			trans.scl = XMFLOAT3(120, 120, 120);
+
+			m_sceneVines = ItemManager::get_instance().SpawnItem(ItemType::IntVines, trans);
+		}
+		else if (!m_sceneVines->GetUsed())
+			m_sceneVines->SetActive(true);
+		
 
 	}
 
-	m_sceneSword->SetActive(true);
+	if (m_sceneSoil != nullptr)
+		m_sceneSoil->SetActive(false);
+	
+	if (m_scenePSeed != nullptr)
+		m_scenePSeed->SetActive(false);
 
-	if (m_skybox != nullptr) 
-		m_skybox->SetCurrentTime(NIGHT_TIME);
+	if (m_sceneSeed != nullptr)
+		m_sceneSeed->SetActive(false);
+
+	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
 
 	FireBallEffectParams fireparams;
@@ -344,6 +559,49 @@ void Ground::LoadScene2(void)
 	fireparams.startSpeedMax = 3.0f;
 	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
+
+	GameObjectConfig IvyConfig{};
+	IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";
+	IvyConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	IvyConfig.scale = IVY_SCALE;
+	IvyConfig.position = IVY_POS;
+	IvyConfig.rotation = XMFLOAT3(0.0f, IVY_ROT_Y, 0.0f);
+	IvyConfig.drawWorldAABB = false;
+	IvyConfig.castShadow = true;
+	IvyConfig.loadAsync = false;
+	GameObject<ModelInstance>* ivyGO = new GameObject<ModelInstance>();
+	ivyGO->Instantiate(IvyConfig);
+	m_staticGOs.push_back(ivyGO);
+	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(ivyGO);
+
+	if (!m_modelLoadMap.contains(IvyConfig.modelPath))
+	{
+		m_modelLoadMap[IvyConfig.modelPath] = 0;
+		m_totalModelLoadCnt++;
+	}
+
+
+	BOUNDING_BOX triggerBox;
+	triggerBox.minPoint = XMFLOAT3(8550.6f, 6367.0f, 7835.6f);
+	triggerBox.maxPoint = XMFLOAT3(8814.2f, 6404.0f, 8136.0f);
+
+	EventTrigger* eventTrigger = RegisterEventTrigger(triggerBox, PlayerCallbackAction::StartClimbUp, SceneID::SCENE_2);
+
+	
+	debugTrigger = eventTrigger; // デバッグ用トリガー
+	debugTriggerMinX = triggerBox.minPoint.x;
+	debugTriggerMinY = triggerBox.minPoint.y;
+	debugTriggerMinZ = triggerBox.minPoint.z;
+	debugTriggerMaxX = triggerBox.maxPoint.x;
+	debugTriggerMaxY = triggerBox.maxPoint.y;
+	debugTriggerMaxZ = triggerBox.maxPoint.z;
+
+	triggerBox.minPoint = XMFLOAT3(8625.6f, 9717.0f, 7986.6f);
+	triggerBox.maxPoint = XMFLOAT3(8964.2f, 9830.0f, 8399.0f);
+
+	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
+
+
 }
 
 void Ground::GenerateEnvironmentObj(void*)
@@ -351,15 +609,15 @@ void Ground::GenerateEnvironmentObj(void*)
 	InstanceParams instanceParams;
 	instanceParams.type = EnvironmentObjectType::Bush_2;
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12882.0f,
-		-18385.0f,
+		3024.0f,
+		3453.0f,
 		0.5 * XM_PI,
 		0.3f
 	));
 
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		12482.0f,
-		-17385.0f,
+		2453.0f,
+		2453.0f,
 		0.5,
 		0.3f
 	));
@@ -373,7 +631,7 @@ void Ground::GenerateEnvironmentObj(void*)
 	{
 		m_environment->GenerateInstanceByParams(
 			instanceParams,
-			m_fieldGO->GetSkinnedMeshModel(),
+			m_fieldGO->GetModel(),
 			m_fieldGO->GetBoundingBoxWorld());
 	}
 	else // モデルがロードされていない場合は非同期でロードしてから実行
@@ -394,12 +652,12 @@ void Ground::GenerateEnvironmentObj(void*)
 			[](void* ptr)
 			{
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
-				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
 				if (!fieldGO) return;
 				// 環境オブジェクトのインスタンスを生成
 				ctx->environment->GenerateInstanceByParams(
 					ctx->instanceParams,
-					fieldGO->GetSkinnedMeshModel(),
+					fieldGO->GetModel(),
 					ctx->fieldGO->GetBoundingBoxWorld()
 				);
 			},
@@ -407,19 +665,55 @@ void Ground::GenerateEnvironmentObj(void*)
 			{
 				// モデルのロード要求を発行（非同期ロードを開始）
 				auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
-				GameObject<SkinnedMeshModelInstance>* fieldGO = dynamic_cast<GameObject<SkinnedMeshModelInstance>*>(ctx->fieldGO);
+				GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
 				Model* instanceModel = Model::StoreModel(ctx->modelPath);
 				return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
 			},
 			options
 		);
 	}
-	//environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, fieldGO->GetSkinnedMeshModel(), 15);
+
+	//m_environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, 15);
+}
+
+void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool isTerrain)
+{
+	if (!m_modelLoadMap.contains(modelPath))
+	{
+		m_modelLoadMap[modelPath] = 0; // 初期値は0
+		m_totalModelLoadCnt++; // 全体のロード数を更新
+		if (isPersistent)
+		{
+			m_persistentModelLoadCnt++; // 永続的なモデルロード数も更新
+			if (isTerrain)
+				m_persistentTerrainModelLoadCnt++; // 永続的な地形モデルのロード数も更新
+		}
+		if (isTerrain)
+			m_totalTerrainModelLoadCnt++; // 地形モデルのロード数も更新
+	}
+}
+
+EventTrigger* Ground::RegisterEventTrigger(const BOUNDING_BOX& triggerBox, PlayerCallbackAction action, SceneID sceneID)
+{
+	EventTrigger* eventTriger = new EventTrigger();
+	eventTriger->SetBoundingBox(triggerBox);
+
+	// イベントの内容を設定
+	auto* behavior = new PlayerEnterExitBehavior();
+	behavior->SetAction(action);
+	eventTriger->SetEventBehavior(behavior);
+	eventTriger->Init();
+
+	// 登録
+	m_sceneEntityMap[TO_UINT64(sceneID)].push_back(eventTriger);
+	CollisionManager::get_instance().RegisterEventCollider(eventTriger->GetCollider());
+
+	return eventTriger;
 }
 
 void Ground::RenderImGui(void)
 {
-	if (ImGui::Checkbox("Draw Scene Objct Bounding Box", &m_drawBoundingBox)) 
+	if (ImGui::Checkbox("Draw Scene Objct Bounding Box", &m_drawBoundingBox))
 	{
 		UINT size = m_staticGOs.getSize();
 		for (UINT i = 0; i < size; i++)
@@ -441,7 +735,7 @@ void Ground::RenderImGui(void)
 			if (m_skinnedGOs[i]->GetUse() == false) continue;
 			m_skinnedGOs[i]->GetSkinnedMeshModel()->SetDrawBoundingBox(m_drawBoundingBox);
 		}
-		
+
 		size = m_persistentSkinnedGOs.getSize();
 		for (UINT i = 0; i < size; i++)
 		{
@@ -450,7 +744,40 @@ void Ground::RenderImGui(void)
 		}
 	}
 
-	if(m_environment)
+	if (m_environment)
 		m_environment->SetDrawBoundingBox(m_drawBoundingBox);
-}
 
+	if (ImGui::CollapsingHeader("Debug GameObject"))
+	{
+		ImGui::SliderFloat("PosX: ", &debugGOPosX, 1133.67f, 9833.67f, "%.1f");
+		ImGui::SliderFloat("PosY: ", &debugGOPosY, 1131.0f, 8131.0f, "%.1f");
+		ImGui::SliderFloat("PosZ: ", &debugGOPosZ, 1418.0f, 8718.0f, "%.1f");
+		ImGui::SliderFloat("ScaleX: ", &debugGOScaleX, 25.0f, 255.0f, "%.1f");
+		ImGui::SliderFloat("ScaleY: ", &debugGOScaleY, 25.0f, 355.0f, "%.1f");
+		ImGui::SliderFloat("ScaleZ: ", &debugGOScaleZ, 25.0f, 255.0f, "%.1f");
+		ImGui::SliderFloat("RotY: ", &debugGORotY, -3, 3, "%.1f");
+	}
+
+	if (ImGui::CollapsingHeader("Debug EventTrigger"))
+	{
+		ImGui::SliderFloat("MinX: ", &debugTriggerMinX, 1133.67f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("MinY: ", &debugTriggerMinY, 1133.67f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("MinZ: ", &debugTriggerMinZ, 1133.67f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("MaxX: ", &debugTriggerMaxX, 1133.67f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("MaxY: ", &debugTriggerMaxY, 1133.67f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("MaxZ: ", &debugTriggerMaxZ, 1133.67f, 11111.0f, "%.1f");
+	}
+
+	if (ImGui::CollapsingHeader("Debug Item"))
+	{
+		ImGui::SliderFloat("PosX: ", &debugItemPosX, 1133.67f, 11111.67f, "%.1f");
+		ImGui::SliderFloat("PosY: ", &debugItemPosY, 1131.0f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("PosZ: ", &debugItemPosZ, 1418.0f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("ScaleX: ", &debugItemScaleX, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("ScaleY: ", &debugItemScaleY, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("ScaleZ: ", &debugItemScaleZ, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("RotX: ", &debugItemRotX, -3, 3, "%.1f");
+		ImGui::SliderFloat("RotY: ", &debugItemRotX, -3, 3, "%.1f");
+		ImGui::SliderFloat("RotZ: ", &debugItemRotZ, -3, 3, "%.1f");
+	}
+}

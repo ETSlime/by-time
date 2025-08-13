@@ -38,7 +38,7 @@ AsyncModelLoader::~AsyncModelLoader()
     m_taskMap.clear();
 }
 
-void AsyncModelLoader::EnqueueLoad(const char* modelPath)
+void AsyncModelLoader::EnqueueLoad(const char* modelPath, AxisFlip flip)
 {
     if (!modelPath) return;
 
@@ -47,9 +47,9 @@ void AsyncModelLoader::EnqueueLoad(const char* modelPath)
 
     StaticModelLoadTask* task = new StaticModelLoadTask();
     task->modelPath = const_cast<char*>(modelPath);
-
+    task->flip = flip;
 	DeferredTaskOptions options{};
-	options.async = true; // 非同期実行
+	options.async = false; // 同期実行
 	options.debugName = "AsyncModelLoader_LoadModel"; // デバッグ用の名前
 	// タスクを DeferredTaskSystem に登録
     DeferredTaskBinder<AsyncModelLoader>::Add(
@@ -112,7 +112,11 @@ void AsyncModelLoader::Update()
                 entry.modelFullPath = it.key;
             }
             else
+            {
                 entry.modelPath = it.key;
+                entry.flip = entry.info.flip;
+            }
+
 
             m_cachedSortArray.push_back(entry);
         }
@@ -139,7 +143,7 @@ void AsyncModelLoader::Update()
             if (m_cachedSortArray[i].modelFullPath)
                 EnqueueLoad(m_cachedSortArray[i].modelPath, m_cachedSortArray[i].modelName, m_cachedSortArray[i].modelFullPath, m_cachedSortArray[i].modelType);
             else
-                EnqueueLoad(m_cachedSortArray[i].modelPath);
+                EnqueueLoad(m_cachedSortArray[i].modelPath, m_cachedSortArray[i].flip);
         }
 
         // 保留リストをクリア（次のフレーム用）
@@ -154,7 +158,7 @@ bool AsyncModelLoader::HasFailed(const char* modelPath) const
     return m_taskMap.at(modelPath)->hasFailed;
 }
 
-void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, int priority, const char* source)
+void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, AxisFlip flip, int priority, const char* source)
 {
     // すでにロード中またはロード済みなら無視
     if (m_taskMap.count(modelPath)) return;
@@ -165,6 +169,7 @@ void AsyncModelLoader::RequestLoadIfNotQueued(const char* modelPath, int priorit
     info.priority = priority;
     info.requestedBy = source ? source : "unknown";
     info.requestTime = Timer::get_instance().GetElapsedTime(); // ← 必要ならゲーム内経過時間を返す関数を使ってね！
+    info.flip = flip;
 
     m_deferredRequests[modelPath] = info;
 }
@@ -196,6 +201,7 @@ Model* AsyncModelLoader::CreateModelIfReady(const char* modelPath)
     auto* task = static_cast<StaticModelLoadTask*>(it->value);
     StaticModelData* parsedData = task->GetParsedData();
     if (!task->isDone || !parsedData || !task->texturesReady) return nullptr;
+    //if (!task->isDone || !parsedData) return nullptr;
 
     // Model クラスに所有権を移譲
     Model* model = new Model(parsedData);
@@ -255,7 +261,7 @@ void AsyncModelLoader::AsyncModelLoader_LoadModel(void* param)
     {
         bool success = false;
 
-		success = OBJLoader::get_instance().LoadObjModel(task->modelPath, task->parsedData);
+		success = OBJLoader::get_instance().LoadObjModel(task->modelPath, task->parsedData, task->flip);
 		if (success)
 		{
 			ModelCacheLoader::SaveToCache(task->modelPath, task->parsedData);

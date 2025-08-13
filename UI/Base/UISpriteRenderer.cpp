@@ -128,3 +128,38 @@ void UISpriteRenderer::SetSpriteWithRotation(ID3D11Buffer* buf, float X, float Y
 
     Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
 }
+
+void UISpriteRenderer::SetSpriteParallelogram(
+    ID3D11Buffer* buf,
+    float x, float y,
+    float width, float height,
+    float skewX,
+    float U, float V, float UW, float VH,
+    XMFLOAT4 color)
+{
+    D3D11_MAPPED_SUBRESOURCE msr;
+    Renderer::get_instance().GetDeviceContext()->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+
+    UIVertex* vertex = reinterpret_cast<UIVertex*>(msr.pData);
+
+    float halfWidth = width * 0.5f;
+    float halfHeight = height * 0.5f;
+
+    vertex[0].Position = XMFLOAT2(x - halfWidth + skewX, y - halfHeight);
+    vertex[1].Position = XMFLOAT2(x + halfWidth + skewX, y - halfHeight);
+    vertex[2].Position = XMFLOAT2(x - halfWidth, y + halfHeight);
+    vertex[3].Position = XMFLOAT2(x + halfWidth, y + halfHeight);
+
+    // UV coordinates
+    vertex[0].TexCoord = XMFLOAT2(U, V);
+    vertex[1].TexCoord = XMFLOAT2(U + UW, V);
+    vertex[2].TexCoord = XMFLOAT2(U, V + VH);
+    vertex[3].TexCoord = XMFLOAT2(U + UW, V + VH);
+
+    vertex[0].Color = color;
+    vertex[1].Color = color;
+    vertex[2].Color = color;
+    vertex[3].Color = color;
+
+    Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
+}

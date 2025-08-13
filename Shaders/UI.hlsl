@@ -51,9 +51,9 @@ SamplerState g_SamplerState : register(SLOT_SAMPLER_DEFAULT);
 float4 PS(VS_OUTPUT input) : SV_TARGET
 {
     float4 texColor = g_Texture.Sample(g_SamplerState, input.uv);
-    if (texColor.r == 0 && texColor.g == 0 && texColor.b == 0)
-        return float4(0, 1, 1, 1);
+    
+    if (texColor.a == 0.0f)
+        return float4(0, 0, 0, 0);
     
     return texColor * input.color;
-    //return float4(input.uv, 0.0f0.0f, 1.0f);
 }

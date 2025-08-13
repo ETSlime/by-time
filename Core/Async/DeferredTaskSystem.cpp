@@ -5,7 +5,8 @@
 //
 //
 //=============================================================================
-#include "DeferredTaskSystem.h"
+#include "Core/Async/DeferredTaskSystem.h"
+#include "Core/GameSystem.h"
 
 void DeferredTaskSystem::Init(void)
 {
@@ -38,6 +39,7 @@ void DeferredTaskSystem::AddTask(DeferredFunc execFunc, void* param, DeferredCan
 	task.param = param; // タスクに渡すパラメータ
 	task.runAsync = options.async; // 非同期実行フラグ
 	task.delayTime = options.delay; // 遅延時間を設定
+	task.pauseDelay = options.pauseDelay; // 遅延実行時に一時停止中でも実行するかどうかを設定
 	task.elapsedTime = 0.0f; // 遅延時間経過時間を初期化
 	task.timeoutSec = options.timeout; // タイムアウト秒数を設定（-1 は無制限）
 	task.timeoutElapsed = 0.0f; // タイムアウト経過時間を初期化
@@ -89,6 +91,10 @@ void DeferredTaskSystem::Update(void)
 
         task.elapsedTime += m_timer.GetDeltaTime(); // タスクの経過時間を進める
         task.timeoutElapsed += m_timer.GetDeltaTime(); // タイムアウト経過時間を進める
+
+        // 遅延実行時に一時停止中でも遅延時間を進める
+		if (task.pauseDelay && GameSystem::get_instance().IsPaused())
+			task.delayTime += m_timer.GetDeltaTime();
 
         // タイムアウト処理
         if (task.timeoutSec > 0.0f && task.timeoutElapsed > task.timeoutSec) 

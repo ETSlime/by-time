@@ -26,6 +26,13 @@ enum VertexDataLocation
 	Vertex,
 };
 
+enum class BodyTransformIndex
+{
+	Body,
+	LeftHand,
+	RightHand
+};
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -182,7 +189,8 @@ struct SkinnedMeshModelData
 	char* modelName = nullptr;
 
 	UINT currentRootNodeID = 0;
-	UINT weaponTransformIdx = 0;
+	UINT leftHandTransformIdx = 0;
+	UINT rightHandTransformIdx = 0;
 	UINT MeshDataCnt = 0;
 	UINT ModelCount = 0;
 	UINT numBones = 0;
@@ -246,7 +254,8 @@ struct SkinnedMeshModelData
 		: modelPath(other.modelPath),
 		modelName(other.modelName),
 		currentRootNodeID(other.currentRootNodeID),
-		weaponTransformIdx(other.weaponTransformIdx),
+		leftHandTransformIdx(other.leftHandTransformIdx),
+		rightHandTransformIdx(other.rightHandTransformIdx),
 		MeshDataCnt(other.MeshDataCnt),
 		ModelCount(other.ModelCount),
 		numBones(other.numBones),
@@ -271,7 +280,6 @@ struct SkinnedMeshModelData
 		other.modelName = nullptr;
 		other.currentAnimClip = nullptr;
 	}
-
 
 
 	SkinnedMeshModelData() = default;
@@ -318,24 +326,29 @@ public:
 	void SetBoundingBoxLocationOffset(XMFLOAT3 offset, int boneIdx = 0);
 	void SetBoundingBoxSize(XMFLOAT3 size, int boneIdx = 0);
 	void SetDrawBoundingBox(bool draw) { drawBoundingBox = draw; }
+
 	void BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceUp = false);
 	void BuildBoundingBoxTriangles(BOUNDING_BOX bb);
 	bool BuildOctree(void);
+	bool BuildVoxelGrid(bool batchInsert = false);
+
 	UINT GetNumBones(void) { return m_modelData.numBones; }
 	BOUNDING_BOX GetBoundingBox(void) const { return m_modelData.boundingBox; }
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 
-	bool Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
-	bool Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	bool Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
+	bool Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	bool Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
+	bool Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box);
 
-	void SetCurrentAnim(AnimationClip* currAnimClp, float startTime = 0);
+	void SetCurrentAnim(AnimationClip* currAnimClp);
 	AnimClipName GetCurrentAnim(void) { return m_modelData.currentAnimClip->name; }
 	AnimationClip* GetAnimationClip(AnimClipName clipName);
 	void PlayCurrentAnim(float playSpeed = 1.0f);
 	void ResetCurrentAnim(void);
 
-	XMMATRIX GetWeaponTransformMtx(void);
 	XMMATRIX GetBodyTransformMtx(void);
+	XMMATRIX GetBodyTransformMtx(BodyTransformIndex index);
 	XMMATRIX GetBoneFinalTransform(UINT boneIdx = 0);
 	const XMMATRIX* GetFinalBoneMatrices(void);
 
@@ -352,9 +365,6 @@ public:
 
 
 private:
-
-	static HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
-
 	void UpdateLimbGlobalTransform(FbxNode* node, FbxNode* deformNode, int& curIdx, int prevIdx, uint64_t time, BoneTransformData* boneTransformData, AnimationInfo& animInfo);
 	void GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransform, MeshData* meshData);
 	XMFLOAT3 GetAnimationValue(FbxNode** ppAnimationCurve, XMFLOAT3 defaultValue, uint64_t time, AnimationInfo& animInfo);
@@ -373,8 +383,7 @@ private:
 
 	void BuildMeshParts(void);
 
-	char modelPath[MODEL_PATH_LENGTH];
-	char modelName[MODEL_NAME_LENGTH];
+	static HashMap<const char*, SkinnedMeshModelPool, CharPtrHash, CharPtrEquals> modelHashMap;
 
 	bool drawBoundingBox = false;
 
@@ -385,6 +394,7 @@ private:
 
 	SkinnedMeshModelData m_modelData;
 	bool m_GPUResource = false; // GPUリソースを生成したかどうか
+	bool m_buildTriangles = false; // 三角形を構築したかどうか
 	int m_pendingTextureCount = 0;
 	int m_completedTextureCount = 0;
 

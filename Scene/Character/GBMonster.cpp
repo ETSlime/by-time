@@ -6,7 +6,6 @@
 //=============================================================================
 #include "Scene/Character/GBMonster.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
 #include "Scene/Player.h"
 
 //*****************************************************************************
@@ -35,7 +34,6 @@ GBMonster::GBMonster(Transform transform, EnemyState initState):Enemy(EnemyType:
 	Instantiate(config);
 
 	//LoadWeapon("data/MODEL/enemy/Hilichurl", "Stick.fbx");
-
 
 	m_initState = initState;
 	m_playAnimSpeed = PLAY_ANIM_SPD;
@@ -83,6 +81,13 @@ void GBMonster::PostInit(void)
 		nullptr,
 		options
 	);
+
+	InitializeBoneHitCollider(
+		m_attackCollider, 
+		XMFLOAT3(0.5f, 0.7f, 0.5f), 
+		XMFLOAT3(-50.0f, 50.0f, -10.0f), 
+		ColliderTag::ENEMY_ATTACK
+	);
 }
 
 void GBMonster::InitializeAnimation(void)
@@ -90,25 +95,25 @@ void GBMonster::InitializeAnimation(void)
 	AddAnimation("data/MODEL/enemy/GBMonster/", "Breathing Idle.fbx", AnimClipName::ANIM_IDLE);
 	AddAnimation("data/MODEL/enemy/GBMonster/", "Walking.fbx", AnimClipName::ANIM_WALK);
 	AddAnimation("data/MODEL/enemy/GBMonster/", "Slow Run.fbx", AnimClipName::ANIM_RUN);
-	AddAnimation("data/MODEL/enemy/GBMonster/", "Standing Melee Attack Downward.fbx", AnimClipName::ANIM_STANDING_MELEE_ATTACK);
+	AddAnimation("data/MODEL/enemy/GBMonster/", "Standing Melee Attack Downward.fbx", AnimClipName::ANIM_STANDING_MELEE_ATTACK, AnimPlayMode::ONCE);
 	//AddAnimation("data/MODEL/enemy/GBMonster/", "Falling Back Death.fbx", AnimClipName::ANIM_FALLING_BACK_DEATH);
 	//AddAnimation("data/MODEL/enemy/GBMonster/", "Flying Back Death.fbx", AnimClipName::ANIM_FLYING_BACK_DEATH);
 	//AddAnimation("data/MODEL/enemy/GBMonster/", "Getting Up.fbx", AnimClipName::ANIM_GETTING_UP);
-	AddAnimation("data/MODEL/enemy/GBMonster/", "Hit Reaction 1.fbx", AnimClipName::ANIM_HIT_REACTION_1);
-	AddAnimation("data/MODEL/enemy/GBMonster/", "Hit Reaction 2.fbx", AnimClipName::ANIM_HIT_REACTION_2);
+	AddAnimation("data/MODEL/enemy/GBMonster/", "Hit Reaction 1.fbx", AnimClipName::ANIM_HIT_REACTION_1, AnimPlayMode::ONCE);
+	AddAnimation("data/MODEL/enemy/GBMonster/", "Hit Reaction 2.fbx", AnimClipName::ANIM_HIT_REACTION_2, AnimPlayMode::ONCE);
 	//AddAnimation("data/MODEL/enemy/GBMonster/", "Sit.fbx", AnimClipName::ANIM_SIT);
-	AddAnimation("data/MODEL/enemy/GBMonster/", "Surprised.fbx", AnimClipName::ANIM_SURPRISED);
+	AddAnimation("data/MODEL/enemy/GBMonster/", "Surprised.fbx", AnimClipName::ANIM_SURPRISED, AnimPlayMode::ONCE);
 	//AddAnimation("data/MODEL/enemy/GBMonster/", "Swing Dancing.fbx", AnimClipName::ANIM_DANCE);
-	AddAnimation("data/MODEL/enemy/GBMonster/", "Standing React Death Backward.fbx", AnimClipName::ANIM_DIE);
+	AddAnimation("data/MODEL/enemy/GBMonster/", "Standing React Death Backward.fbx", AnimClipName::ANIM_DIE, AnimPlayMode::ONCE);
 
 	SetupAnimStateMachine(m_initState);
 	InitAnimInfo();
 }
 
-void GBMonster::AddAnimation(char* animPath, char* animName, AnimClipName clipName)
+void GBMonster::AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode)
 {
 	if (instance.pModel)
-		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName);
+		m_fbxLoader.LoadAnimation(instance.pModel, instance.pModel->GetModelData(), animPath, animName, clipName, animPlayMode);
 }
 
 void GBMonster::LoadWeapon(char* modelPath, char* modelName)
@@ -133,37 +138,39 @@ void GBMonster::Update(void)
 
 	m_stateMachine->Update(ANIM_BLEND_SPD, dynamic_cast<ISkinnedMeshModelChar*>(this));
 
+	uint64_t state = m_stateMachine->GetCurrentState();
+	if (state != STATE(EnemyState::ATTACK))
+		m_attackCollider.collider.enable = false;
+
+	float animSpeed = m_playAnimSpeed * timer.GetScaledDeltaTime();
 	switch (m_stateMachine->GetCurrentState())
 	{
 	case STATE(EnemyState::IDLE):
-		PlayIdleAnim();
+		PlayGeneralAnim(AnimClipName::ANIM_IDLE, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_WALK):
-		PlayWalkAnim();
+	case STATE(EnemyState::WALK):
+		PlayGeneralAnim(AnimClipName::ANIM_WALK, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_RUN):
-		PlayRunAnim();
+	case STATE(EnemyState::RUN):
+		PlayGeneralAnim(AnimClipName::ANIM_RUN, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_ATTACK):
+	case STATE(EnemyState::ATTACK):
 		PlayAttackAnim();
 		break;
-	case STATE(EnemyState::HILI_HIT1):
-		PlayHitAnim();
+	case STATE(EnemyState::HIT1):
+		PlayGeneralAnim(AnimClipName::ANIM_HIT_REACTION_1, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_HIT2):
-		PlayHit2Anim();
+	case STATE(EnemyState::HIT2):
+		PlayGeneralAnim(AnimClipName::ANIM_HIT_REACTION_2, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_SIT):
-		PlaySitAnim();
+	case STATE(EnemyState::SIT):
+		PlayGeneralAnim(AnimClipName::ANIM_SIT, animSpeed);
 		break;
-	case STATE(EnemyState::HILI_SURPRISED):
-		PlaySurprisedAnim();
+	case STATE(EnemyState::SURPRISED):
+		PlayGeneralAnim(AnimClipName::ANIM_SURPRISED, animSpeed * 1.2f);
 		break;
-	case STATE(EnemyState::HILI_DIE):
-		PlayDieAnim();
-		break;
-	case STATE(EnemyState::HILI_DANCE):
-		PlayDanceAnim();
+	case STATE(EnemyState::DIE):
+		PlayGeneralAnim(AnimClipName::ANIM_DIE, animSpeed);
 		break;
 	default:
 		break;
@@ -172,7 +179,6 @@ void GBMonster::Update(void)
 	instance.pModel->UpdateBoneTransform(m_stateMachine->GetBoneMatrices());
 
 	//UpdateWeapon();
-
 }
 
 void GBMonster::Draw(void)
@@ -201,7 +207,7 @@ void GBMonster::UpdateWeapon(void)
 		m_weapon.SetCastShadow(true);
 
 	m_weapon.Update();
-	XMMATRIX weaponMtx = instance.pModel->GetWeaponTransformMtx();
+	XMMATRIX weaponMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
 	weaponMtx = XMMatrixMultiply(m_weapon.GetWorldMatrix(), weaponMtx);
 	weaponMtx = XMMatrixMultiply(weaponMtx, instance.transform.mtxWorld);
 
@@ -252,85 +258,71 @@ AnimStateMachine* GBMonster::GetStateMachine(void)
 	return m_stateMachine;
 }
 
+void GBMonster::PlayGeneralAnim(AnimClipName clipName, float speed)
+{
+	if (instance.pModel->GetCurrentAnim() != clipName)
+		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
+	instance.pModel->PlayCurrentAnim(speed);
+}
+
 void GBMonster::SetupAnimStateMachine(EnemyState initState)
 {
 	m_stateMachine = new AnimStateMachine(dynamic_cast<ISkinnedMeshModelChar*>(this));
 
 	m_stateMachine->AddState(STATE(EnemyState::IDLE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_IDLE));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_SIT), instance.pModel->GetAnimationClip(AnimClipName::ANIM_SIT));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_ATTACK), instance.pModel->GetAnimationClip(AnimClipName::ANIM_STANDING_MELEE_ATTACK));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_WALK), instance.pModel->GetAnimationClip(AnimClipName::ANIM_WALK));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_RUN), instance.pModel->GetAnimationClip(AnimClipName::ANIM_RUN));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_HIT1), instance.pModel->GetAnimationClip(AnimClipName::ANIM_HIT_REACTION_1));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_HIT2), instance.pModel->GetAnimationClip(AnimClipName::ANIM_HIT_REACTION_2));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_SURPRISED), instance.pModel->GetAnimationClip(AnimClipName::ANIM_SURPRISED));
+	m_stateMachine->AddState(STATE(EnemyState::SIT), instance.pModel->GetAnimationClip(AnimClipName::ANIM_SIT));
+	m_stateMachine->AddState(STATE(EnemyState::ATTACK), instance.pModel->GetAnimationClip(AnimClipName::ANIM_STANDING_MELEE_ATTACK));
+	m_stateMachine->AddState(STATE(EnemyState::WALK), instance.pModel->GetAnimationClip(AnimClipName::ANIM_WALK));
+	m_stateMachine->AddState(STATE(EnemyState::RUN), instance.pModel->GetAnimationClip(AnimClipName::ANIM_RUN));
+	m_stateMachine->AddState(STATE(EnemyState::HIT1), instance.pModel->GetAnimationClip(AnimClipName::ANIM_HIT_REACTION_1));
+	m_stateMachine->AddState(STATE(EnemyState::HIT2), instance.pModel->GetAnimationClip(AnimClipName::ANIM_HIT_REACTION_2));
+	m_stateMachine->AddState(STATE(EnemyState::SURPRISED), instance.pModel->GetAnimationClip(AnimClipName::ANIM_SURPRISED));
 	instance.pModel->GetAnimationClip(AnimClipName::ANIM_DIE)->SetAnimPlayMode(AnimPlayMode::ONCE);
-	m_stateMachine->AddState(STATE(EnemyState::HILI_DIE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_DIE));
-	m_stateMachine->AddState(STATE(EnemyState::HILI_DANCE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_DANCE));
+	m_stateMachine->AddState(STATE(EnemyState::DIE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_DIE));
+	m_stateMachine->AddState(STATE(EnemyState::DANCE), instance.pModel->GetAnimationClip(AnimClipName::ANIM_DANCE));
 
 	//ó‘Ô‘JˆÚ
-	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HILI_WALK), &ISkinnedMeshModelChar::CanWalk);
-	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HILI_ATTACK), &ISkinnedMeshModelChar::CanAttack);
-	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit);
-	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HILI_SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
-	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::HILI_RUN), &ISkinnedMeshModelChar::CanRun);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::CanStopMoving);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::HILI_SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::HILI_ATTACK), &ISkinnedMeshModelChar::CanAttack);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_WALK), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_RUN), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::CanStopMoving);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_RUN), STATE(EnemyState::HILI_WALK), &ISkinnedMeshModelChar::CanStopRunning);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_RUN), STATE(EnemyState::HILI_WALK), &ISkinnedMeshModelChar::CanHit);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_RUN), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT1), STATE(EnemyState::HILI_HIT2), &ISkinnedMeshModelChar::CanHit2, false);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT1), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT2), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit, false);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT2), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT1), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT2), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_SURPRISED), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_SURPRISED), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_SURPRISED), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_ATTACK), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_ATTACK), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_ATTACK), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::CanDie);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_DIE), STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::AlwaysTrue, true);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_DANCE), STATE(EnemyState::HILI_SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_DANCE), STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::CanHit);
-	m_stateMachine->AddTransition(STATE(EnemyState::HILI_HIT1), STATE(EnemyState::HILI_SURPRISED), &ISkinnedMeshModelChar::CanHit);
+	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::WALK), &ISkinnedMeshModelChar::CanWalk);
+	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::ATTACK), &ISkinnedMeshModelChar::CanAttack);
+	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit);
+	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
+	m_stateMachine->AddTransition(STATE(EnemyState::IDLE), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::RUN), &ISkinnedMeshModelChar::CanRun);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::CanStopMoving);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::ATTACK), &ISkinnedMeshModelChar::CanAttack);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit);
+	m_stateMachine->AddTransition(STATE(EnemyState::WALK), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::RUN), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::CanStopMoving);
+	m_stateMachine->AddTransition(STATE(EnemyState::RUN), STATE(EnemyState::WALK), &ISkinnedMeshModelChar::CanStopRunning);
+	m_stateMachine->AddTransition(STATE(EnemyState::RUN), STATE(EnemyState::WALK), &ISkinnedMeshModelChar::CanHit);
+	m_stateMachine->AddTransition(STATE(EnemyState::RUN), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT1), STATE(EnemyState::HIT2), &ISkinnedMeshModelChar::CanHit2, false);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT1), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT2), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit, false);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT2), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT1), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT2), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::SURPRISED), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::SURPRISED), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::SURPRISED), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::ATTACK), STATE(EnemyState::IDLE), &ISkinnedMeshModelChar::AlwaysTrue, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::ATTACK), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::ATTACK), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::CanDie);
+	m_stateMachine->AddTransition(STATE(EnemyState::DIE), STATE(EnemyState::DIE), &ISkinnedMeshModelChar::AlwaysTrue, true);
+	m_stateMachine->AddTransition(STATE(EnemyState::DANCE), STATE(EnemyState::SURPRISED), &ISkinnedMeshModelChar::CanSurprised);
+	m_stateMachine->AddTransition(STATE(EnemyState::DANCE), STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::CanHit);
+	m_stateMachine->AddTransition(STATE(EnemyState::HIT1), STATE(EnemyState::SURPRISED), &ISkinnedMeshModelChar::CanHit);
 
-	m_stateMachine->SetEndCallback(STATE(EnemyState::HILI_ATTACK), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
-	m_stateMachine->SetEndCallback(STATE(EnemyState::HILI_HIT1), &ISkinnedMeshModelChar::OnHitAnimationEnd);
-	m_stateMachine->SetEndCallback(STATE(EnemyState::HILI_HIT2), &ISkinnedMeshModelChar::OnHitAnimationEnd);
-	m_stateMachine->SetEndCallback(STATE(EnemyState::HILI_SURPRISED), &ISkinnedMeshModelChar::OnSurprisedEnd);
-	m_stateMachine->SetEndCallback(STATE(EnemyState::HILI_DIE), &ISkinnedMeshModelChar::OnDieAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::ATTACK), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::HIT1), &ISkinnedMeshModelChar::OnHitAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::HIT2), &ISkinnedMeshModelChar::OnHitAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::SURPRISED), &ISkinnedMeshModelChar::OnSurprisedEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::DIE), &ISkinnedMeshModelChar::OnDieAnimationEnd);
 	
 
 	m_enemyAttr.initState = initState;
 	m_stateMachine->SetCurrentState(STATE(initState));
-}
-
-void GBMonster::PlayWalkAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_WALK)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
-
-void GBMonster::PlayRunAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_RUN)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
-
-void GBMonster::PlayIdleAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_IDLE)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
 }
 
 void GBMonster::PlayAttackAnim(void)
@@ -396,52 +388,18 @@ void GBMonster::PlayAttackAnim(void)
 		}
 	}
 
-
+	AnimationClip* clip = m_stateMachine->GetCurrentAnimClip();
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_STANDING_MELEE_ATTACK)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
+		instance.pModel->SetCurrentAnim(clip);
 	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
 
-void GBMonster::PlayHitAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_HIT_REACTION_1)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
+	if (clip->GetCurrentPlayTime() > 0.1f && clip->GetCurrentPlayTime() < 0.9f)
+		m_attackCollider.collider.enable = true;
+	else
+		m_attackCollider.collider.enable = false;
 
-void GBMonster::PlayHit2Anim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_HIT_REACTION_2)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
+	UpdateBoneHitCollider(m_attackCollider, BodyTransformIndex::RightHand);
 
-void GBMonster::PlaySitAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_SIT)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
-
-void GBMonster::PlaySurprisedAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_SURPRISED)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 1.2f);
-}
-
-void GBMonster::PlayDieAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_DIE)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
-}
-
-void GBMonster::PlayDanceAnim(void)
-{
-	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_DANCE)
-		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
 }
 
 bool GBMonster::CanWalk(void) const
@@ -520,4 +478,17 @@ void GBMonster::OnSurprisedEnd(void)
 void GBMonster::OnDieAnimationEnd()
 {
 	m_enemyAttr.startFadeOut = true;
+}
+
+void GBMonster::RenderDebugInfo(void)
+{
+	GameObject::RenderDebugInfo();
+
+#if DRAW_BOUNDING_BOX
+	if (m_attackCollider.collider.enable)
+	{
+		XMFLOAT4 color = { 1.0f, 0.0f, 0.0f, 1.0f };
+		m_debugBoundingBoxRenderer.DrawBox(m_attackCollider.collider.aabb, Camera::get_instance().GetViewProjMtx(), color);
+	}
+#endif
 }

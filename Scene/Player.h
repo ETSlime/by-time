@@ -7,41 +7,26 @@
 // SigewinneやKleeたちの切り替えもここで制御して、アクションキューで動きを可愛く整列します
 // 
 //=============================================================================
-#include "Scene/Character/Sigewinne.h"
-#include "Scene/Character/Klee.h"
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
-#include "Scene/Character/Mitachurl.h"
-#include "Scene/Item.h"
+#include "Scene/Item/Item.h"
+#include "Scene/Item/Interactable.h"
+#include "Scene/Item/ItemManager.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
+#include "Effects/ProjectilePreview/ProjectilePreviewRenderer.h"
+#include "Scene/HPBarUI.h"
+#include "UI/Base/UIManager.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define ACTION_QUEUE_SIZE		(4)
-#define ACTION_QUEUE_CLEAR_WAIT	(40)
-#define PLAYER_HIT_WINDOW		(90)
-#define Action(action)			static_cast<UINT>(action)
+#define	VALUE_PLAYER_MOVE			(6.5f)							// 移動量
+#define VALUE_PLAYER_CLIMB			(4.0f)							// クライム移動量
+#define VALUE_PLAYEER_RUN_FACTOR	(1.5f)
+#define	VALUE_PLAYER_ROTATE			(XM_PI * 0.02f)					// 回転量
 
-//*****************************************************************************
-// 構造体定義
-//*****************************************************************************
-
-struct PlayerAction
-{
-	ActionEnum	actionType;
-	float		liveTime;
-};
-
-struct PlayerAttributes
-{
-	UINT			actionQueueClearTime;
-	PlayerAction	actionQueue[ACTION_QUEUE_SIZE];
-	UINT			actionQueueStart;
-	UINT			actionQueueEnd;
-};
-
+#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6270.0f, 4453.0f)
 
 class Player : public IDebugUI
 {
@@ -55,41 +40,85 @@ public:
 
 	void InitializePlayerStatus(void);
 
-	int   GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
+	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
 
 	void PickItem(Item* obj);
 
-private:
+	void SetClimbMode(PlayerState climbState);
+	void PlaceItem(ItemType type);
 
+	static void OnClimbPromptTriggered(void* userData);
+
+	static void OnPlaceItemPromptTriggered(void* userData);
+
+	bool GetMeleeMode(void) const { return m_playerAttr.isMeleeMode; }
+	bool HasSeed(void) const { return m_playerAttr.seedCount > 0; }
+	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
+	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
+
+	float GetCurrentHP() const { return m_currentHP; }
+	float GetMaxHP() const { return m_maxHP; }
+
+	void TakeDamage(int damage);
+	void Heal(int amount);
+
+	void InitHPBar(UIManager* uiManager);
+	void SetHP(float hp);
+
+	void LinkInteractable(Interactable* interactable);
+
+private:
+	void UpdateNormalMode(void);
+	void UpdateClimbMode(void);
 	void UpdateActionQueue(void);
+	void UpdatePlayerStatus(void);
+	void UpdatePlayerMove(void);
+	void UpdatePlayerAttack(void);
+	void UpdateSwitchCharacter(void);
+	void HandleInput(void);
 	void HandlePlayerMove(Transform& transform);
+	void AlignPlayerYawToCamera(void); // プレイヤーのYawをカメラのYawに補間して合わせる関数
+	void ConfirmThrow(void);
+	void CancelThrow(void);
 
 	virtual void RenderImGui(void) override;
 	virtual const char* GetPanelName(void) const override { return "Player"; };
 
-	Attributes m_attributes;
+	Attributes* m_attributes;
+	Transform m_transform;
 	PlayerAttributes m_playerAttr;
-	Sigewinne* sigewinne;
-	Klee* klee;
+
 	Lumine* lumine;
 
-	Hilichurl* hilichurl;
-	Mitachurl* mitachurl;
 
 	bool m_drawBoundingBox = true;
 	int m_currentModelLoadCnt = 0;
 	int m_totalModelLoadCnt = 1;
+	bool m_hasWeapon = false;
 
 	GameObject<SkinnedMeshModelInstance>* m_playerGO;
 
 	Light* m_light;
 
+	ProjectilePreviewRenderer* m_previewRenderer = nullptr;
+	ProjectilePredictor m_predictor;
+
 	Renderer& m_renderer = Renderer::get_instance();
 	LightManager& m_lightMgr = LightManager::get_instance();
-
+	Camera& m_camera = Camera::get_instance();
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 
-	bool m_hasWeapon = false;
+	Interactable*   m_linkedInteractable = nullptr;
+
+	ItemManager& m_itemManager = ItemManager::get_instance();
+
+	float m_currentHP = 100;
+	float m_maxHP = 100;        // 最大HP
+
+	HPBarUI* m_hpBar = nullptr;
+
+	float m_hpDrainTimer = 0.0f;
+	bool m_autoHPDrain = true;
 };

@@ -37,7 +37,7 @@ class TweenTask
 {
 public:
 	TweenTask(void) = default;
-    void Update(float deltaTime, ISpriteTransformable* target);
+    bool Update(float deltaTime, ISpriteTransformable* target);
     bool IsFinished(void) const { return elapsed >= duration; }
     TweenTargetType type = TweenTargetType::Position;
     float duration = 0.0f;
@@ -53,6 +53,8 @@ public:
     void (*onComplete)(ISpriteTransformable*) = nullptr; // コールバック関数
 
 private:
+    // チェーンされた次のタスクに進める関数
+    void AdvanceToNextTask(void);
     float ApplyEase(float t, EaseType ease);
 
     XMFLOAT2 Lerp(const XMFLOAT2& a, const XMFLOAT2& b, float t);
@@ -81,7 +83,10 @@ struct TweenEntry
     {
         TweenTask* newTask = new TweenTask();
         newTask->type = TweenTargetType::Position;
-        newTask->startVec2 = tweenTask->endVec2;
+
+        // 連結リストの最後のタスクの終了位置を開始位置に設定
+		newTask->startVec2 = tailTask ? tailTask->endVec2 : tweenTask->endVec2; 
+
         newTask->endVec2 = to;
         newTask->duration = duration;
         newTask->ease = ease;

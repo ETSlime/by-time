@@ -41,6 +41,16 @@ void UIManager::Update(void)
     }
 
     m_screenFader.Update();
+
+    if (m_activePrompt)
+    {
+		m_activePrompt->Update(); // アクティブなプロンプトがある場合は更新
+        if (m_inputManager.GetKeyboardRelease(KEY_INTERACT))
+        {
+            m_activePrompt->Trigger();
+            ClearActivePrompt(); // プロンプトをクリア
+        }
+    }
 }
 
 void UIManager::Draw(void)
@@ -64,6 +74,11 @@ void UIManager::Draw(void)
     // UI要素を描画
     for (auto& e : m_elements)
         e->Draw();
+
+    if (m_activePrompt)
+    {
+		m_activePrompt->Draw(); // アクティブなプロンプトを描画
+    }
 
 	// モーダルが存在する場合はモーダルを描画
     for (UINT i = 0; i < m_modals.getSize(); ++i)
@@ -92,6 +107,15 @@ void UIManager::Draw(void)
 
 void UIManager::AddElement(UIElement* element)
 {
+    if (element == nullptr)
+        return;
+
+    for (auto* e : m_elements)
+    {
+        if (e == element)
+            return;
+    }
+
     m_elements.push_back(element);
 }
 
@@ -133,6 +157,24 @@ void UIManager::DrawOverlay(float x, float y, float w, float h, XMFLOAT4 color)
     m_overlay.Draw(m_renderer.GetDeviceContext(), x, y, w, h, color);
 }
 
+void UIManager::SetActivePrompt(UIInteractPrompt* prompt)
+{
+    m_activePrompt = prompt;
+    if (prompt)
+    {
+        prompt->Show();
+    }
+}
+
+void UIManager::ClearActivePrompt(void)
+{
+    if (m_activePrompt)
+    {
+        m_activePrompt->Hide();
+        m_activePrompt = nullptr;
+    }
+}
+
 void UIManager::Clear(void)
 {
     for (UINT i = 0; i < m_elements.getSize(); ++i)
@@ -141,4 +183,9 @@ void UIManager::Clear(void)
     }
 
     m_elements.clear();
+}
+
+UIOverlayRenderer& UIManager::GetOverlayRenderer()
+{
+    return m_overlay;
 }

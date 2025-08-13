@@ -44,6 +44,10 @@ public:
 
 	void SetVertexBuffer(ID3D11Buffer* vb) { m_vertexBuffer = vb; }
 
+    // 基本スケールを初期化（Tween用）
+	void InitBaseScale(void) { m_baseScale = m_scale; }
+	const XMFLOAT2& GetBaseScale(void) const { return m_baseScale; }
+
     void Draw(void)
     {
         if (!m_visible || !m_texture || !m_vertexBuffer) return;
@@ -105,6 +109,7 @@ public:
 private:
     XMFLOAT2 m_position = { 0, 0 };
     XMFLOAT2 m_scale{ 1.0f, 1.0f };
+    XMFLOAT2 m_baseScale = { 1.0f, 1.0f }; // 基本スケール（Tween用）
     float m_rot = 0.0f;
     XMFLOAT2 m_size = { 100, 100 };
     XMFLOAT4 m_color = { 1, 1, 1, 1 };

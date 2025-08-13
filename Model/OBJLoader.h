@@ -15,7 +15,7 @@ class OBJLoader : public SingletonBase<OBJLoader>
 {
 public:
 	// モデル読込
-	bool LoadObjModel(const char* FileName, StaticModelData* Model);
+	bool LoadObjModel(const char* FileName, StaticModelData* Model, AxisFlip flip = AxisFlip::None);
 private:
 	//マテリアル読み込み
 	void LoadMaterial(char* FileName, MODEL_MATERIAL** MaterialArray, unsigned int* MaterialNum);

@@ -14,7 +14,7 @@
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
-#define MAX_PARTICLES       (512) // 最大パーティクル数
+#define MAX_PARTICLES       (99999) // 最大パーティクル数
 
 //*********************************************************
 // 構造体
@@ -43,7 +43,12 @@ struct CBParticleDraw
 {
     // 行列情報
     XMMATRIX world;
+    XMMATRIX worldInv;
     XMMATRIX viewProj;
+
+	// カメラ情報
+    XMFLOAT3 cameraPos;
+    float padding;
 };
 
 struct DrawArgs
@@ -54,23 +59,32 @@ struct DrawArgs
     UINT StartInstanceLocation; // インスタンス開始位置（通常は0）
 };
 
+// パーティクルシェーダーグループ
+struct ParticleBufferSet
+{
+    ID3D11Buffer* buffer = nullptr;
+    ID3D11ShaderResourceView* srv = nullptr;
+    ID3D11UnorderedAccessView* uav = nullptr;
+};
+
+
 struct ParticleEffectParams;
 
 // パーティクルエフェクト専用基底クラス
 class ParticleEffectRendererBase : public IEffectRenderer
 {
 public:
-    ParticleEffectRendererBase() {}
+    ParticleEffectRendererBase(void) {}
 
     virtual bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context) override;
     virtual void Shutdown(void) override;
     virtual void Destroy(void) override { Shutdown(); }
-    virtual bool IsShutdown(void) override { return m_shutdown; }
+    virtual bool IsShutdown(void) const override { return m_shutdown; }
     virtual void Update(void) final override; // 継承クラスでオーバーライド禁止
     virtual void Draw(void) final override; // 継承クラスでオーバーライド禁止
-    virtual EffectType GetEffectType() const override { return EffectType::None; } // 基底クラスはNoneを返す
-    virtual bool UseDrawIndirect() const { return false; } // DrawInstancedIndirectを使用するかどうか
-    virtual void ConfigureEffect(const ParticleEffectParams& params);
+    virtual EffectType GetEffectType(void) const override { return EffectType::None; } // 基底クラスはNoneを返す
+    virtual bool UseDrawIndirect(void) const { return false; } // DrawInstancedIndirectを使用するかどうか
+	virtual void ConfigureEffect(const ParticleEffectParams& params); // パーティクルエフェクトの設定を行う
 
     void SetScale(float scale) { m_scale = scale; }
     void SetPosition(const XMFLOAT3& pos) { m_position = pos; }
@@ -81,13 +95,26 @@ public:
 
     void SetupPipeline(void);  // パイプライン設定
 
-    const XMFLOAT3& GetPosition() const { return m_position; }
+    const XMFLOAT3& GetPosition(void) const { return m_position; }
 
-    ParticleShaderGroup GetShaderGroupForEffect(EffectType type);
-    ParticleComputeGroup GetComputeGroupForEffect(EffectType type);
+    ParticleShaderGroup GetShaderGroupForEffect(EffectType type) const;
+    ParticleComputeGroup GetComputeGroupForEffect(EffectType type) const;
 
     // パイプライン状態リセット
     static void ResetPipelineState(ParticleShaderGroup group) { s_pipelineBoundMap[TO_UINT64(group)] = false; }
+
+    // 汎用的な構造体バッファを作成する
+    static void CreateStructuredBuffer(ID3D11Device* device,
+        UINT structSize,
+        UINT count,
+        const void* initData,
+        ID3D11Buffer** ppBuffer,
+        ID3D11ShaderResourceView** ppSRV,
+        ID3D11UnorderedAccessView** ppUAV,
+        bool allowAppendUAV = false,
+        bool cpuWritable = false,
+        bool useCounterUAV = false);
+
 
 protected:
 
@@ -112,10 +139,10 @@ protected:
     bool CreateParticleBuffer(void);  // パーティクルバッファを作成する
     virtual void DispatchComputeShader(void) = 0; // コンピュートシェーダーをディスパッチする
     virtual void DrawParticles(void); // パーティクルを描画する
-    void DispatchEmitParticlesCS(void); // パーティクル発生用コンピュートシェーダーをディスパッチする
+    virtual void DispatchEmitParticlesCS(void); // パーティクル発生用コンピュートシェーダーをディスパッチする
 
     // パーティクル描画前の共通バインド
-    virtual void BindParticleDrawResources(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj);
+    virtual void BindParticleDrawResources(void);
 
     void BindCommonComputeResources(void); // コンピュートシェーダー用の共通リソースをバインドする
     void UnbindComputeUAVs(void); // コンピュートシェーダーのUAVをアンバインドする
@@ -128,7 +155,7 @@ protected:
     // パーティクル発生器の更新
     void UpdateEmitter(void);
     // パーティクル描画用CB更新（Draw前に呼び出す）
-    void UpdateParticleDrawCB(const XMMATRIX& worldMatrix, const XMMATRIX& viewProj);
+    void UpdateParticleDrawCB(void);
     // DrawInstancedIndirect用のインスタンス数を更新
     void UpdateDrawArgsInstanceCount(void);
     // シェーダーを読み込む
@@ -138,25 +165,27 @@ protected:
     using CreateBufferFunc = bool (*)(ParticleEffectRendererBase*);
     static CreateBufferFunc s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::Count)];
 
-    // 内部ヘルパー
+	// パーティクルバッファの作成関数
     static bool CreateBillboardSimpleBuffer(ParticleEffectRendererBase* self);
     static bool CreateBillboardFlipbookBuffer(ParticleEffectRendererBase* self);
-    void RegisterarticleBufferFactories();
+	static bool CreateWaterFluidBuffer(ParticleEffectRendererBase* self);
+    void RegisterarticleBufferFactories(void);
+
+    // 汎用パーティクルバッファ作成関数（構造体・初期化データ対応）
+    // T : 粒子構造体の型（例：BillboardSimpleParticleなど）
+    template<typename T>
+    static bool CreateParticleBuffer(ParticleEffectRendererBase* self, const SimpleArray<T>& initData);
 
     ID3D11Device* m_device = nullptr;
     ID3D11DeviceContext* m_context = nullptr;
 
     ID3D11Buffer* m_cbParticleUpdate = nullptr;  // 更新用定数バッファ
     ID3D11Buffer* m_cbParticleDraw = nullptr;    // 描画用定数バッファ
-    ID3D11Buffer* m_particleBuffer = nullptr;    // パーティクルデータバッファ
     ID3D11Buffer* m_drawArgsBuffer = nullptr;    // 描画用引数バッファ
-    ID3D11Buffer* m_aliveListBuffer = nullptr;  // アクティブなパーティクルリストバッファ
-    ID3D11Buffer* m_freeListBuffer = nullptr;   // フリーリストバッファ
-    ID3D11ShaderResourceView* m_particleSRV = nullptr; // パーティクル読み取り用SRV
-    ID3D11ShaderResourceView* m_aliveListSRV = nullptr; // アクティブなパーティクルリスト用SRV
-    ID3D11UnorderedAccessView* m_particleUAV = nullptr; // パーティクル書き込み用UAV
-    ID3D11UnorderedAccessView* m_aliveListUAV = nullptr; // アクティブなパーティクルリスト用UAV
-    ID3D11UnorderedAccessView* m_freeListUAV = nullptr; // フリーリスト用UAV
+
+	ParticleBufferSet m_particleBufferSet; // パーティクルバッファセット
+	ParticleBufferSet m_aliveListBufferSet; // アクティブなパーティクルリストバッファセット
+	ParticleBufferSet m_freeListBufferSet; // フリーリストバッファセット
     ID3D11UnorderedAccessView* m_freeListConsumeUAV = nullptr; // フリーリスト消費用UAV
 
     ID3D11Buffer* m_cbParticleEffect = nullptr; // 常量バッファ
@@ -191,3 +220,45 @@ protected:
     Camera& m_camera = Camera::get_instance();
     ID3D11Buffer* m_drawArgsStaging = nullptr;
 };
+
+template<typename T>
+inline bool ParticleEffectRendererBase::CreateParticleBuffer(ParticleEffectRendererBase* self, const SimpleArray<T>& initData)
+{
+    HRESULT hr = S_OK;
+
+    // 粒子構造体のサイズ
+    UINT stride = sizeof(T);
+
+    // バッファ定義
+    D3D11_BUFFER_DESC bufferDesc = {};
+    bufferDesc.ByteWidth = stride * self->m_maxParticles;
+    bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+    bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+    bufferDesc.StructureByteStride = stride;
+
+    D3D11_SUBRESOURCE_DATA subData = {};
+    subData.pSysMem = initData.data();
+
+    // StructuredBuffer作成（RWStructuredBuffer用）
+    hr = self->m_device->CreateBuffer(&bufferDesc, &subData, &self->m_particleBufferSet.buffer);
+    if (FAILED(hr)) return false;
+
+    // SRV作成
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    srvDesc.Buffer.NumElements = self->m_maxParticles;
+    hr = self->m_device->CreateShaderResourceView(self->m_particleBufferSet.buffer, &srvDesc, &self->m_particleBufferSet.srv);
+    if (FAILED(hr)) return false;
+
+    // UAV作成
+    D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+    uavDesc.Buffer.NumElements = self->m_maxParticles;
+    hr = self->m_device->CreateUnorderedAccessView(self->m_particleBufferSet.buffer, &uavDesc, &self->m_particleBufferSet.uav);
+    if (FAILED(hr)) return false;
+
+    return true;
+}

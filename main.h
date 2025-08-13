@@ -86,6 +86,8 @@ bool GetWindowActive(void);
 int GetRand(int min, int max);
 float GetRandFloat(float min, float max);
 float Lerp(float a, float b, float t);
+float SmoothAngleLerp(float current, float target, float t);
+void ExitGame(void);
 
 // Declare additional functions for releasing interfaces, 
 // and macros for error-handling and retrieving the module's base address.
@@ -98,4 +100,10 @@ inline void SafeRelease(
 		(*ppInterfaceToRelease)->Release();
 		(*ppInterfaceToRelease) = NULL;
 	}
+}
+
+template<typename T>
+T Clamp(const T& val, const T& low, const T& high)
+{
+	return val < low ? low : (val > high ? high : val);
 }

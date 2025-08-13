@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // 影生成パスとモデル描画の統合シャドウレンダラー [ShadowMapRenderer.h]
@@ -6,15 +7,12 @@
 // 静的・スキンメッシュ・インスタンスモデルの影生成を制御する
 // 
 //=============================================================================
-#pragma once
 #include "Core/Camera.h"
 #include "Core/Light.h"
 #include "Core/Graphics/CascadedShadowMap.h"
 #include "Core/Shader/ShaderManager.h"
-#include "Utility/DebugBoundingBoxRenderer.h"
 #include "Core/Graphics/ShadowMeshCollector.h"
-#include "Utility/Debugproc.h"
-
+#include "Utility/Debug/DebugBoundingBoxRenderer.h"
 
 
 class ShadowMapRenderer : public SingletonBase<ShadowMapRenderer>, public IDebugUI
@@ -66,6 +64,7 @@ private:
 
     XMVECTOR m_lightDir;
 
+	bool m_initialized = false;
     float m_alphaCutoff = 0.5f;
 
     bool m_enableStaticShadow = true;

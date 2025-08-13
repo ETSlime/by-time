@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // ゲーム進行・描画・システム状態を統括管理する中枢クラス [GameSystem.h]
@@ -6,7 +7,6 @@
 // プレイヤー／敵／UI／カメラ／エフェクトなど全主要サブシステムを統括する
 //
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Core/Camera.h"
 #include "Core/CursorManager.h"
@@ -20,9 +20,10 @@
 #include "UI/Base/TweenManager.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
-#include "Scene/ItemManager.h"
+#include "Scene/Item/ItemManager.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/Ground.h"
+#include "Scene/HPBarUI.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
 #include "Utility/SingletonBase.h"
@@ -92,10 +93,17 @@ public:
     void ToggleMiniMap(void) { m_showMiniMap = !m_showMiniMap; }
     bool IsMiniMapVisible(void) const { return m_showMiniMap; }
 
-    void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
-    GameMode GetMode() const { return m_mode; }
+    void SetPauseFlag(void) { m_pauseFlag = true; }
+    void ClearPauseFlag(void) { m_pauseFlag = false; }
+    void SetAllowPause(bool allow) { m_allowPause = allow; }
 
-	Ground* GetGround(void) const { return m_ground; } // 地面オブジェクト取得
+	// ボタンのクリック状態を設定
+    void SetResumeBtnClick(bool clicked) { m_resumeBtnClick = clicked; }
+
+    void ChangeMode(GameMode mode, bool skipLoadingFadeIn = false); // モード切り替え
+    GameMode GetMode(void) const { return m_mode; }
+
+	Player* GetPlayer(void) const { return m_player; }
 
 protected:
     // プライベートコンストラクタ
@@ -118,6 +126,8 @@ protected:
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
         , m_textureUploadQueue(TextureUploadQueue::get_instance())
+        , m_ground(Ground::get_instance()) 
+        , m_skybox(Skybox::get_instance())
         , m_tweenManager(TweenManager::get_instance()) {}
 
     // この行が絶対に必要！！
@@ -138,14 +148,17 @@ private:
     void UpdateLoading(void);
     void UpdateResult(void);
 
+	// モードごとの描画関数
     void DrawTitle(void);
     void DrawGame(void);
     void DrawResult(void);
 
-    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
-    void StartAsyncResourceLoading(void);
+    // 入力処理
     void HandleInput(void);
     void HandlePauseInput(void);
+
+    // 指定された文脈に基づいて必要なリソースを非同期で読み込む関数
+    void StartAsyncResourceLoading(void);
 
     // 非同期読み込み進行度を0.0～1.0で返す関数
     float CalculateCurrentLoadingProgress(void);
@@ -154,6 +167,9 @@ private:
 
     // 内部状態
     bool m_isPaused = false;
+    bool m_resumeBtnClick = false;
+    bool m_pauseFlag = false;
+    bool m_allowPause = true;
     bool m_inDialogue = false;
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか
@@ -162,13 +178,13 @@ private:
     GameMode m_mode = GameMode::TITLE;
 
     Player* m_player = nullptr;
-    Ground* m_ground = nullptr;
-    Skybox* m_skybox = nullptr;
 
     ResourceLoadStatus m_loadStatus;
     ResourceLoadContext m_currLoadCtx;
     UILoadingScene* m_loadingScene = nullptr;
 
+    Ground& m_ground;
+	Skybox& m_skybox;
     UIManager& m_UIManager;
     EnemyManager& m_enemyManager;
     ItemManager& m_itemManager;
@@ -186,7 +202,5 @@ private:
     AsyncModelLoader& m_asyncModelLoader;
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
-	TweenManager& m_tweenManager;
+    TweenManager& m_tweenManager;
 };
-
-void OnSceneSwitchClicked(void* userData);

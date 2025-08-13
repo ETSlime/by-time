@@ -6,7 +6,7 @@
 //=============================================================================
 #include "Model/SkinnedMeshModel.h"
 #include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
+#include "Utility/Debug/Debugproc.h"
 #include "AI/AnimStateMachine.h"
 #include "Collision/CollisionManager.h"
 #include "Core/Async/AsyncModelLoader.h"
@@ -544,6 +544,9 @@ void SkinnedMeshModel::SetBoundingBoxSize(XMFLOAT3 size, int boneIdx)
 
 void SkinnedMeshModel::BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceUp)
 {
+	if (m_buildTriangles) return;
+
+	// すべてのメッシュデータに対して三角形を構築
     for (auto& it : m_modelData.meshDataMap)
     {
         MeshData* meshData = it.value;
@@ -583,12 +586,15 @@ void SkinnedMeshModel::BuildMeshTriangles(XMMATRIX worldMatrix, bool alwaysFaceU
 
             }
         }
-
     }
+
+    m_buildTriangles = true;
 }
 
 void SkinnedMeshModel::BuildBoundingBoxTriangles(BOUNDING_BOX box)
 {
+    if (m_buildTriangles) return;
+
     for (auto& it : m_modelData.meshDataMap)
     {
         MeshData* meshData = it.value;
@@ -637,6 +643,8 @@ void SkinnedMeshModel::BuildBoundingBoxTriangles(BOUNDING_BOX box)
         meshData->triangles.push_back(new Triangle(v3, v2, v0, normalZPlus)); // 三角形 11
         meshData->triangles.push_back(new Triangle(v3, v0, v1, normalZPlus)); // 三角形 12
     }
+
+    m_buildTriangles = true;
 }
 
 bool SkinnedMeshModel::BuildOctree(void)
@@ -651,18 +659,45 @@ bool SkinnedMeshModel::BuildOctree(void)
         if (!meshData->boundingBoxes.getSize())
             return false;
 
-        if (CollisionManager::get_instance().staticOctree == nullptr)
-            CollisionManager::get_instance().staticOctree = new OctreeNode(m_modelData.boundingBox);
+        if (!CollisionManager::get_instance().IsInitializedOctree())
+            CollisionManager::get_instance().InitOctree(m_modelData.boundingBox);
 
         int numTriangles = meshData->triangles.getSize();
         for (int i = 0; i < numTriangles; i++)
         {
-            if (!CollisionManager::get_instance().staticOctree->insert(meshData->triangles[i]))
+            if (!CollisionManager::get_instance().OctreeInsertTriangle(meshData->triangles[i]))
                 return false;
         }
     }
 
     return true;
+}
+
+bool SkinnedMeshModel::BuildVoxelGrid(bool batchInsert)
+{
+    for (auto& it : m_modelData.meshDataMap)
+    {
+        MeshData* meshData = it.value;
+
+        if (!meshData->triangles.getSize())
+            return false;
+
+        if (batchInsert)
+        {
+            CollisionManager::get_instance().VoxelGridInsertTriangles(meshData->triangles);
+		}
+        else
+        {
+            int numTriangles = meshData->triangles.getSize();
+            for (int i = 0; i < numTriangles; i++)
+            {
+                CollisionManager::get_instance().VoxelGridInsertTriangle(meshData->triangles[i]);
+            }
+        }
+
+    }
+
+	return true;
 }
 
 const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
@@ -677,7 +712,7 @@ const SimpleArray<Triangle*>* SkinnedMeshModel::GetTriangles(void) const
     return nullptr;
 }
 
-bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
+bool SkinnedMeshModel::Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp, bool drawBoundingBox)
 {
     SetDrawBoundingBox(drawBoundingBox);
 
@@ -688,7 +723,7 @@ bool SkinnedMeshModel::Deffered_BuildMeshTriangles(const XMMATRIX& worldMatrix, 
     return success;
 }
 
-bool SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+bool SkinnedMeshModel::Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
 {
     SetDrawBoundingBox(drawBoundingBox);
 
@@ -699,12 +734,30 @@ bool SkinnedMeshModel::Deffered_BuildBoundingBoxTriangles(const BOUNDING_BOX& bo
     return success;
 }
 
-void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip, float startTime)
+bool SkinnedMeshModel::Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
+{
+    bool success = false;
+    BuildMeshTriangles(worldMatrix, alwaysFaceUp);
+    success = BuildVoxelGrid(true);
+
+    return success;
+}
+
+bool SkinnedMeshModel::Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box)
+{
+    bool success = false;
+    BuildBoundingBoxTriangles(box);
+    success = BuildVoxelGrid(false);
+
+    return success;
+}
+
+void SkinnedMeshModel::SetCurrentAnim(AnimationClip* currAnimClip)
 {
     if (currAnimClip)
     {
         this->m_modelData.currentAnimClip = currAnimClip;
-        this->m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(currAnimClip->stopTime * startTime);
+        this->m_modelData.currentAnimClip->ResetPlayTime();
     }
 }
 
@@ -719,24 +772,46 @@ AnimationClip* SkinnedMeshModel::GetAnimationClip(AnimClipName clipName)
 
 void SkinnedMeshModel::PlayCurrentAnim(float playSpeed)
 {
-    m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(ANIM_SPD * playSpeed * t.GetScaledDeltaTime());
+    bool reversed;
+    float deltaTime = ANIM_SPD * playSpeed * t.GetScaledDeltaTime();
+    if (deltaTime >= 0.0f)
+    {
+        // 正方向の再生
+        m_modelData.currentAnimClip->currentTime += static_cast<uint64_t>(deltaTime);
+        reversed = false;
+    }
+    else
+    {
+        // 逆方向の再生
+        float newCurTime = static_cast<float>(m_modelData.currentAnimClip->currentTime) + deltaTime;
+        if (newCurTime >= 0.0f)
+        {
+            // 0以上ならそのまま
+            m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(newCurTime);
+        }
+        else
+        {
+            if (m_modelData.currentAnimClip->animInfo.playMode == AnimPlayMode::LOOP)
+            {
+                // 0未満なら末尾にラップ（オーバーフロー分をstopTimeから引く）
+                float overflow = -newCurTime; // 超過分
+                m_modelData.currentAnimClip->currentTime = static_cast<uint64_t>(m_modelData.currentAnimClip->stopTime - overflow);
+            }
+            else
+            {
+                m_modelData.currentAnimClip->currentTime = 0ULL;
+            }
+        }
+            
+        reversed = true;
+    }
+	
+    m_modelData.currentAnimClip->SetReveresed(reversed);
 }
 
 void SkinnedMeshModel::ResetCurrentAnim(void)
 {
     m_modelData.currentAnimClip->currentTime = 0;
-}
-
-XMMATRIX SkinnedMeshModel::GetWeaponTransformMtx(void)
-{
-    if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.weaponTransformIdx)
-    {
-        XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.weaponTransformIdx];
-
-        return XMLoadFloat4x4(&transform);
-    }
-
-    return XMMatrixIdentity();
 }
 
 XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
@@ -747,6 +822,43 @@ XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(void)
 
         return XMLoadFloat4x4(&transform);
     }
+
+    return XMMatrixIdentity();
+}
+
+XMMATRIX SkinnedMeshModel::GetBodyTransformMtx(BodyTransformIndex index)
+{
+    switch (index)
+    {
+    case BodyTransformIndex::Body:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > 1)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[1];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    case BodyTransformIndex::LeftHand:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.leftHandTransformIdx)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.leftHandTransformIdx];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    case BodyTransformIndex::RightHand:
+    {
+        if (m_modelData.boneTransformData.mBoneFinalTransforms.getSize() > m_modelData.rightHandTransformIdx)
+        {
+            XMFLOAT4X4 transform = m_modelData.boneTransformData.mBoneFinalTransforms[m_modelData.rightHandTransformIdx];
+
+            return XMLoadFloat4x4(&transform);
+        }
+    }
+    }
+
 
     return XMMatrixIdentity();
 }
@@ -1190,19 +1302,6 @@ void SkinnedMeshModel::GetBoneTransform(SimpleArray<XMFLOAT4X4>& boneFinalTransf
                     pMtxTrans[i] = 0.0f;
                 }
             }
-
-            //if (i == cnt - 1 && pLimbID)
-            //{
-            //    //PrintDebugProc("%d\n", *pLimbID);
-            //    PrintDebugProc("%f, %f, %f, %f \n", pMtxTrans[0],
-            //        pMtxTrans[1], pMtxTrans[2], pMtxTrans[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[1].m128_f32[0],
-            //        mtxTrans.r[1].m128_f32[1], mtxTrans.r[1].m128_f32[2], mtxTrans.r[1].m128_f32[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[2].m128_f32[0],
-            //        mtxTrans.r[2].m128_f32[1], mtxTrans.r[2].m128_f32[2], mtxTrans.r[2].m128_f32[3]);
-            //    PrintDebugProc("%f, %f, %f, %f \n", mtxTrans.r[3].m128_f32[0],
-            //        mtxTrans.r[3].m128_f32[1], mtxTrans.r[3].m128_f32[2], mtxTrans.r[3].m128_f32[3]);
-            //}
 
             XMFLOAT4X4 finalTransform;
             XMStoreFloat4x4(&finalTransform, mtxTrans);

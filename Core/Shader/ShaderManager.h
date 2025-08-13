@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // シェーダーセットとレイアウトの統合管理・ホットリロード対応 [ShaderManager.h]
@@ -6,12 +7,10 @@
 // ソースパス登録・変更検知によるホットリロード機構を提供する
 // 
 //=============================================================================
-#pragma once
-#include "ShaderReloader.h"
+#include "Core/Shader/ShaderReloader.h"
+#include "Core/Shader/ShaderLoader.h"
 #include "Utility/SingletonBase.h"
 #include "Utility/SimpleArray.h"
-#include "Core/Shader/ShaderLoader.h"
-
 
 //*********************************************************
 // 構造体

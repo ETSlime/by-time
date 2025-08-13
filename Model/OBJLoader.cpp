@@ -4,7 +4,7 @@
 // Author : 
 // 
 //=============================================================================
-#include "OBJLoader.h"
+#include "Model/OBJLoader.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -15,7 +15,7 @@
 #define	RATE_ROTATE_MODEL			(0.20f)					// ‰ñ“]Šµ«ŒW”
 #define	SCALE_MODEL					(10.0f)					// ‰ñ“]Šµ«ŒW”
 
-bool OBJLoader::LoadObjModel(const char* FileName, StaticModelData* Model)
+bool OBJLoader::LoadObjModel(const char* FileName, StaticModelData* Model, AxisFlip flip)
 {
 
 	XMFLOAT3* positionArray;
@@ -174,6 +174,14 @@ bool OBJLoader::LoadObjModel(const char* FileName, StaticModelData* Model)
 			position->y *= SCALE_MODEL;
 			position->z *= SCALE_MODEL;
 
+			if (HasFlip(flip, AxisFlip::FlipX))
+				position->x *= -1.0f;
+			if (HasFlip(flip, AxisFlip::FlipY))
+				position->y *= -1.0f;
+			if (HasFlip(flip, AxisFlip::FlipZ))
+				position->z *= -1.0f;
+
+
 			// Update bounding box
 			Model->boundingBox.minPoint.x = min(Model->boundingBox.minPoint.x, position->x);
 			Model->boundingBox.minPoint.y = min(Model->boundingBox.minPoint.y, position->y);
@@ -192,6 +200,14 @@ bool OBJLoader::LoadObjModel(const char* FileName, StaticModelData* Model)
 			fscanf(file, "%f", &normal->x);
 			fscanf(file, "%f", &normal->y);
 			fscanf(file, "%f", &normal->z);
+
+			if (HasFlip(flip, AxisFlip::FlipX))
+				normal->x *= -1.0f;
+			if (HasFlip(flip, AxisFlip::FlipY))
+				normal->y *= -1.0f;
+			if (HasFlip(flip, AxisFlip::FlipZ))
+				normal->z *= -1.0f;
+
 			normal++;
 		}
 		else if (strcmp(str, "vt") == 0)

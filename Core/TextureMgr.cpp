@@ -122,6 +122,7 @@ void TextureMgr::RegisterSRV(const char* path, ID3D11ShaderResourceView* srv)
     if (m_TextureSRVMap.contains(path)) 
     {
         SafeRelease(&srv);
+        m_lock.Unlock();
         return;
     }
 

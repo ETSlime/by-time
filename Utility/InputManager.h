@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // プレイヤーの操作をぜーんぶ受け取る司令塔ちゃん [InputManager.h]
@@ -6,7 +7,7 @@
 // 押された瞬間や押しっぱなし、マウス移動・ホイール操作まで、ゲームとの橋渡し役なの
 // 
 //=============================================================================
-#pragma once
+#include "main.h"
 #include "Utility/SingletonBase.h"
 
 //*****************************************************************************
@@ -58,8 +59,13 @@
 #define KEY_QUEST       DIK_Q
 
 // メニュー操作
-#define KEY_CONFIRM     DIK_RETURN
-#define KEY_CANCEL      DIK_ESCAPE
+#define KEY_CONFIRM			DIK_RETURN
+#define KEY_CANCEL			DIK_ESCAPE
+
+#define KEY_INTERACT				DIK_F       // インタラクトキー（ドア開ける、アイテム拾うなど）
+#define KEY_SWITCH_WEAPON			DIK_Q		// 武器切り替えキー
+#define KEY_ENTER_THROW_MODE		DIK_G 
+#define KEY_EXIT_THROW_MODE			DIK_R
 
 //*****************************************************************************
 // プロトタイプ宣言

@@ -1,3 +1,4 @@
+#pragma once
 //=============================================================================
 //
 // AABB（軸対称境界ボックス）ユーティリティ [AABBUtils.h]
@@ -6,9 +7,9 @@
 // バウンディングボックスに関する各種計算処理を提供する
 // 
 //=============================================================================
-#pragma once
 #include "main.h"
 #include "Utility/SimpleArray.h"
+
 //*****************************************************************************
 // 構造体定義
 //*****************************************************************************
@@ -79,6 +80,46 @@ struct BOUNDING_BOX
     {
         minPoint = min;
         maxPoint = max;
+    }
+
+    float GetWidth(void) const
+    {
+        return maxPoint.x - minPoint.x;
+    }
+
+    float GetDepth(void) const
+    {
+        return maxPoint.z - minPoint.z;
+    }
+
+	float GetHeight(void) const
+	{
+		return maxPoint.y - minPoint.y;
+	}
+
+	XMFLOAT3 GetSize(void) const
+	{
+		return XMFLOAT3(GetWidth(), GetHeight(), GetDepth());
+	}
+
+    void Expand(float margin)
+    {
+        minPoint.x -= margin;
+        minPoint.y -= margin;
+        minPoint.z -= margin;
+        maxPoint.x += margin;
+        maxPoint.y += margin;
+        maxPoint.z += margin;
+    }
+
+    // 中心点を計算する関数
+    XMFLOAT3 GetCenter(void) const
+    {
+        return XMFLOAT3(
+            (minPoint.x + maxPoint.x) * 0.5f,
+            (minPoint.y + maxPoint.y) * 0.5f,
+            (minPoint.z + maxPoint.z) * 0.5f
+        );
     }
 
     // 指定した点がこの AABB 内に含まれるか判定する関数
@@ -156,8 +197,58 @@ struct BOUNDING_BOX
         outCorners[6] = XMFLOAT3(xMin, yMax, zMax);
         outCorners[7] = XMFLOAT3(xMax, yMax, zMax);
     }
+};
 
+struct Triangle
+{
+    XMFLOAT3 v0, v1, v2;
+    BOUNDING_BOX aabb;
+    XMFLOAT3 normal;
 
+	Triangle() : v0(XMFLOAT3(0.0f, 0.0f, 0.0f)), v1(XMFLOAT3(0.0f, 0.0f, 0.0f)), v2(XMFLOAT3(0.0f, 0.0f, 0.0f)), normal(XMFLOAT3(0.0f, 1.0f, 0.0f))
+	{
+		aabb.minPoint = XMFLOAT3(FLT_MAX, FLT_MAX, FLT_MAX);
+		aabb.maxPoint = XMFLOAT3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+	}
+
+    // AABBを計算
+    Triangle(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, bool alwaysFaceUp = false) : v0(a), v1(b), v2(c)
+    {
+        aabb.minPoint.x = min(min(v0.x, v1.x), v2.x);
+        aabb.minPoint.y = min(min(v0.y, v1.y), v2.y);
+        aabb.minPoint.z = min(min(v0.z, v1.z), v2.z);
+        aabb.maxPoint.x = max(max(v0.x, v1.x), v2.x);
+        aabb.maxPoint.y = max(max(v0.y, v1.y), v2.y);
+        aabb.maxPoint.z = max(max(v0.z, v1.z), v2.z);
+
+        // 法線を計算する（頂点座標から交叉積を利用して正規化する）
+        XMVECTOR v0Vec = XMLoadFloat3(&v0);
+        XMVECTOR v1Vec = XMLoadFloat3(&v1);
+        XMVECTOR v2Vec = XMLoadFloat3(&v2);
+        XMVECTOR edge1 = XMVectorSubtract(v1Vec, v0Vec);
+        XMVECTOR edge2 = XMVectorSubtract(v2Vec, v0Vec);
+        XMVECTOR normVec = XMVector3Cross(edge1, edge2);
+        normVec = XMVector3Normalize(normVec);
+
+        // 法線のy成分を確認し、負の場合は反転
+        if (XMVectorGetY(normVec) < 0.0f && alwaysFaceUp)
+        {
+            normVec = XMVectorNegate(normVec);  // 法線反転
+        }
+        XMStoreFloat3(&normal, normVec);
+    }
+
+    // コンストラクタ：三角形の法線を直接指定できるようにする
+    Triangle(const XMFLOAT3& a, const XMFLOAT3& b, const XMFLOAT3& c, const XMFLOAT3& norm)
+        : v0(a), v1(b), v2(c), normal(norm)
+    {
+        aabb.minPoint.x = min(min(v0.x, v1.x), v2.x);
+        aabb.minPoint.y = min(min(v0.y, v1.y), v2.y);
+        aabb.minPoint.z = min(min(v0.z, v1.z), v2.z);
+        aabb.maxPoint.x = max(max(v0.x, v1.x), v2.x);
+        aabb.maxPoint.y = max(max(v0.y, v1.y), v2.y);
+        aabb.maxPoint.z = max(max(v0.z, v1.z), v2.z);
+    }
 };
 
 class AABBUtils 

@@ -7,10 +7,9 @@
 // 終了コールバックの管理を行い、キャラクターの動作状態を制御する
 // 
 //=============================================================================
-
-#include "Model/FBXLoader.h"
 #include "Core/Graphics/Renderer.h"
 #include "Utility/HashMap.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -18,6 +17,10 @@
 #define MAX_STATE_TRANS_NUM     99
 
 #define STATE(state)                  (static_cast<uint64_t>(state))
+
+// 
+struct FbxNode;
+
 // states
 enum class PlayerState : uint64_t
 {
@@ -29,6 +32,19 @@ enum class PlayerState : uint64_t
     ATTACK_1,
     ATTACK_2,
     ATTACK_3,
+    IDLE_AIMING,
+	WALK_AIMING,
+	RUN_AIMING,
+    STAND_JUMP_AIMING,
+    RUN_JUMP_AIMING,
+    THROW,
+    CLIMB_WALL,
+    START_CLIMBING_UP,
+    STOP_CLIMBING_UP,
+	START_CLIMBING_DOWN,
+	STOP_CLIMBING_DOWN,
+    PLANT_SEED,
+    GLIDE,
     JUMP,
     FALL,
     HARD_LANDING,
@@ -40,19 +56,63 @@ enum class PlayerState : uint64_t
     DIE,
 };
 
+enum AnimClipName
+{
+    ANIM_NONE,
+    ANIM_STANDING,
+    ANIM_IDLE,
+    ANIM_BREAKDANCE_UPROCK,
+    ANIM_STANDING_DRAW_ARROW,
+    ANIM_STANDING_AIM_WALK_FORWARD,
+    ANIM_STANDING_AIM_WALK_LEFT,
+    ANIM_STANDING_AIM_OVERDRAW,
+    ANIM_WALK,
+    ANIM_RUN,
+    ANIM_DASH,
+    ANIM_JUMP,
+    ANIM_SWORD_SHIELD_SLASH,
+    ANIM_SWORD_SHIELD_SLASH2,
+    ANIM_SWORD_SHIELD_SLASH3,
+    ANIM_STANDING_MELEE_ATTACK,
+
+    ANIM_IDLE_AIMING,
+    ANIM_WALK_AIMING,
+    ANIM_RUN_ANIMING,
+    ANIM_STAND_JUMP_AIMING,
+    ANIM_RUN_JUMP_AIMING,
+    ANIM_THROW,
+
+    ANIM_CLIMB_WALL,
+    ANIM_START_CLIMBING,
+    ANIM_CLIMBING_TO_TOP,
+    ANIM_PLANT_SEED,
+    ANIM_AIR_GLIDE,
+
+    ANIM_FALLING_BACK_DEATH,
+    ANIM_FLYING_BACK_DEATH,
+    ANIM_GETTING_UP,
+    ANIM_HIT_REACTION_1,
+    ANIM_HIT_REACTION_2,
+    ANIM_SIT,
+    ANIM_SURPRISED,
+    ANIM_DIE,
+    ANIM_DANCE,
+
+};
+
 enum class EnemyState : uint64_t
 {
     IDLE,
-    HILI_DANCE,
-    HILI_STAND_UP,
-    HILI_SIT,
-    HILI_WALK,
-    HILI_RUN,
-    HILI_ATTACK,
-    HILI_HIT1,
-    HILI_HIT2,
-    HILI_SURPRISED,
-    HILI_DIE,
+    DANCE,
+    STAND_UP,
+    SIT,
+    WALK,
+    RUN,
+    ATTACK,
+    HIT1,
+    HIT2,
+    SURPRISED,
+    DIE,
 };
 
 enum class AnimPlayMode
@@ -78,7 +138,7 @@ struct AnimationPhase
 
 struct AnimationInfo
 {
-    BOOL                isReversed;
+    bool                isReversed;
     AnimPlayMode        playMode;
     AnimationPhase      animPhase;
 };
@@ -102,7 +162,7 @@ struct AnimationClip
         model = nullptr;
         currBoneTransform = SimpleArray<XMFLOAT4X4>();
         animInfo.isReversed = false;
-        animInfo.playMode = AnimPlayMode::LOOP;
+        animInfo.playMode = AnimPlayMode::ONCE;
     }
 
     ~AnimationClip()
@@ -116,17 +176,49 @@ struct AnimationClip
 
     inline bool IsFinished() 
     {
-        return currentTime >= stopTime;
+        if (animInfo.playMode == AnimPlayMode::LOOP)
+            return false;
+
+        if (animInfo.isReversed)
+        {
+            // 逆再生：0まで（以下）で終了
+            return currentTime <= 0ULL;
+        }
+        else
+        {
+            return currentTime >= stopTime;
+        }
     }
 
     inline void SetAnimPlayMode(AnimPlayMode playMode)
     {
         animInfo.playMode = playMode;
-    }
+    }                                                                   
 
     inline void CutAnimStopTime(uint64_t stopTime)
     {
         this->stopTime = stopTime;
+    }
+
+    inline void ResetPlayTime(void)
+    {
+        if (animInfo.isReversed)
+            currentTime = stopTime;
+        else
+            currentTime = 0;
+    }
+
+    inline void SetReveresed(bool reverse)
+    {
+		if (animInfo.isReversed != reverse)
+		{
+			animInfo.isReversed = reverse;
+		}
+    }
+
+    float GetCurrentPlayTime(void)
+    {
+        return static_cast<float>(currentTime) / static_cast<float>(stopTime);
     }
 
     SimpleArray<XMFLOAT4X4>* GetBoneMatrices(SimpleArray<XMFLOAT4X4>* currBoneTransform);

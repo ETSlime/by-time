@@ -58,7 +58,8 @@ struct StaticModelLoadTask : public ModelLoadTask<StaticModelData>
 {
     unsigned int pendingTextureCount = 0;       // 要求テクスチャ数
     unsigned int completedTextureCount = 0;     // 完了テクスチャ数
-    bool texturesReady = false;                 // テクスチャ読み込み完了
+    bool texturesReady = false;                 // テクスチャ読み込み完了 
+    AxisFlip flip = AxisFlip::None;
 }; // 静的モデル用の読み込みタスク
 
 
@@ -77,6 +78,7 @@ struct DeferredRequestInfo
 
     char* modelPath = nullptr;
     char* modelName = nullptr;
+    AxisFlip flip = AxisFlip::None;
     SkinnedModelType modelType = SkinnedModelType::Default;
 };
 
@@ -86,6 +88,7 @@ struct DeferredEntry
     const char* modelName = nullptr;
     const char* modelFullPath = nullptr;
     SkinnedModelType modelType = SkinnedModelType::Default;
+    AxisFlip flip = AxisFlip::None;
     DeferredRequestInfo info;
 };
 
@@ -96,12 +99,12 @@ public:
     ~AsyncModelLoader();
 
     // リクエストが未登録なら登録
-    void RequestLoadIfNotQueued(const char* modelPath, int priority = 0, const char* source = nullptr);
+    void RequestLoadIfNotQueued(const char* modelPath, AxisFlip flip = AxisFlip::None, int priority = 0, const char* source = nullptr);
     void RequestLoadIfNotQueued(const char* modelPath, const char* modelName, const char* modelFullPath, 
         SkinnedModelType type, int priority = 0, const char* source = nullptr);
 
     // 非同期ロード要求を追加
-    void EnqueueLoad(const char* modelPath);
+    void EnqueueLoad(const char* modelPath, AxisFlip flip = AxisFlip::None);
     void EnqueueLoad(const char* modelPath, const char* modelName, const char* modelFullPath, SkinnedModelType type);
 
     // 毎フレーム完了チェック

@@ -16,8 +16,6 @@
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
 #include "Collision/CollisionManager.h"
-#include "Utility/InputManager.h"
-#include "Utility/Debugproc.h"
 #include "Model/Model.h"
 #include "Model/FBXLoader.h"
 #include "Model/SkinnedMeshModel.h"
@@ -26,13 +24,16 @@
 #include "Scene/Scene.h"
 #include "UI/Base/UIManager.h"
 #include "UI/PauseModal.h"
-#include "UI/imgui/imgui_impl_win32.h"
+#include "Utility/InputManager.h"
+#include "Utility/Debug/Debugproc.h"
+#include "Utility/Debug/imgui/imgui_impl_win32.h"
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
 #define CLASS_NAME		"AppClass"			// ウインドウのクラス名
 #define WINDOW_NAME		"メッシュ表示"		// ウインドウのキャプション名
+#define _SHOWFPS		1					// FPSを表示するかどうか
 
 //*****************************************************************************
 // プロトタイプ宣言
@@ -42,6 +43,7 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow);
 void Uninit(void);
 void Update(void);
 void Draw(void);
+void EnableDPIAwareness(void);
 
 // ImGui Win32 入力ハンドラーの前方宣言
 // - ヘッダーで <windows.h> をインクルードしないための回避策
@@ -55,6 +57,7 @@ long g_MouseX = 0;
 long g_MouseY = 0;
 
 bool g_IsWindowActive = true; // デフォルトでアクティブ
+bool g_ExitApp = false; // アプリケーション終了フラグ
 
 //MapEditor& mapEditor = MapEditor::get_instance();
 InputManager& inputManager = InputManager::get_instance();
@@ -73,10 +76,18 @@ CursorManager& cursorManager = CursorManager::get_instance();
 ShaderResourceBinder& shaderResourceBinder = ShaderResourceBinder::get_instance();
 TextureMgr& textureMgr = TextureMgr::get_instance();
 
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 int		g_CountFPS;							// FPSカウンタ
 char	g_DebugStr[2048] = WINDOW_NAME;		// デバッグ文字表示用
 
+#endif
+
+#ifdef __has_include
+#  if __has_include(<shellscalingapi.h>)
+#    include <shellscalingapi.h>
+#    pragma comment(lib, "Shcore.lib")
+#    define HAS_SHCORE 1
+#  endif
 #endif
 
 //=============================================================================
@@ -84,6 +95,8 @@ char	g_DebugStr[2048] = WINDOW_NAME;		// デバッグ文字表示用
 //=============================================================================
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	EnableDPIAwareness();
+
 	UNREFERENCED_PARAMETER(hPrevInstance);	// 無くても良いけど、警告が出る（未使用宣言）
 	UNREFERENCED_PARAMETER(lpCmdLine);		// 無くても良いけど、警告が出る（未使用宣言）
 
@@ -113,14 +126,19 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	// ウィンドウクラスの登録
 	RegisterClassEx(&wcex);
 
+	RECT rc = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+	AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
+
 	// ウィンドウの作成
 	hWnd = CreateWindow(CLASS_NAME,
 		WINDOW_NAME,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,																		// ウィンドウの左座標
 		CW_USEDEFAULT,																		// ウィンドウの上座標
-		SCREEN_WIDTH + GetSystemMetrics(SM_CXDLGFRAME) * 2,									// ウィンドウ横幅
-		SCREEN_HEIGHT + GetSystemMetrics(SM_CXDLGFRAME) * 2 + GetSystemMetrics(SM_CYCAPTION),	// ウィンドウ縦幅
+		rc.right - rc.left,
+		rc.bottom - rc.top,
+		//SCREEN_WIDTH + GetSystemMetrics(SM_CXDLGFRAME) * 2,									// ウィンドウ横幅
+		//SCREEN_HEIGHT + GetSystemMetrics(SM_CXDLGFRAME) * 2 + GetSystemMetrics(SM_CYCAPTION),	// ウィンドウ縦幅
 		NULL,
 		NULL,
 		hInstance,
@@ -168,7 +186,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 			if ((dwCurrentTime - dwFPSLastTime) >= 1000)	// 1秒ごとに実行
 			{
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 				g_CountFPS = dwFrameCount;
 #endif
 				dwFPSLastTime = dwCurrentTime;				// FPSを測定した時刻を保存
@@ -179,7 +197,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			{
 				dwExecLastTime = dwCurrentTime;	// 処理した時刻を保存
 
-#ifdef _DEBUG	// デバッグ版の時だけFPSを表示する
+#ifdef _SHOWFPS	// デバッグ版の時だけFPSを表示する
 				wsprintf(g_DebugStr, WINDOW_NAME);
 				wsprintf(&g_DebugStr[strlen(g_DebugStr)], " FPS:%d", g_CountFPS);
 #endif
@@ -187,7 +205,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 				Update();			// 更新処理
 				Draw();				// 描画処理
 
-#ifdef _DEBUG	// デバッグ版の時だけ表示する
+#ifdef _SHOWFPS	// デバッグ版の時だけ表示する
 				wsprintf(&g_DebugStr[strlen(g_DebugStr)], " MX:%d MY:%d", GetMousePosX(), GetMousePosY());
 				SetWindowText(hWnd, g_DebugStr);
 #endif
@@ -218,6 +236,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
 		return true;
 
+	// アプリケーション終了フラグが立っている場合は終了
+	if (g_ExitApp)
+	{
+		Uninit();
+		DestroyWindow(hWnd);
+		return 0;
+	}
 
 	switch(message)
 	{
@@ -265,6 +290,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				g_IsWindowActive = true;
 				cursorManager.RememberCursorPosition(); // カーソル位置を保存
 				inputManager.SetMouseRecentered(true); // カメラ回転防止用フラグ設定
+				gameSystem.ClearPauseFlag(); // ポーズフラグをクリア
 			}
 
 		}
@@ -276,7 +302,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				g_IsWindowActive = false;
 
 				// 自動ポーズ（手動入力と同じ処理）
-				gameSystem.PauseGame();
+				gameSystem.SetPauseFlag();
 			}
 		}
 		break;
@@ -308,11 +334,11 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	// カメラの初期化
 	camera.Init();
 
-	// ゲームシステムの初期化
-	gameSystem.Init();
-
 	// 衝突管理の初期化
 	collisionManager.Init();
+
+	// ゲームシステムの初期化
+	gameSystem.Init();
 
 	// 入力処理の初期化
 	inputManager.Init(hInstance, hWnd);
@@ -424,7 +450,7 @@ long GetMousePosY(void)
 }
 
 
-#ifdef _DEBUG
+#ifdef _SHOWFPS
 char* GetDebugStr(void)
 {
 	return g_DebugStr;
@@ -457,7 +483,44 @@ float GetRandFloat(float min, float max)
 	return dist(g_mt);
 }
 
+// 線形補間関数
+// a: 開始値, b: 終了値, t: 補間係数 (0.0f <= t <= 1.0f)
 float Lerp(float a, float b, float t)
 {
 	return a + (b - a) * t;
+}
+
+float SmoothAngleLerp(float current, float target, float t)
+{
+	// 差分を[-π, π]に正規化
+	float delta = target - current;
+	while (delta > XM_PI)  delta -= XM_2PI;
+	while (delta < -XM_PI) delta += XM_2PI;
+
+	// 最短経路で補間
+	current += delta * t;
+
+	// 結果を[-π, π]に再正規化
+	if (current > XM_PI)  current -= XM_2PI;
+	if (current < -XM_PI) current += XM_2PI;
+
+	return current;
+}
+
+void ExitGame(void)
+{
+	g_ExitApp = true; // アプリケーション終了フラグを立てる
+}
+
+void EnableDPIAwareness(void)
+{
+#if defined(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+#elif defined(HAS_SHCORE) && defined(PROCESS_PER_MONITOR_DPI_AWARE)
+	SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+
+#else
+	SetProcessDPIAware();
+#endif
 }

@@ -637,7 +637,7 @@ OctreeNode* Environment::GenerateOctree(const SimpleArray<Triangle*>* triangles,
     int numTriangles = triangles->getSize();
     for (int i = 0; i < numTriangles; i++)
     {
-        if (!octree->insert((*triangles)[i]))
+        if (!octree->Insert((*triangles)[i]))
             return nullptr;
     }
 
@@ -702,12 +702,14 @@ bool Environment::GenerateRandomInstances(EnvironmentObjectType type, const Mode
 
     for (int i = 0; i < clusterCount; ++i)
     {
+        const BOUNDING_BOX& boundary = octree->GetBoundary();
+
         // クラスターの中心を地形全体からランダムに選択
         XMFLOAT3 clusterCenter = 
         {
-            GetRandFloat(octree->boundary.minPoint.x, octree->boundary.maxPoint.x),
+            GetRandFloat(boundary.minPoint.x, boundary.maxPoint.x),
             0,
-            GetRandFloat(octree->boundary.minPoint.z, octree->boundary.maxPoint.z)
+            GetRandFloat(boundary.minPoint.z, boundary.maxPoint.z)
         };
 
         // クラスターのサイズをランダム化 (半径範囲を設定)
@@ -717,11 +719,11 @@ bool Environment::GenerateRandomInstances(EnvironmentObjectType type, const Mode
         // クラスター範囲を定義し、八分木で検索
         BOUNDING_BOX clusterBox
         (
-            XMFLOAT3(clusterCenter.x - clusterRadius, octree->boundary.minPoint.y, clusterCenter.z - clusterRadius),
-            XMFLOAT3(clusterCenter.x + clusterRadius, octree->boundary.maxPoint.y, clusterCenter.z + clusterRadius)
+            XMFLOAT3(clusterCenter.x - clusterRadius, boundary.minPoint.y, clusterCenter.z - clusterRadius),
+            XMFLOAT3(clusterCenter.x + clusterRadius, boundary.maxPoint.y, clusterCenter.z + clusterRadius)
         );
-        SimpleArray<Triangle*> nearbyTriangles;
-        octree->queryRange(clusterBox, nearbyTriangles);
+        SimpleArray<const Triangle*> nearbyTriangles;
+        octree->QueryRange(clusterBox, nearbyTriangles);
 
         if (nearbyTriangles.getSize() == 0) continue; // クラスター内に三角形がない場合スキップ
 
@@ -733,12 +735,12 @@ bool Environment::GenerateRandomInstances(EnvironmentObjectType type, const Mode
             XMFLOAT3 pos = 
             {
                 clusterCenter.x + cosf(randomaAngle) * randomRadius,
-                octree->boundary.maxPoint.y, // 高い位置からレイを下向きに投射
+                boundary.maxPoint.y, // 高い位置からレイを下向きに投射
                 clusterCenter.z + sinf(randomaAngle) * randomRadius
             };
             BOUNDING_BOX instanceBoundingBox;
-            instanceBoundingBox.maxPoint = XMFLOAT3(pos.x + 0.1f, octree->boundary.maxPoint.y, pos.z + 0.1f);
-            instanceBoundingBox.minPoint = XMFLOAT3(pos.x - 0.1f, octree->boundary.minPoint.y, pos.z - 0.1f);
+            instanceBoundingBox.maxPoint = XMFLOAT3(pos.x + 0.1f, boundary.maxPoint.y, pos.z + 0.1f);
+            instanceBoundingBox.minPoint = XMFLOAT3(pos.x - 0.1f, boundary.minPoint.y, pos.z - 0.1f);
             // 八分木で取得した三角形の中から最も高いものを選択
             const Triangle* bestTriangle = nullptr;
             XMFLOAT3 rayDir = { 0.0f, -1.0f, 0.0f };
@@ -811,7 +813,7 @@ bool Environment::GenerateRandomInstances(EnvironmentObjectType type, const Mode
 
 }
 
-bool Environment::GenerateInstanceByParams(const InstanceParams& params, const SkinnedMeshModel* fieldModel, BOUNDING_BOX fieldBBox)
+bool Environment::GenerateInstanceByParams(const InstanceParams& params, const Model* fieldModel, BOUNDING_BOX fieldBBox)
 {
     EnvironmentObject* obj = InitializeEnvironmentObj(params.type);
     if (obj == nullptr)
@@ -822,6 +824,7 @@ bool Environment::GenerateInstanceByParams(const InstanceParams& params, const S
 
     const SimpleArray<Triangle*>* triangles = fieldModel->GetTriangles();
     OctreeNode* octree = GenerateOctree(triangles, fieldBBox);
+    const BOUNDING_BOX& boundary = octree->GetBoundary();
 
     UINT numInstance = params.transformArray.getSize();
 
@@ -830,16 +833,16 @@ bool Environment::GenerateInstanceByParams(const InstanceParams& params, const S
         XMFLOAT3 pos =
         {
             params.transformArray[i].posX,
-            octree->boundary.maxPoint.y, // 高い位置からレイを下向きに投射
+            boundary.maxPoint.y, // 高い位置からレイを下向きに投射
             params.transformArray[i].posZ
         };
 
         BOUNDING_BOX instanceBoundingBox;
-        instanceBoundingBox.maxPoint = XMFLOAT3(pos.x + 0.1f, octree->boundary.maxPoint.y, pos.z + 0.1f);
-        instanceBoundingBox.minPoint = XMFLOAT3(pos.x - 0.1f, octree->boundary.minPoint.y, pos.z - 0.1f);
+        instanceBoundingBox.maxPoint = XMFLOAT3(pos.x + 0.1f, boundary.maxPoint.y, pos.z + 0.1f);
+        instanceBoundingBox.minPoint = XMFLOAT3(pos.x - 0.1f, boundary.minPoint.y, pos.z - 0.1f);
 
-        SimpleArray<Triangle*> nearbyTriangles;
-        octree->queryRange(instanceBoundingBox, nearbyTriangles);
+        SimpleArray<const Triangle*> nearbyTriangles;
+        octree->QueryRange(instanceBoundingBox, nearbyTriangles);
 
         // 八分木で取得した三角形の中から最も高いものを選択
         const Triangle* bestTriangle = nullptr;

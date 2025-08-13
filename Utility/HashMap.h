@@ -52,6 +52,22 @@ struct EqualUInt64
     }
 };
 
+struct HashUInt32
+{
+    size_t operator()(uint32_t key) const
+    {
+        return static_cast<size_t>(key ^ (key >> 16));
+    }
+};
+
+struct EqualUInt32
+{
+    bool operator()(uint32_t a, uint32_t b) const
+    {
+        return a == b;
+    }
+};
+
 template<typename Key, typename Value, typename HashFunc, typename EqualsFunc>
 class HashMap
 {
@@ -73,7 +89,8 @@ private:
     };
 
     Node** buckets;
-    int size;
+    size_t size;
+    size_t m_count = 0;
 
     HashFunc hashFunc;
     EqualsFunc equalsFunc;
@@ -84,17 +101,17 @@ public:
         : size(32), hashFunc(HashFunc{}), equalsFunc(EqualsFunc{})
     {
         buckets = new Node * [size];
-        for (int i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
         {
             buckets[i] = nullptr;
         }
     }
 
-    HashMap(int size, HashFunc hashFunc, EqualsFunc equalsFunc)
+    HashMap(size_t size, HashFunc hashFunc, EqualsFunc equalsFunc)
         : size(size), hashFunc(hashFunc), equalsFunc(equalsFunc)
     {
         buckets = new Node * [size];
-        for (int i = 0; i < size; ++i) 
+        for (size_t i = 0; i < size; ++i)
         {
             buckets[i] = nullptr;
         }
@@ -136,7 +153,7 @@ public:
 
     ~HashMap()
     {
-        for (int i = 0; i < size; ++i) 
+        for (size_t i = 0; i < size; ++i)
         {
             Node* current = buckets[i];
             while (current != nullptr) 
@@ -158,7 +175,7 @@ public:
 
         this->size = other.size;
         this->buckets = new Node * [this->size] {};
-        for (int i = 0; i < this->size; ++i)
+        for (size_t i = 0; i < this->size; ++i)
         {
             Node* current = other.buckets[i];
             Node** ptr = &this->buckets[i];
@@ -179,7 +196,7 @@ public:
 
     void insert(const Key& key, const Value& value)
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
         while (current != nullptr)
         {
@@ -194,11 +211,13 @@ public:
         Node* newNode = new Node(key, value);
         newNode->next = buckets[index];
         buckets[index] = newNode;
+
+        ++m_count;
     }
 
     Value* search(const Key& key) const
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
         while (current != nullptr)
         {
@@ -213,7 +232,7 @@ public:
 
     Value& operator[](const Key& key)
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
 
         // Search for the key in the linked list
@@ -233,7 +252,7 @@ public:
 
     int count(const Key& key) const
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
         while (current != nullptr)
         {
@@ -246,9 +265,67 @@ public:
         return 0;
     }
 
+    size_t getSize() const
+    {
+        return m_count;
+    }
+
+    size_t bucketCount() const
+    {
+        return size;
+    }
+
+    float load_factor() const
+    {
+        if (size == 0) return 0.0f;
+        return static_cast<float>(m_count) / static_cast<float>(size);
+    }
+
+    int used_bucket_count() const
+    {
+        int count = 0;
+        for (int i = 0; i < size; ++i)
+        {
+            if (buckets[i] != nullptr)
+                ++count;
+        }
+        return count;
+    }
+
+    int max_chain_length() const
+    {
+        int maxLen = 0;
+        for (int i = 0; i < size; ++i)
+        {
+            int len = 0;
+            Node* current = buckets[i];
+            while (current)
+            {
+                ++len;
+                current = current->next;
+            }
+            if (len > maxLen)
+                maxLen = len;
+        }
+        return maxLen;
+    }
+
+    int collision_count() const
+    {
+        return static_cast<int>(m_count) - used_bucket_count();
+    }
+
+    float average_chain_length() const
+    {
+        int totalUsed = used_bucket_count();
+        if (totalUsed == 0) return 0.0f;
+        return static_cast<float>(m_count) / totalUsed;
+    }
+
+
     bool empty() const
     {
-        for (int i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
         {
             if (buckets[i] != nullptr)
                 return false;
@@ -279,6 +356,7 @@ public:
                     previous->next = current->next;
                 }
                 delete current;
+                --m_count;
                 return true;
             }
             previous = current;
@@ -289,7 +367,7 @@ public:
 
     void clear()
     {
-        for (int i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
         {
             Node* current = buckets[i];
             while (current != nullptr)
@@ -300,6 +378,7 @@ public:
             }
             buckets[i] = nullptr; // Reset the bucket pointer after clearing
         }
+        m_count = 0;
     }
 
     Value& at(const Key& key)
@@ -319,7 +398,7 @@ public:
 
     const Value& at(const Key& key) const
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
         while (current != nullptr)
         {
@@ -340,11 +419,11 @@ public:
     private:
         Node** buckets;
         Node* current;
-        int index;
-        int size;
+        size_t index;
+        size_t size;
 
     public:
-        Iterator(Node** buckets, int size, int index = 0, Node* node = nullptr)
+        Iterator(Node** buckets, size_t size, size_t index = 0, Node* node = nullptr)
             : buckets(buckets), size(size), index(index), current(node)
         {
             if (current == nullptr)
@@ -422,7 +501,7 @@ public:
 
     Iterator find(const Key& key) const
     {
-        unsigned int index = hashFunc(key) % size;
+        size_t index = hashFunc(key) % size;
         Node* current = buckets[index];
         while (current != nullptr)
         {
@@ -461,7 +540,7 @@ public:
         }
 
         // 現在のバケットに次がなければ、次のバケットを探す
-        for (int i = index + 1; i < size; ++i)
+        for (size_t i = index + 1; i < size; ++i)
         {
             if (buckets[i] != nullptr)
             {

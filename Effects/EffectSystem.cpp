@@ -5,19 +5,23 @@
 //
 //=============================================================================
 #include "Effects/EffectSystem.h"
-#include "SmokeEffectRenderer.h"
-#include "FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/SmokeEffectRenderer.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
+#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 
-void EffectSystem::Initialize(ID3D11Device* device, ID3D11DeviceContext* context)
+void EffectSystem::Init(void)
 {
-	m_device = device;
-	m_context = context;
+	m_device = Renderer::get_instance().GetDevice();
+	m_context = Renderer::get_instance().GetDeviceContext();
 
 	// あらかじめリザーブしてメモリ確保（推定数値）
 	m_allEffects.reserve(MAX_EFFECT_NUM);
-	m_fireEffects.reserve(MAX_FIRE_EFFECT_NUM);
-	m_smokeEffects.reserve(MAX_SMOKE_EFFECT_NUM);
+	m_billboardSimpleEffects.reserve(MAX_BILLBOARD_SIMPLE_NUM);
+	m_billboardFlipbookEffects.reserve(MAX_BILLBOARD_FLIPBOOK_NUM);
+	m_waterFluidEffects.reserve(MAX_WATER_FLUID_NUM);
 	m_softBodyEffects.reserve(MAX_SOFTBODY_EFFECT_NUM);
+
+	m_initialized = true; // 初期化フラグを立てる
 }
 
 void EffectSystem::Shutdown(void)
@@ -31,6 +35,8 @@ void EffectSystem::Shutdown(void)
 
 void EffectSystem::Update(void)
 {
+	if (!m_initialized) return; // 初期化されていない場合は何もしない
+
 	// 中身だけお掃除して再利用する
 	m_toRemove.clear();
 
@@ -54,10 +60,13 @@ void EffectSystem::Update(void)
 
 void EffectSystem::Draw(void)
 {
+	if (!m_initialized) return; // 初期化されていない場合は何もしない
+
 	// 毎フレーム頭で分類クリア
 	m_billboardSimpleEffects.clear();
 	m_billboardFlipbookEffects.clear();
 	m_softBodyEffects.clear();
+	m_waterFluidEffects.clear();
 
 	// 分類処理
 	for (auto effect : m_allEffects)
@@ -75,6 +84,9 @@ void EffectSystem::Draw(void)
 					break;
 				case ParticleShaderGroup::BillboardFlipbook:
 					m_billboardFlipbookEffects.push_back(particle);
+					break;
+				case ParticleShaderGroup::WaterFluid:
+					m_waterFluidEffects.push_back(particle);
 					break;
 				default:
 					break;
@@ -116,6 +128,17 @@ void EffectSystem::Draw(void)
 		{
 			if (effect->IsShutdown()) // シャットダウン済みならスキップ
 				continue;
+			effect->SetupPipeline();
+			effect->Draw();
+		}
+	}
+
+	// WaterFluid
+	if (!m_waterFluidEffects.empty())
+	{
+		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::WaterFluid);
+		for (auto* effect : m_waterFluidEffects)
+		{
 			effect->SetupPipeline();
 			effect->Draw();
 		}
@@ -169,6 +192,9 @@ ParticleEffectRendererBase* EffectSystem::SpawnParticleEffect(ParticleEffectPara
 		break;
 	case EffectType::FireBall:
 		effect = new FireBallEffectRenderer();
+		break;
+	case EffectType::WaterFluid:
+		effect = new WaterFluidParticleRenderer();
 		break;
 	default:
 		return nullptr; // 未対応タイプ
