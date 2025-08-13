@@ -22,7 +22,7 @@
 #define MAX_TREE			(0)
 
 #define TREE_SIZE			(350.0f)
-#define KEY_SIZE			(15.0f)
+#define KEY_SIZE			(5.0f)
 #define SEED_SIZE			(0.2f)
 #define SEEDSOIL_SIZE       (10)
 #define SOIL_SIZE			(100.0f)
@@ -496,7 +496,7 @@ void Ground::LoadScene2(void)
 	{
 
 		Transform trans;
-		trans.pos = XMFLOAT3(280.0f, -300.0f, 1295.0f);
+		trans.pos = XMFLOAT3(10000.0f, 9950.0f, 8770.0f);
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	

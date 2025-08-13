@@ -9,6 +9,7 @@
 #include "Scene/EnemyManager.h"
 #include "Effects/EffectSystem.h"
 #include "UI/Base/UIManager.h"
+#include "Core/GameSystem.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -1235,7 +1236,8 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
-			self->EnableWeapon(true);
+			//self->EnableWeapon(true);
+			GameSystem::get_instance().ChangeMode(GameMode::RESULT, true);
 		}
 	}
 
