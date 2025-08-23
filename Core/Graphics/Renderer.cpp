@@ -67,7 +67,7 @@ void Renderer::SetDepthMode(DepthMode mode)
 		depthView = m_SceneDepthStencilView;
 		break;
 
-	case DepthMode::Particle:
+	case DepthMode::Effect:
 		// 深度テストは有効、書き込みは無効（パーティクル描画用）
 		depthState = m_DepthStateParticle;
 		depthView = m_SceneDepthStencilView;

@@ -6,14 +6,23 @@
 //=============================================================================
 #include "Effects/ProjectilePreview/ProjectilePredictor.h"
 
-ProjectilePredictor::ProjectilePredictor(float gravity) 
-	: m_gravity(gravity), m_voxelGrid(nullptr) {}
 
-void ProjectilePredictor::ComputeTrajectory(const XMFLOAT3& start, const XMFLOAT3& dir, float speed, float maxTime, 
-	float stepTime, SimpleArray<TrajectoryPoint>& outPoints, XMFLOAT3* outHitPos)
+
+ProjectilePredictor::ProjectilePredictor(float gravity) 
+	: m_gravity(gravity), m_voxelGrid(nullptr) 
 {
-    outPoints.clear();
+    m_trajectoryPoints.reserve(MAX_TRAJECTORY_POINTS);
+}
+
+void ProjectilePredictor::ComputeTrajectory(const XMFLOAT3& start, const XMFLOAT3& dir, float speed, 
+    float maxTime, float stepTime, XMFLOAT3* outHitPos, XMFLOAT3* outHitNormal)
+{
+    if (!m_voxelGrid)
+		SetCollisionVoxelGrid(CollisionManager::get_instance().GetVoxelGrid());
+
+    m_trajectoryPoints.clear();
     if (outHitPos) *outHitPos = XMFLOAT3(0, 0, 0);
+	if (outHitNormal) *outHitNormal = XMFLOAT3(0, 0, 0);
 
     XMFLOAT3 prevPos = start;
     bool hitFound = false;
@@ -26,17 +35,18 @@ void ProjectilePredictor::ComputeTrajectory(const XMFLOAT3& start, const XMFLOAT
         pos.z = start.z + dir.z * speed * t;
 
         // DDA‚Å‚ÌÕ“Ë”»’è
-        XMFLOAT3 hitPos;
-        if (m_voxelGrid && m_voxelGrid->Raycast(prevPos, pos, &hitPos)) 
+        XMFLOAT3 hitPos, hitNormal;
+        if (m_voxelGrid && m_voxelGrid->Raycast(prevPos, pos, &hitPos, &hitNormal))
         {
-            outPoints.push_back({ hitPos, true });
+            m_trajectoryPoints.push_back({ hitPos, true });
             if (outHitPos) *outHitPos = hitPos;
+			if (outHitNormal) *outHitNormal = hitNormal;
             hitFound = true;
             break;
         }
         else 
         {
-            outPoints.push_back({ pos, false });
+            m_trajectoryPoints.push_back({ pos, false });
         }
 
         prevPos = pos;

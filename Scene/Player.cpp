@@ -13,13 +13,14 @@
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/PlayerEnterExitBehavior.h"
 
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
 #define ROTATION_SPEED				(0.18f)
 #define FALLING_SPEED				(12.50f)
 #define SPD_DECAY_RATE				(0.93f)
-
+#define THROW_SPEED					(45.0f)
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -45,6 +46,7 @@ Player::Player()
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
+	m_playerAttr.initPos = PLAYER_INIT_POS;
 	lumine->SetTransform(transform);
 	lumine->SetPlayerAttributes(&m_playerAttr);
 	m_playerGO = lumine;
@@ -55,7 +57,7 @@ Player::Player()
 	m_light->BindToTransform(m_playerGO->GetTransformP());
 	m_lightMgr.AddLight(m_light);
 
-	m_previewRenderer = new ProjectilePreviewRenderer();
+	m_previewRenderer.Initialize();
 	m_predictor.SetCollisionVoxelGrid(CollisionManager::get_instance().GetVoxelGrid()); // 地形ボクセルをセット
 }
 
@@ -97,6 +99,8 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
+	m_projectileFollowerManager.UpdateAll();
+
 
 #ifdef _DEBUG
 	m_debugProc.PrintDebugProc("PosX: %f PosY: %f, PosZ: %f\n", m_transform.pos.x, m_transform.pos.y, m_transform.pos.z);
@@ -111,6 +115,11 @@ void Player::Draw(void)
 void Player::DrawEffect(void)
 {
 	m_playerGO->DrawEffect();
+
+	if (m_playerAttr.throwMode)
+	{
+		m_previewRenderer.Draw();
+	}
 }
 
 void Player::HandlePlayerMove(Transform& transform)
@@ -232,6 +241,8 @@ void Player::PickItem(Item* obj)
 
 void Player::SetClimbMode(PlayerState climbState)
 {
+	m_playerAttr.drawGun = false;
+
 	if (climbState == PlayerState::START_CLIMBING_UP ||
 		climbState == PlayerState::START_CLIMBING_DOWN)
 	{
@@ -292,6 +303,8 @@ void Player::SetClimbMode(PlayerState climbState)
 
 void Player::PlaceItem(ItemType type)
 {
+	m_playerAttr.drawGun = false;
+
 	Item* item = m_itemManager.GetItem(type);
 	if (item == nullptr || item->GetUsed())
 		return;
@@ -347,6 +360,61 @@ void Player::UpdateNormalMode(void)
 
 		// 入力の処理
 		HandleInput();
+
+		if (m_playerAttr.throwMode)
+		{
+			Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+			if (item)
+			{
+				XMMATRIX M_hand_world = m_playerGO->GetSkinnedMeshModel()->GetBodyTransformMtx(BodyTransformIndex::RightHand);
+				XMMATRIX M_local_pos = XMMatrixTranslation(-38.6f, 84.6f, 1.8f);
+				XMMATRIX M_local_rot = XMMatrixRotationRollPitchYaw(m_transform.rot.x, m_transform.rot.y, m_transform.rot.z);
+				XMMATRIX M_local = M_local_rot * M_local_pos;
+
+				XMMATRIX M_item_world = XMMatrixMultiply(M_local, M_hand_world);
+				M_item_world = XMMatrixMultiply(M_item_world, m_playerGO->GetInstance()->transform.mtxWorld);
+
+				XMVECTOR S, R, T;
+				XMMatrixDecompose(&S, &R, &T, M_item_world);
+
+				XMFLOAT3 startPos;
+				XMStoreFloat3(&startPos, T);
+
+				XMFLOAT3 rotEuler;
+				{
+					XMFLOAT4 q;
+					XMStoreFloat4(&q, R);
+
+					XMVECTOR quat = XMLoadFloat4(&q);
+					XMFLOAT3 angles;
+					XMStoreFloat3(&angles, XMQuaternionRotationMatrix(XMMatrixRotationQuaternion(quat)));
+
+					XMFLOAT4X4 rotMtx;
+					XMStoreFloat4x4(&rotMtx, XMMatrixRotationQuaternion(quat));
+
+					rotEuler.y = atan2f(rotMtx._13, rotMtx._33);                        // Yaw
+					rotEuler.x = asinf(-rotMtx._23);                                    // Pitch
+					rotEuler.z = atan2f(rotMtx._21, rotMtx._22);                        // Roll
+				}
+
+				item->SetPosition(startPos);
+				item->SetRotation(XMFLOAT3(m_transform.rot.x - 2.0f, m_transform.rot.y + 0.2f, m_transform.rot.z + 0.3f));
+				item->GetAttributes()->use = true;
+
+				XMFLOAT3 hitPos{}, hitNormal{};
+				m_predictor.ComputeTrajectory(
+					startPos,
+					m_camera.GetThrowModeDirection(),
+					THROW_SPEED,
+					75.0f,		// 最大予測時間
+					0.15f,		// サンプリング間隔
+					&hitPos,	// ヒット位置
+					&hitNormal	// ヒット法線
+				);
+
+				m_previewRenderer.Update(m_predictor.GetTrajectoryPoints(), hitPos, hitNormal);
+			}
+		}
 	}
 
 	// プレイヤーの状態を更新
@@ -417,6 +485,12 @@ void Player::UpdateActionQueue(void)
 
 void Player::UpdatePlayerStatus(void)
 {
+	if (m_playerAttr.cancelThrowFlag)
+	{
+		CancelThrow();
+		m_playerAttr.cancelThrowFlag = false;
+	}
+
 	// 地面にいるかどうか
 	if (!m_attributes->isGrounded)
 	{
@@ -602,6 +676,7 @@ void Player::HandleInput(void)
 		if (!m_playerAttr.throwMode)
 		{
 			m_playerAttr.aimMode = true;
+			m_playerAttr.drawGun = true;
 			m_camera.SetAimMode(CameraMode::Aiming, true);
 
 			AlignPlayerYawToCamera();
@@ -615,9 +690,10 @@ void Player::HandleInput(void)
 
 	if (m_inputManager.GetKeyboardRelease(KEY_ENTER_THROW_MODE) && !m_playerAttr.throwMode)
 	{
-		if (!m_playerAttr.aimMode)
+		if (!m_playerAttr.aimMode && m_itemManager.GetPickedItem(ItemType::Seed))
 		{
 			m_playerAttr.throwMode = true;
+			m_playerAttr.drawGun = false;
 			m_camera.SetAimMode(CameraMode::ProjectileAiming, true);
 		}
 	}
@@ -646,6 +722,15 @@ void Player::ConfirmThrow(void)
 	m_playerAttr.confirmThrow = true;
 	m_playerAttr.allowControl = false;
 	m_camera.SetAimMode(CameraMode::ProjectileAiming, false);
+
+	Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+	if (item)
+	{
+		item->SetColliderEnable(true);
+		item->Use();
+		item->SetIsThrew(true);
+		m_projectileFollowerManager.Spawn(m_predictor.GetTrajectoryPoints(), THROW_SPEED, item);
+	}
 }
 
 void Player::CancelThrow(void)
@@ -653,6 +738,12 @@ void Player::CancelThrow(void)
 	m_playerAttr.throwMode = false;
 	m_playerAttr.confirmThrow = false;
 	m_camera.SetAimMode(CameraMode::ProjectileAiming, false);
+
+	Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+	if (item)
+	{
+		item->GetAttributes()->use = false;
+	}
 }
 
 void Player::RenderImGui(void)
@@ -663,5 +754,12 @@ void Player::RenderImGui(void)
 		{
 			m_playerGO->SetDrawWorldAABB(m_drawBoundingBox);
 		}
+	}
+
+	if (ImGui::CollapsingHeader("Debug pos"))
+	{
+		ImGui::SliderFloat("a: ", &a, -2, 2, "%.1f");
+		ImGui::SliderFloat("b: ", &b, -2, 2, "%.1f");
+		ImGui::SliderFloat("c: ", &c, -2, 2, "%.1f");
 	}
 }

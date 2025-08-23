@@ -12,6 +12,8 @@
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 #include "Effects/ProjectilePreview/ProjectilePreviewRenderer.h"
+#include "Effects/ProjectilePreview/ArcLengthPathFollower.h"
+#include "Effects/ProjectilePreview/ProjectileFollowerManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -21,7 +23,7 @@
 #define VALUE_PLAYEER_RUN_FACTOR	(1.5f)
 #define	VALUE_PLAYER_ROTATE			(XM_PI * 0.02f)					// ‰ñ“]—Ê
 
-#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6270.0f, 4453.0f)
+#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6470.0f, 4453.0f)
 
 class Player : public IDebugUI
 {
@@ -34,6 +36,7 @@ public:
 	Transform GetTransform(void) const;
 
 	void InitializePlayerStatus(void);
+	void ResetPlayerPosition(void) { if (m_playerGO) m_playerGO->SetPosition(m_playerAttr.initPos); }
 
 	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; }
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; }
@@ -85,8 +88,10 @@ private:
 
 	Light* m_light;
 
-	ProjectilePreviewRenderer* m_previewRenderer = nullptr;
+	ProjectilePreviewRenderer m_previewRenderer;
 	ProjectilePredictor m_predictor;
+
+	float a = 0, b = 0, c = 0;
 
 	Renderer& m_renderer = Renderer::get_instance();
 	LightManager& m_lightMgr = LightManager::get_instance();
@@ -94,4 +99,5 @@ private:
 	DebugProc& m_debugProc = DebugProc::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();
 	ItemManager& m_itemManager = ItemManager::get_instance();
+	ProjectileFollowerManager& m_projectileFollowerManager = ProjectileFollowerManager::get_instance();
 };

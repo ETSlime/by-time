@@ -31,7 +31,7 @@ void ItemManager::Draw(void)
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);
 
-		if (!cur->data->GetItemAttributes().used && cur->data->GetAttributesConst().use)
+		if (cur->data->GetAttributesConst().use)
 			cur->data->Draw();
 
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
@@ -70,11 +70,12 @@ void ItemManager::Update(void)
 			}
 		}
 
-		if (cur->data->GetUse() == FALSE)
+		if (cur->data->GetDestroy())
 		{
 			Node<Item*>* toDelete = cur;
 			cur = cur->next;
-			SAFE_DELETE(toDelete->data);
+			// ƒAƒCƒeƒ€‚ðíœ
+			toDelete->data->Destroy();
 			m_itemList.remove(toDelete);
 		}
 		else
@@ -106,6 +107,20 @@ Item* ItemManager::GetItem(ItemType itemType) const
 	while (cur != nullptr)
 	{
 		if (cur->data->GetItemType() == itemType)
+		{
+			return cur->data;
+		}
+		cur = cur->next;
+	}
+	return nullptr;
+}
+
+Item* ItemManager::GetPickedItem(ItemType itemType) const
+{
+	Node<Item*>* cur = m_itemList.getHead();
+	while (cur != nullptr)
+	{
+		if (cur->data->GetItemType() == itemType && cur->data->GetPickedUp() && !cur->data->GetUsed())
 		{
 			return cur->data;
 		}

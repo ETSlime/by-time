@@ -490,6 +490,22 @@ float Lerp(float a, float b, float t)
 	return a + (b - a) * t;
 }
 
+XMFLOAT3 Lerp3(const XMFLOAT3& a, const XMFLOAT3& b, float t)
+{
+	return XMFLOAT3(
+		a.x + (b.x - a.x) * t,
+		a.y + (b.y - a.y) * t,
+		a.z + (b.z - a.z) * t
+	);
+}
+
+float Length3(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	XMVECTOR A = XMLoadFloat3(&a);
+	XMVECTOR B = XMLoadFloat3(&b);
+	return XMVectorGetX(XMVector3Length(B - A));
+}
+
 float SmoothAngleLerp(float current, float target, float t)
 {
 	// ç∑ï™Ç[-ÉŒ, ÉŒ]Ç…ê≥ãKâª
@@ -505,6 +521,15 @@ float SmoothAngleLerp(float current, float target, float t)
 	if (current < -XM_PI) current += XM_2PI;
 
 	return current;
+}
+
+XMFLOAT3 DirNorm(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	XMVECTOR A = XMLoadFloat3(&a);
+	XMVECTOR B = XMLoadFloat3(&b);
+	XMVECTOR D = XMVector3Normalize(B - A);
+	XMFLOAT3 out; XMStoreFloat3(&out, D);
+	return out;
 }
 
 void ExitGame(void)

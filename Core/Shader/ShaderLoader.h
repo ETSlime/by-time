@@ -91,6 +91,7 @@ enum class VertexLayoutID : uint64_t
     Instanced,
     Skybox,
     VFX,
+    ProjectilePreview,
     FluidSurface,
     UI,
     Debug,

@@ -130,7 +130,7 @@ void VoxelGrid::Query(const XMFLOAT3& center, float radius, SimpleArray<const Tr
 	}
 }
 
-bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hitPos) const
+bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hitPos, XMFLOAT3* hitNormal) const
 {
     // レイ始点・終点をロード
     XMVECTOR p0 = XMLoadFloat3(&start);
@@ -150,6 +150,18 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
     // 始点・終点のボクセル座標
     VoxelKey voxel = GetVoxelKey(start);
     VoxelKey target = GetVoxelKey(end);
+
+    // ボクセル座標の範囲チェック
+    auto IsValidVoxel = [&](const VoxelKey& vk) -> bool {
+        return (vk.x >= 0 && vk.x < 1024 &&
+            vk.y >= 0 && vk.y < 1024 &&
+            vk.z >= 0 && vk.z < 1024);
+        };
+
+    // ボクセル座標の範囲チェック
+    if (!IsValidVoxel(voxel))
+		return false; // ボクセルキーが範囲外なら終了
+
 
     // DDA用の軸方向ステップ (+1 or -1)
     int stepX = (dir.x > 0) ? 1 : -1;
@@ -177,11 +189,14 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
 
     float traveled = 0.0f;
     float closestT = FLT_MAX;
-    XMFLOAT3 closestHit{};
+    XMFLOAT3 closestHit{}, closestHitNormal{};
 
     // DDAループ: レイが通過するボクセルを順次チェック
     while (traveled <= length) 
     {
+        if (!IsValidVoxel(voxel))
+			return false; // ボクセルキーが範囲外なら終了
+
         auto entryIt = m_voxelMap.find(voxel);
         if (entryIt != m_voxelMap.end()) 
         {
@@ -190,12 +205,14 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
             for (const Triangle* tri : entry.triangles) 
             {
                 float t;
-                XMFLOAT3 hit;
-                if (RayIntersectsTriangle(start, dir, tri, &t, &hit)) 
+                XMFLOAT3 hit, hitNormal;
+                if (RayIntersectsTriangle(start, dir, tri, &t, &hit, &hitNormal))
                 {
-                    if (t < closestT && t >= 0.0f && t <= length) {
+                    if (t < closestT && t >= 0.0f && t <= length) 
+                    {
                         closestT = t;
                         closestHit = hit;
+						closestHitNormal = hitNormal;
                     }
                 }
             }
@@ -203,6 +220,7 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
             if (closestT < FLT_MAX) 
             {
                 if (hitPos) *hitPos = closestHit;
+				if (hitNormal) *hitNormal = closestHitNormal;
                 return true;
             }
         }
@@ -216,7 +234,8 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
                 traveled = tMaxX;
                 tMaxX += tDeltaX;
             }
-            else {
+            else 
+            {
                 voxel.z += stepZ;
                 traveled = tMaxZ;
                 tMaxZ += tDeltaZ;
@@ -302,7 +321,7 @@ void VoxelGrid::print_debug_stats(void) const
 }
 
 bool VoxelGrid::RayIntersectsTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, const Triangle* tri, 
-    float* outT, XMFLOAT3* outHit) const
+    float* outT, XMFLOAT3* outHit, XMFLOAT3* outHitNormal) const
 {
     // 頂点座標をロード
     XMVECTOR v0 = XMLoadFloat3(&tri->v0);
@@ -356,9 +375,26 @@ bool VoxelGrid::RayIntersectsTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT3&
     if (outT) *outT = t;
 
     // 交差点座標を計算
-    if (outHit) {
+    if (outHit) 
+    {
         XMVECTOR hitPos = XMVectorAdd(orig, XMVectorScale(dir, t));
         XMStoreFloat3(outHit, hitPos);
     }
+
+    // 面法線（正規化）を計算
+    if (outHitNormal)
+    {
+        XMVECTOR normal = XMVector3Normalize(XMVector3Cross(edge1, edge2));
+
+        // 法線をレイの方向に合わせて反転（もし内向きなら反転）
+        // dot(dir, normal) > 0 の場合、normalはレイの進行方向と同じ向き → 反転
+        if (XMVectorGetX(XMVector3Dot(dir, normal)) > 0.0f)
+        {
+            normal = XMVectorNegate(normal);
+        }
+
+        XMStoreFloat3(outHitNormal, normal);
+    }
+
     return true;
 }

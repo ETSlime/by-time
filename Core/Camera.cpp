@@ -146,19 +146,21 @@ void Camera::Update(void)
 
 			// プレイヤーのforward/right計算
 			XMFLOAT3 playerForward = player->GetTransform().GetForward();
-			targetCamPos = ComputeShoulderCameraPos(playerPos, playerForward, localOffset);
+			XMFLOAT3 playerRight = player->GetTransform().GetRight();
+			XMVECTOR forwardVec = XMLoadFloat3(&playerForward);
+			XMVECTOR rightVec = XMLoadFloat3(&playerRight);
 
 			// LookAtをforward方向にずらす
-			XMVECTOR posVec = XMLoadFloat3(&playerPos);
-			XMVECTOR f = XMLoadFloat3(&playerForward);
-			XMVECTOR flatForward = XMVector3Normalize(XMVectorSetY(f, 0.0f)); // 水平成分のみ
+			XMVECTOR playerPosVec = XMLoadFloat3(&playerPos);
+			targetCamPos = ComputeShoulderCameraPos(playerPos, playerForward, localOffset, -11);
 
 			// 基本的なlook targetはプレイヤー前方
 			float lookAheadDist = playerBB.GetHeight() * 2.0f; // 2倍程度前方を見る
-			XMVECTOR lookTarget = posVec + flatForward * lookAheadDist;
+			XMVECTOR flatForward = XMVector3Normalize(XMVectorSetY(forwardVec, 0.0f)); // 水平成分のみ
+			XMVECTOR lookTarget = playerPosVec + flatForward * lookAheadDist;
 
 			// プレイヤー頭部の基準Y座標
-			float headY = XMVectorGetY(posVec) + playerHeight * 0.9f;
+			float headY = XMVectorGetY(playerPosVec) + playerHeight * 0.9f;
 
 			// カメラ上下回転を反映した視線Y
 			float adjustedY = headY + (-sinf(m_rot.x) * lookAheadDist);
@@ -191,10 +193,24 @@ void Camera::Update(void)
 			XMFLOAT3 playerForward = player->GetTransform().GetForward();
 			targetCamPos = ComputeShoulderCameraPos(playerPos, playerForward, localOffset);
 
+			// プレイヤー位置ベクトル
 			XMVECTOR posVec = XMLoadFloat3(&playerPos);
-			XMVECTOR f = XMLoadFloat3(&playerForward);
-			XMVECTOR flatForward = XMVector3Normalize(XMVectorSetY(f, 0.0f));
+			XMVECTOR forwardVec = XMLoadFloat3(&playerForward);
+			XMVECTOR flatForward = XMVector3Normalize(XMVectorSetY(forwardVec, 0.0f));
 
+			// 投擲用の射出方向 dir を計算
+			// yaw: プレイヤーのforward, pitch: m_throwModeRotx
+			XMVECTOR rightVec = XMVector3Normalize(XMVector3Cross(XMVectorSet(0, 1, 0, 0), flatForward));
+			XMVECTOR upVec = XMVectorSet(0, 1, 0, 0);
+
+			XMVECTOR dirVec =
+				flatForward * cosf(m_throwModeRotx) +    // 前方成分
+				upVec * sinf(m_throwModeRotx);           // 上下成分
+
+			dirVec = XMVector3Normalize(dirVec);
+			XMStoreFloat3(&m_throwModeDir, dirVec);
+
+			// lookTarget: 視点の前方 (カメラは固定、視線のみ調整)
 			float lookAheadDist = playerHeight * 2.0f; // 2倍程度前方を見る
 			XMVECTOR lookTarget = posVec + flatForward * lookAheadDist;
 
@@ -427,6 +443,7 @@ void Camera::SetAimMode(CameraMode aimMode, bool enable)
 		// 指定された照準モードに入る
 		m_mode = aimMode;
 		m_targetFov = VIEW_ANGLE_AIM;
+		m_throwModeRotx = 0.3f; // 投擲モードの回転角度をリセット
 	}
 	else
 	{
@@ -555,7 +572,11 @@ void Camera::UpdateCameraAdjustments(void)
 		}
 		else if (m_mode == CameraMode::ProjectileAiming)
 		{
-			m_rot.x = 0.3f;
+			m_rot.x = 0.3f; // 投擲モードでは仰角を固定
+			
+			float desiredRotX = m_throwModeRotx - deltaY * MOUSE_SENSITIVITY * m_timer.GetScaledDeltaTime() * 0.1f;
+			m_throwModeRotx = desiredRotX;
+
 		}
 		else
 		{
@@ -752,19 +773,24 @@ void Camera::UpdateCameraAdjustments(void)
 #endif
 }
 
-XMFLOAT3 Camera::ComputeShoulderCameraPos(const XMFLOAT3& playerPos, const XMFLOAT3& playerForward, const XMFLOAT3& localOffset) const
+XMFLOAT3 Camera::ComputeShoulderCameraPos(const XMFLOAT3& playerPos, const XMFLOAT3& playerForward, const XMFLOAT3& localOffset, float horizontalAngleOffset) const
 {
 	XMVECTOR f = XMLoadFloat3(&playerForward);
 	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
 	XMVECTOR r = XMVector3Normalize(XMVector3Cross(up, f));
 
-	XMVECTOR worldOffset =
+	XMVECTOR rawCameraOffset =
 		r * localOffset.x +  // 右方向（肩越し）
 		up * localOffset.y + // 高さ
 		f * localOffset.z;   // 前後距離
 
+	XMVECTOR player = XMLoadFloat3(&playerPos);
+	XMVECTOR rotateOrigin = player + f;
+	XMMATRIX rotation = XMMatrixRotationAxis(up, XMConvertToRadians(horizontalAngleOffset));
+	XMVECTOR rotatedCameraPos = XMVector3TransformCoord(player + rawCameraOffset - rotateOrigin, rotation) + rotateOrigin;
+
 	XMFLOAT3 targetPos;
-	XMStoreFloat3(&targetPos, worldOffset + XMLoadFloat3(&playerPos));
+	XMStoreFloat3(&targetPos, rotatedCameraPos);
 	return targetPos;
 }
 

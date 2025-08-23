@@ -428,6 +428,12 @@
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
       <Filter>Effects\ProjectilePreview</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ProjectileFollowerManager.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ArcLengthPathFollower.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">

@@ -32,8 +32,9 @@ enum class ColliderTag
 
 enum class CollisionCallbackID
 {
-    PickUpItem,
+    Item,
     EnemyAttackHit,
+    ProjectileHit,
 };
 
 // ‘O•ûéŒ¾

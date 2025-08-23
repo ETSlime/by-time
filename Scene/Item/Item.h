@@ -13,11 +13,20 @@ enum class ItemType
 	Max
 };
 
+enum class HitColliderType
+{
+	None,
+	Enemy,
+	Environment,
+};
+
 struct ItemAttributes
 {
 	bool used;
 	bool pickedUp;
+	bool isThrew;
 	bool initialized;
+	bool destroy;
 	ItemType itemType;
 
 	Transform initTrans;
@@ -36,18 +45,23 @@ public:
 
 	void Update(void) override;
 	void Draw(void) override;
+	void PlayEffect(HitColliderType type);
 
-	void Use(void) {};
+	void Use(void) { m_itemAttributes.used = true; }
 	void Pickup(void);
 	bool GetUsed(void) { return m_itemAttributes.used; }
 	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }
 	void SetActive(bool enable);
 	void SetColliderEnable(bool enable) { instance.collider.enable = enable; }
+	void SetIsThrew(bool threw) { m_itemAttributes.isThrew = threw; }
+	bool GetIsThrew(void) { return m_itemAttributes.isThrew; }
+	void SetDestroy(bool destroy) { m_itemAttributes.destroy = destroy; }
+	bool GetDestroy(void) { return m_itemAttributes.destroy; }
 	ItemType GetItemType(void) const { return m_itemAttributes.itemType; }
 
 protected:
 	// プレイヤーがアイテムを拾ったときのコールバック
-	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
+	static void OnItemCollisionCallback(const CollisionEvent& event, void* context);
 	ItemAttributes m_itemAttributes;
 
 };

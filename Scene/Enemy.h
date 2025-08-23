@@ -180,6 +180,9 @@ public:
 	bool CheckAvailableToMove(void);
 
 protected:
+	// コリジョンイベントコールバック関数
+	static void OnProjectileHitCallback(const CollisionEvent& event, void* context);
+
 	void InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag);
 	void UpdateBoneHitCollider(EnemyBoneHitCollider& hitCollider, BodyTransformIndex transformIdx);
 	EnemyAttributes m_enemyAttr;

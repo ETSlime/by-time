@@ -26,6 +26,7 @@
 struct ParticleEffectParams
 {
     EffectType type = EffectType::None;
+	float duration = -1.0f; // エフェクトの持続時間（秒）
     XMFLOAT3 position = XMFLOAT3(0.0f, 0.0f, 0.0f);
     float scale = 1.0f;
     float lifeMin = 1.0f;

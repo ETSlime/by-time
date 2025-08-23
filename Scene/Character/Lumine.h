@@ -42,11 +42,17 @@ struct PlayerAttributes
 	bool			aimMode = false;	// エイムモード
 	bool			throwMode = false;
 	bool			confirmThrow = false;
+	bool			confirmThrowFlag = false;
+	bool			cancelThrowFlag = false;
 	bool			climbMode = false; // クライムモード
 	bool			climbUp = false; // クライムモードで上に移動中かどうか
 	bool 			climbDown = false; // クライムモードで下に移動中かどうか
 	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
 	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
+
+	bool			drawGun = false;
+
+	XMFLOAT3		initPos{};
 	
 };
 
@@ -117,6 +123,7 @@ public:
 	virtual void OnThrowAnimationEnd(void) override;
 	//virtual const char* GetPanelName(void) const override { return "Lumine"; };
 private:
+	// コリジョンイベントコールバック関数
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
 	static void OnHitCallback(const CollisionEvent& event, void* context);
 

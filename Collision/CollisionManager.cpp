@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Collision/CollisionManager.h"
 #include "Collision/VoxelBufferUploader.h"
+#include "Core/GameSystem.h"
 #include "Scene/GameObject.h"
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
@@ -91,6 +92,7 @@ void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, fl
 void CollisionManager::Update()
 {
     if (!m_initialized) return; // 初期化されていない場合は何もしない
+	if (!GameSystem::get_instance().GetFinishLoading()) return; // ロード中は何もしない
 
 #ifdef _DEBUG
     if (m_voxelGrid)
@@ -469,6 +471,7 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
     if (dynamicCol->enableDynamicCollision)
     {
         UINT numColliders = dynamicColliders.getSize();
+
         for (UINT j = startIdx + 1; j < numColliders; j++)
         {
             const Collider* dynamicCol2 = dynamicColliders[j];
@@ -528,11 +531,13 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::EnemyAttackHit);
                 }
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ITEM)
-                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM)
+                    || (dynamicCol->tag == ColliderTag::ENEMY && dynamicCol2->tag == ColliderTag::ITEM)
+                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::ITEM))
                 {
                     // コールバックを持っていれば呼ぶ
-                    dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
-                    dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
+                    dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::Item);
+                    dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::Item);
 
                 }
                 else

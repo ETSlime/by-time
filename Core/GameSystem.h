@@ -74,7 +74,7 @@ public:
     void Shutdown(void);
     void Update(void);
     void Draw(void);
-
+	bool GetFinishLoading(void) const { return m_currLoadCtx.finishInitialLoad; }
     void RenderShadowPass(void);
 
     // ƒQ[ƒ€‚Ìˆê’â~/ÄŠJ

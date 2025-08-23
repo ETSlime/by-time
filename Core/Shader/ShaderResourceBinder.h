@@ -25,6 +25,7 @@
 #define SLOT_CB_MATERIAL                    3
 #define SLOT_CB_LIGHT                       4
 #define SLOT_CB_FOG                         5    
+#define SLOT_CB_PROJECTILE_PREVIEW		    5 // 投擲モードのプレビュー用
 #define SLOT_CB_EFFECT_UPDATE               5 // 粒子更新用
 #define SLOT_CB_EFFECT_DRAW                 6 // 粒子描画用
 #define SLOT_CB_FUCHI                       6   

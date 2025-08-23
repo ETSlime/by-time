@@ -1,4 +1,6 @@
 #include "Scene/Item/Item.h"
+#include "Effects/EffectSystem.h"
+#include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 
 Item::Item(ItemType itemType, Transform trans)
 {
@@ -47,12 +49,73 @@ void Item::Initialize(void)
 
 	m_itemAttributes.initialized = true;
 
-	instance.collider.AddCollisionCallback(OnItemPickupCallback, this, CollisionCallbackID::PickUpItem);
+	instance.collider.AddCollisionCallback(OnItemCollisionCallback, this, CollisionCallbackID::Item);
 }
 
 void Item::Draw(void)
 {
 	GameObject::Draw();
+}
+
+void Item::PlayEffect(HitColliderType type)
+{
+	if (m_itemAttributes.itemType == ItemType::Seed)
+	{
+		ParticleEffectParams smokeParams;
+		smokeParams.type = EffectType::Smoke;
+		smokeParams.duration = 7.5f;
+		smokeParams.position = instance.transform.pos;
+		smokeParams.position.y += 80.0f; // è≠Çµè„Ç…îzíu
+		smokeParams.scale = 250.0f;
+		smokeParams.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
+		smokeParams.spawnRateMin = 2.0f;
+		smokeParams.spawnRateMax = 5.0f;
+		smokeParams.lifeMin = 2.0f;
+		smokeParams.lifeMax = 4.0f;
+		smokeParams.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // âåêF
+
+		if (type == HitColliderType::Enemy)
+		{
+			smokeParams.startColor = XMFLOAT4(0.8f, 0.2f, 0.2f, 0.3f); // ìGÇ…ìñÇΩÇ¡ÇΩéûÇÕê‘Ç¢âå
+			smokeParams.duration = 3.0f; // íZÇ¢éûä‘Ç≈è¡Ç¶ÇÈ
+			smokeParams.lifeMin = 1.5f;
+			smokeParams.lifeMax = 2.0f;
+		}
+
+		IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(smokeParams);
+
+		FireBallEffectParams fireparams;
+		fireparams.type = EffectType::FireBall;
+		fireparams.duration = 5.0f;
+		fireparams.position = instance.transform.pos;
+		fireparams.scale = 43.0f;
+		fireparams.lifeMin = 1.0f;
+		fireparams.lifeMax = 1.0f;
+		fireparams.spawnRateMin = 0.0f;
+		fireparams.spawnRateMax = 10.0f;
+		fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
+		fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
+		fireparams.tilesX = FIREBALL_ANIM_TILE_X;
+		fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
+		fireparams.coneAngleDegree = 25.0f;
+		fireparams.coneRadius = 0.6f;
+		fireparams.coneLength = 5.0f;
+		fireparams.frameLerpCurve = 1.0f;
+		fireparams.rotationSpeed = 0.0f;
+		fireparams.startSpeedMin = 2.0f;
+		fireparams.startSpeedMax = 3.0f;
+
+		if (type == HitColliderType::Enemy)
+		{
+			fireparams.startColor = XMFLOAT4(1.0f, 0.5f, 0.2f, 1.0f); // ìGÇ…ìñÇΩÇ¡ÇΩéûÇÕê‘Ç¢âŒâä
+			fireparams.endColor = XMFLOAT4(1.0f, 0.2f, 0.2f, 0.0f); // íZÇ¢éıñΩ
+			fireparams.duration = 1.5f; // íZÇ¢éûä‘Ç≈è¡Ç¶ÇÈ
+		}
+
+		IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
+	}
+
 }
 
 void Item::Pickup(void)
@@ -68,13 +131,26 @@ void Item::SetActive(bool enable)
 	instance.castShadow = enable;
 }
 
-void Item::OnItemPickupCallback(const CollisionEvent& event, void* context)
+void Item::OnItemCollisionCallback(const CollisionEvent& event, void* context)
 {
-	Item* self = static_cast<Item*>(context);
-	if (self == nullptr || !self->instance.use || !self->instance.load)
-		return;
+	if (event.colliderA->tag == ColliderTag::PLAYER || event.colliderB->tag == ColliderTag::PLAYER)
+	{
+		Item* self = static_cast<Item*>(context);
+		if (self == nullptr || !self->instance.use || !self->instance.load || self->GetIsThrew())
+			return;
 
-	self->Pickup();
+		self->Pickup();
+	}
+	else if (event.colliderA->tag == ColliderTag::ENEMY || event.colliderB->tag == ColliderTag::ENEMY)
+	{
+		Item* self = static_cast<Item*>(context);
+		if (self == nullptr || !self->instance.use || !self->instance.load || !self->GetIsThrew())
+			return;
+
+		self->PlayEffect(HitColliderType::Enemy);
+		self->SetDestroy(true);
+	}
+
 }
 
 void Item::Update(void)

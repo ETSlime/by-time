@@ -77,6 +77,8 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	m_HPGaugeTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_PATH);
 	m_HPGaugeCoverTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_COVER_PATH);
 
+	instance.collider.AddCollisionCallback(OnProjectileHitCallback, this, CollisionCallbackID::Item);
+
 	instance.use = true;		// true:ê∂Ç´ÇƒÇÈ
 }
 
@@ -445,6 +447,28 @@ bool Enemy::CheckAvailableToMove(void)
 		return false;
 	else
 		return true;
+}
+
+void Enemy::OnProjectileHitCallback(const CollisionEvent& event, void* context)
+{
+	Enemy* self = static_cast<Enemy*>(context);
+
+	if (self->GetAttributesConst().hitTimer <= 0)
+	{
+		self->SetHitTimer(ENEMY_HIT_WINDOW);
+		if (!self->GetIsHit())
+		{
+			self->ReduceHP(10.0f);
+			self->SetIsHit(true);
+			self->SetIsHit2(false);
+		}
+		else if (!self->GetIsHit2())
+		{
+			self->ReduceHP(10.0f);
+			self->SetIsHit2(true);
+			self->SetIsHit(false);
+		}
+	}
 }
 
 void Enemy::InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag)

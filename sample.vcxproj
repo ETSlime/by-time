@@ -182,6 +182,8 @@
     <ClInclude Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
     <ClInclude Include="Effects\ParticleStructs.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ArcLengthPathFollower.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ProjectileFollowerManager.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h" />
     <ClInclude Include="Effects\Skybox.h" />

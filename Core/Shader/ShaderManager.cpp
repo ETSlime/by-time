@@ -68,6 +68,9 @@ void ShaderManager::RegisterShaderSourcePaths(void)
     RegisterShaderSource(ShaderSetID::VFX, VertexLayoutID::VFX,
         "Shaders/VFX.hlsl", "VS",
         "Shaders/VFX.hlsl", "PS");
+    RegisterShaderSource(ShaderSetID::ProjectilePreview, VertexLayoutID::ProjectilePreview,
+        "Shaders/ProjectilePreview.hlsl", "VS",
+        "Shaders/ProjectilePreview.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::FireEffect, VertexLayoutID::FireEffect,
         "Shaders/FireEffect.hlsl", "VS",
         "Shaders/FireEffect.hlsl", "PS",

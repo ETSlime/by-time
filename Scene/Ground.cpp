@@ -23,7 +23,7 @@
 
 #define TREE_SIZE			(350.0f)
 #define KEY_SIZE			(15.0f)
-#define SEED_SIZE			(0.2f)
+#define SEED_SIZE			(0.05f)
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(12.0f)
 #define BONFIRE_SIZE		(12.0f)
@@ -358,16 +358,16 @@ void Ground::LoadScene1(void)
 
 	m_skybox.SetCurrentTime(DAY_TIME);
 
-	ParticleEffectParams params;
-	params.type = EffectType::Smoke;
-	params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
-	params.scale = 250.0f;
-	params.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
-	params.spawnRateMin = 2.0f;
-	params.spawnRateMax = 5.0f;
-	params.lifeMin = 3.0f;
-	params.lifeMax = 6.0f;
-	params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // âåêF
+	//ParticleEffectParams params;
+	//params.type = EffectType::Smoke;
+	//params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
+	//params.scale = 250.0f;
+	//params.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
+	//params.spawnRateMin = 2.0f;
+	//params.spawnRateMax = 5.0f;
+	//params.lifeMin = 3.0f;
+	//params.lifeMax = 6.0f;
+	//params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // âåêF
 	//IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
 	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
 
@@ -429,9 +429,12 @@ void Ground::LoadScene1(void)
 
 		Transform trans;
 		trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
-		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+
+		trans.pos = XMFLOAT3(5136.0f, 6414.0f, 6734.0f);
 		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
 
 	}
@@ -459,28 +462,28 @@ void Ground::LoadScene2(void)
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
 
-	FireBallEffectParams fireparams;
-	fireparams.type = EffectType::FireBall;
-	fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);
-	fireparams.scale = 43.0f;
-	fireparams.lifeMin = 1.0f;
-	fireparams.lifeMax = 1.0f;
-	fireparams.spawnRateMin = 0.0f;
-	fireparams.spawnRateMax = 10.0f;
-	fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
-	fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
-	fireparams.tilesX = FIREBALL_ANIM_TILE_X;
-	fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
-	fireparams.coneAngleDegree = 25.0f;
-	fireparams.coneRadius = 0.6f;
-	fireparams.coneLength = 5.0f;
-	fireparams.frameLerpCurve = 1.0f;
-	fireparams.rotationSpeed = 0.0f;
-	fireparams.startSpeedMin = 2.0f;
-	fireparams.startSpeedMax = 3.0f;
-	IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
+	//FireBallEffectParams fireparams;
+	//fireparams.type = EffectType::FireBall;
+	//fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);
+	//fireparams.scale = 43.0f;
+	//fireparams.lifeMin = 1.0f;
+	//fireparams.lifeMax = 1.0f;
+	//fireparams.spawnRateMin = 0.0f;
+	//fireparams.spawnRateMax = 10.0f;
+	//fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
+	//fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
+	//fireparams.tilesX = FIREBALL_ANIM_TILE_X;
+	//fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
+	//fireparams.coneAngleDegree = 25.0f;
+	//fireparams.coneRadius = 0.6f;
+	//fireparams.coneLength = 5.0f;
+	//fireparams.frameLerpCurve = 1.0f;
+	//fireparams.rotationSpeed = 0.0f;
+	//fireparams.startSpeedMin = 2.0f;
+	//fireparams.startSpeedMax = 3.0f;
+	//IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
+	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
 
 	GameObjectConfig IvyConfig{};
 	IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";

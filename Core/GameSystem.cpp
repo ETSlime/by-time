@@ -451,7 +451,11 @@ void GameSystem::UpdateLoading(void)
         if (IsAllResourceReady())
         {
             if (!m_currLoadCtx.finishInitialLoad)
+            {
                 m_currLoadCtx.finishInitialLoad = true;
+				m_player->ResetPlayerPosition(); // プレイヤーの位置をリセット
+            }
+
             m_loadingScene->NotifyResourceLoadComplete();
         }
 
@@ -515,7 +519,7 @@ void GameSystem::DrawGame(void)
     m_renderer.SetRenderVFX(); // VFXの描画を設定
     m_player->DrawEffect(); // プレイヤーのエフェクト描画
 
-    m_renderer.SetDepthMode(DepthMode::Particle); // パーティクルの深度設定
+    m_renderer.SetDepthMode(DepthMode::Effect); // パーティクルの深度設定
     m_effectSystem.Draw(); // エフェクトの描画
     m_renderer.SetBlendState(BLEND_MODE_ALPHABLEND); // ブレンドステートを設定
 

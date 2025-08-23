@@ -58,7 +58,7 @@ Lumine::Lumine()
 	config.colliderTag = ColliderTag::PLAYER;
 	Instantiate(config);
 
-	instance.collider.AddCollisionCallback(OnItemPickupCallback, this, CollisionCallbackID::PickUpItem);
+	instance.collider.AddCollisionCallback(OnItemPickupCallback, this, CollisionCallbackID::Item);
 	instance.collider.AddCollisionCallback(OnHitCallback, this, CollisionCallbackID::EnemyAttackHit);
 
 	LoadWeapon("data/MODEL/character/Lumine", "Mitsurugi.fbx");
@@ -160,6 +160,8 @@ void Lumine::HandleInput(void)
 
 	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
 	{
+		m_playerAttr->drawGun = true;
+
 		// 水の弾の速度
 		float speed = 345.0f;
 		if (instance.attributes.isMoving)
@@ -195,8 +197,8 @@ void Lumine::HandleInput(void)
 		if (m_inputManager.IsMouseLeftTriggered())
 			instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // 弾を撃った時間をリセット
 
-		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-			m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
+		//if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+		//	m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
 	}
 }
 
@@ -419,11 +421,14 @@ void Lumine::Draw(void)
 	}
 	GameObject::Draw();
 
-	m_renderer.SetStaticModelInputLayout(); // モデルの入力レイアウトを設定
-	m_renderer.SetRenderObject(); // モデルの描画を設定
-	m_gun.Draw();
-	m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
-	m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
+	if (m_playerAttr->drawGun)
+	{
+		m_renderer.SetStaticModelInputLayout(); // モデルの入力レイアウトを設定
+		m_renderer.SetRenderObject(); // モデルの描画を設定
+		m_gun.Draw();
+		m_renderer.SetSkinnedMeshInputLayout(); // スキニングメッシュの入力レイアウトを設定
+		m_renderer.SetRenderSkinnedMeshModel(); // スキニングメッシュモデルの描画を設定
+	}
 }
 
 void Lumine::DrawEffect(void)
@@ -515,9 +520,9 @@ void Lumine::PlayClimbAnim(float animSpeed)
 
 void Lumine::PlayThrowAnim(float animSpeed)
 {
-	if (m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() < 0.3f)
+	if (m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() < 0.28f)
 		animSpeed *= 1.5f;
-	else if (!m_playerAttr->confirmThrow && m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() > 0.3f)
+	else if (!m_playerAttr->confirmThrow && m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime() > 0.28f)
 		animSpeed = 0.0f;
 
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_THROW)
@@ -1218,7 +1223,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 	if (itemCol && playerCol)
 	{
 		Item* item = static_cast<Item*>(itemCol->owner);
-		if (item && item->GetItemType() == ItemType::Seed)
+		if (item && item->GetItemType() == ItemType::Seed && !item->GetIsThrew())
 		{
 			self->m_playerAttr->seedCount++;	
 		}
@@ -1226,6 +1231,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		{
 			self->EnableWeapon(true);
 		}
+
 	}
 
 }
@@ -1240,6 +1246,11 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 		if (!self->GetIsHit())
 		{
 			self->SetIsHit(true);
+		}
+
+		if (self->m_playerAttr->throwMode)
+		{
+			self->m_playerAttr->cancelThrowFlag = true;
 		}
 	}
 }
