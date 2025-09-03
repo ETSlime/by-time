@@ -25,7 +25,7 @@ static char* dayTextures[6] =
     "data/TEXTURE/SkyBox/LS cartoon 05_out_4.png",
     "data/TEXTURE/SkyBox/LS cartoon 05_out_5.png",
 };
-static char* nightTextures[6] =
+static char* springNightTextures[6] =
 {
     "data/TEXTURE/SkyBox/LS nigth 02_out_0.png",
     "data/TEXTURE/SkyBox/LS nigth 02_out_1.png",
@@ -34,6 +34,34 @@ static char* nightTextures[6] =
     "data/TEXTURE/SkyBox/LS nigth 02_out_4.png",
     "data/TEXTURE/SkyBox/LS nigth 02_out_5.png",
 };
+static char* summerNightTextures[6] =
+{
+    "data/TEXTURE/SkyBox/LS nigth 03_out_0.png",
+    "data/TEXTURE/SkyBox/LS nigth 03_out_1.png",
+    "data/TEXTURE/SkyBox/LS nigth 03_out_2.png",
+    "data/TEXTURE/SkyBox/LS nigth 03_out_3.png",
+    "data/TEXTURE/SkyBox/LS nigth 03_out_4.png",
+    "data/TEXTURE/SkyBox/LS nigth 03_out_5.png",
+};
+static char* autumnNightTextures[6] =
+{
+    "data/TEXTURE/SkyBox/LS nigth 05_out_0.png",
+    "data/TEXTURE/SkyBox/LS nigth 05_out_1.png",
+    "data/TEXTURE/SkyBox/LS nigth 05_out_2.png",
+    "data/TEXTURE/SkyBox/LS nigth 05_out_3.png",
+    "data/TEXTURE/SkyBox/LS nigth 05_out_4.png",
+    "data/TEXTURE/SkyBox/LS nigth 05_out_5.png",
+};
+static char* winterNightTextures[6] =
+{
+    "data/TEXTURE/SkyBox/LS nigth 04_out_0.png",
+    "data/TEXTURE/SkyBox/LS nigth 04_out_1.png",
+    "data/TEXTURE/SkyBox/LS nigth 04_out_2.png",
+    "data/TEXTURE/SkyBox/LS nigth 04_out_3.png",
+    "data/TEXTURE/SkyBox/LS nigth 04_out_4.png",
+    "data/TEXTURE/SkyBox/LS nigth 04_out_5.png",
+};
+
 
 void Skybox::ShutDown(void) 
 {
@@ -44,8 +72,17 @@ void Skybox::ShutDown(void)
     {
         SafeRelease(&srv);
     }
-    for (auto& srv : m_skyboxNightSRVs)
+    for (auto& srv : m_skyboxSpringNightSRVs)
     {
+        SafeRelease(&srv);
+    }
+    for (auto& srv : m_skyboxSummerNightSRVs) {
+        SafeRelease(&srv);
+    }
+    for (auto& srv : m_skyboxAutumnNightSRVs) {
+        SafeRelease(&srv);
+    }
+    for (auto& srv : m_skyboxWinterNightSRVs) {
         SafeRelease(&srv);
     }
 
@@ -73,8 +110,29 @@ bool Skybox::Initialize(float timeSpeed)
 
     for (int i = 0; i < 6; ++i)
     {
-        m_skyboxNightSRVs[i] = TextureMgr::get_instance().CreateTexture(nightTextures[i]);
-        if (!m_skyboxNightSRVs[i])
+        m_skyboxSpringNightSRVs[i] = TextureMgr::get_instance().CreateTexture(springNightTextures[i]);
+        if (!m_skyboxSpringNightSRVs[i])
+            return false;
+    }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        m_skyboxSummerNightSRVs[i] = TextureMgr::get_instance().CreateTexture(summerNightTextures[i]);
+        if (!m_skyboxSummerNightSRVs[i])
+            return false;
+    }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        m_skyboxAutumnNightSRVs[i] = TextureMgr::get_instance().CreateTexture(autumnNightTextures[i]);
+        if (!m_skyboxAutumnNightSRVs[i])
+            return false;
+    }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        m_skyboxWinterNightSRVs[i] = TextureMgr::get_instance().CreateTexture(winterNightTextures[i]);
+        if (!m_skyboxWinterNightSRVs[i])
             return false;
     }
 
@@ -232,8 +290,19 @@ void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
     m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::VS, SLOT_CB_SKYBOX, m_skyboxBuffer);
     m_ShaderResourceBinder.BindConstantBuffer(ShaderStage::PS, SLOT_CB_SKYBOX, m_skyboxBuffer);
     m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_DAY, 6, m_skyboxDaySRVs);
-    m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_NIGHT, 6, m_skyboxNightSRVs);
 
+    if (m_currentSeason == SeasonID::SPRING) {
+        m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_NIGHT, 6, m_skyboxSpringNightSRVs);
+    }
+    else if (m_currentSeason == SeasonID::SUMMER) {
+        m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_NIGHT, 6, m_skyboxSummerNightSRVs);
+    }
+    else if (m_currentSeason == SeasonID::AUTUMN) {
+        m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_NIGHT, 6, m_skyboxAutumnNightSRVs);
+    }
+    else if (m_currentSeason == SeasonID::WINTER) {
+        m_ShaderResourceBinder.BindShaderResources(ShaderStage::PS, SLOT_TEX_SKYBOX_NIGHT, 6, m_skyboxWinterNightSRVs);
+    }
 
     m_context->OMSetDepthStencilState(m_depthStencilState, 0);
     m_context->Draw(36, 0);
@@ -244,4 +313,9 @@ void Skybox::Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix)
 void Skybox::SetCurrentTime(float time)
 {
     m_timeOfDay = time;
+}
+
+void Skybox::SetSeason(SeasonID seasonID)
+{
+    m_currentSeason = seasonID;
 }

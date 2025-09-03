@@ -371,6 +371,10 @@ void Ground::InitSceneLoadMap(void)
 {
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_2)] = &Ground::LoadScene2;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_3)] = &Ground::LoadScene3;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_4)] = &Ground::LoadScene4;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_5)] = &Ground::LoadScene5;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_6)] = &Ground::LoadScene6;
 }
 
 void Ground::LoadScene1(void)
@@ -385,6 +389,7 @@ void Ground::LoadScene1(void)
 	if (m_skybox != nullptr)
 		m_skybox->SetCurrentTime(DAY_TIME);*/
 
+	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(DAY_TIME);
 
 	ParticleEffectParams params;
@@ -534,6 +539,7 @@ void Ground::LoadScene2(void)
 	if (m_sceneSeed != nullptr)
 		m_sceneSeed->SetActive(false);
 
+	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
 
@@ -602,6 +608,30 @@ void Ground::LoadScene2(void)
 	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
 
 
+}
+
+void Ground::LoadScene3(void)
+{
+	m_skybox.SetSeason(SeasonID::SUMMER);
+	m_skybox.SetCurrentTime(DAY_TIME);
+}
+
+void Ground::LoadScene4(void)
+{
+	m_skybox.SetSeason(SeasonID::SUMMER);
+	m_skybox.SetCurrentTime(NIGHT_TIME);
+}
+
+void Ground::LoadScene5(void)
+{
+	m_skybox.SetSeason(SeasonID::AUTUMN);
+	m_skybox.SetCurrentTime(DAY_TIME);
+}
+
+void Ground::LoadScene6(void)
+{
+	m_skybox.SetSeason(SeasonID::AUTUMN);
+	m_skybox.SetCurrentTime(NIGHT_TIME);
 }
 
 void Ground::GenerateEnvironmentObj(void*)

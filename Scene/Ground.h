@@ -44,6 +44,9 @@ enum class SceneID : uint64_t
 	SCENE_1,
 	SCENE_2,
 	SCENE_3,
+	SCENE_4,
+	SCENE_5,
+	SCENE_6
 };
 
 // 前方宣言
@@ -79,6 +82,10 @@ private:
 	// シーンロード関数
 	void LoadScene1(void);
 	void LoadScene2(void);
+	void LoadScene3(void);
+	void LoadScene4(void);
+	void LoadScene5(void);
+	void LoadScene6(void);
 
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);

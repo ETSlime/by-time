@@ -30,6 +30,14 @@ struct SkyBoxBuffer
     float blendFactor;
 };
 
+enum class SeasonID : uint64_t
+{
+    SPRING,
+    SUMMER,
+    AUTUMN,
+    WINTER,
+};
+
 class Skybox : public SingletonBase<Skybox>
 {
 public:
@@ -39,6 +47,7 @@ public:
     void Update(void);
     void Draw(const XMMATRIX& viewMatrix, const XMMATRIX& projectionMatrix);
     void SetCurrentTime(float time);
+    void SetSeason(SeasonID seasonID);
 
     static float GetCurrentDaytime(void) { return s_blendFactor; }
     
@@ -63,10 +72,15 @@ private:
     ID3D11DepthStencilState* m_depthStencilState = nullptr;
 
     ID3D11ShaderResourceView* m_skyboxDaySRVs[6]{};
-    ID3D11ShaderResourceView* m_skyboxNightSRVs[6]{};
+    ID3D11ShaderResourceView* m_skyboxSpringNightSRVs[6]{};
+    ID3D11ShaderResourceView* m_skyboxSummerNightSRVs[6]{};
+    ID3D11ShaderResourceView* m_skyboxAutumnNightSRVs[6]{};
+    ID3D11ShaderResourceView* m_skyboxWinterNightSRVs[6]{};
 
     ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();
     Renderer& m_renderer = Renderer::get_instance();
 
     float m_timeSpeed = 1;
+
+    SeasonID m_currentSeason = SeasonID::SPRING;
 };
