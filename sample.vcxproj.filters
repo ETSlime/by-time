@@ -431,6 +431,18 @@
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
       <Filter>Effects\ProjectilePreview</Filter>
     </ClInclude>
+    <ClInclude Include="Scene\HPBarUI.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIGameClear.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIGameOver.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\AutumnDoor.h">
+      <Filter>Scene\Item</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -707,5 +719,6 @@
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp">
       <Filter>Effects\ProjectilePreview</Filter>
     </ClCompile>
+    <ClCompile Include="Scene\HPBarUI.cpp" />
   </ItemGroup>
 </Project>

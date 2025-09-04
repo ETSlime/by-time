@@ -212,6 +212,7 @@
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Ground.h" />
     <ClInclude Include="Scene\HPBarUI.h" />
+    <ClInclude Include="Scene\Item\AutumnDoor.h" />
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
     <ClInclude Include="Scene\Item\Interactable.h" />
