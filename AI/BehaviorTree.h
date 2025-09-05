@@ -102,7 +102,7 @@ public:
         switch (GetEnemyAttributes(m_enemy).cooldownState)
         {
         case CooldownState::MOVE:
-            GetEnemyAttributes(m_enemy).cooldownMoveTimer -= m_enemy->timer.GetScaledDeltaTime();
+            GetEnemyAttributes(m_enemy).cooldownMoveTimer -= m_enemy->m_timer.GetScaledDeltaTime();
             if (GetEnemyAttributes(m_enemy).cooldownMoveTimer <= 0.0f)
             {
                 GetEnemyAttributes(m_enemy).cooldownMoveTimer = 0.0f;
@@ -112,7 +112,7 @@ public:
                 m_enemy->CooldownMove();
             break;
         case CooldownState::WAIT:
-            GetEnemyAttributes(m_enemy).cooldownWaitTimer -= m_enemy->timer.GetScaledDeltaTime();
+            GetEnemyAttributes(m_enemy).cooldownWaitTimer -= m_enemy->m_timer.GetScaledDeltaTime();
             if (GetEnemyAttributes(m_enemy).cooldownWaitTimer <= 0.0f)
             {
                 GetEnemyAttributes(m_enemy).cooldownWaitTimer = 0.0f;
@@ -148,7 +148,7 @@ public:
         }
 
 
-        GetEnemyAttributes(m_enemy).attackCooldownTimer -= m_enemy->timer.GetScaledDeltaTime();
+        GetEnemyAttributes(m_enemy).attackCooldownTimer -= m_enemy->m_timer.GetScaledDeltaTime();
         if (GetEnemyAttributes(m_enemy).attackCooldownTimer <= 0.0f)
         {
             GetEnemyAttributes(m_enemy).isInCooldown = false;

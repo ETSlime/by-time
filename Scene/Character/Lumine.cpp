@@ -7,8 +7,10 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
+#include "Scene/Weapon/ProjectileManager.h"
 #include "Effects/EffectSystem.h"
 #include "UI/Base/UIManager.h"
+
 
 //*****************************************************************************
 // マクロ定義
@@ -47,6 +49,8 @@
 
 #define GLIDE_START_TIME		(0.5f) // グライド開始までの時間
 #define LAST_FIRE_TIME			(0.5f)
+
+#define MAX_JUMP_HEIGHT			(75.0f) // ジャンプの最大高さ
 
 Lumine::Lumine()
 {
@@ -156,13 +160,13 @@ void Lumine::InitializeAnimation(void)
 
 void Lumine::HandleInput(void)
 {
-	
+	if (m_playerAttr->currentState == PlayerState::GLIDE) return;
 
 	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
 	{
 		m_playerAttr->drawGun = true;
 
-		// 水の弾の速度
+		// 弾の速度
 		float speed = 345.0f;
 		if (instance.attributes.isMoving)
 		{
@@ -172,16 +176,16 @@ void Lumine::HandleInput(void)
 				speed *= VALUE_PLAYER_MOVE * 60.0f;
 		}
 
-		// 水の弾の位置（WorldMatrixの平行移動成分）
+		// 弾の位置（WorldMatrixの平行移動成分）
 		XMFLOAT3 muzzlePos;
 		XMStoreFloat3(&muzzlePos, m_weapon.GetWorldMatrix().r[3]);
 
 		// Cameraから照準方向を計算
-		XMFLOAT3 fireDir;
+		XMFLOAT3 fireDir{}, targetPoint{};
 
 		if (m_inputManager.IsMouseRightPressed())
 		{
-			m_camera.ComputeAimDirection(muzzlePos, &fireDir, nullptr);
+			m_camera.ComputeAimDirection(muzzlePos, &fireDir, &targetPoint);
 		}
 		else
 		{
@@ -190,12 +194,25 @@ void Lumine::HandleInput(void)
 		}
 
 		// 武器の位置を少し上にずらす
-		muzzlePos.y -= 25.0f;
-		muzzlePos.x += sinf(instance.transform.rot.y) * 25.0f;
-		muzzlePos.z += cosf(instance.transform.rot.y) * 25.0f;
+		muzzlePos.y -= 35.0f;
+		muzzlePos.x += sinf(instance.transform.rot.y) * 35.0f;
+		muzzlePos.z += cosf(instance.transform.rot.y) * 35.0f;
 
-		if (m_inputManager.IsMouseLeftTriggered())
-			instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // 弾を撃った時間をリセット
+		instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // 弾を撃った時間をリセット
+
+		Transform trans;
+		trans.pos = muzzlePos;
+		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+		if (m_playerAttr->fireCooldownSec <= 0.0f)
+		{
+			constexpr float bulletSpeed = 25.0f;
+			Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, fireDir, bulletSpeed);
+			projectile->SetPotentialHitPos(targetPoint);
+			m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+		}
+
 
 		//if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
 		//	m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
@@ -258,7 +275,7 @@ void Lumine::Update(void)
 	if (instance.attributes.attackWindow2 == true
 		|| instance.attributes.attackWindow3 == true)
 	{
-		instance.attributes.attackWinwdowCnt += timer.GetScaledDeltaTime();
+		instance.attributes.attackWinwdowCnt += m_timer.GetScaledDeltaTime();
 		if (instance.attributes.attackWinwdowCnt >= ATTACK_COMBO_WINDOW
 			|| instance.attributes.isMoving)
 		{
@@ -268,7 +285,8 @@ void Lumine::Update(void)
 		}
 	}
 
-	float animSpeed = m_playAnimSpeed * timer.GetScaledDeltaTime();
+	float animSpeed = m_playAnimSpeed * m_timer.GetScaledDeltaTime();
+	m_playerAttr->currentState = GetCurrentState();
 	switch (m_stateMachine->GetCurrentState())
 	{
 	case STATE(PlayerState::STANDING):
@@ -345,7 +363,7 @@ void Lumine::Update(void)
 	}
 
 	GameObject::Update();
-	m_stateMachine->Update(ANIM_BLEND_SPD * timer.GetScaledDeltaTime(), dynamic_cast<ISkinnedMeshModelChar*>(this));
+	m_stateMachine->Update(ANIM_BLEND_SPD * m_timer.GetScaledDeltaTime(), dynamic_cast<ISkinnedMeshModelChar*>(this));
 	instance.pModel->UpdateBoneTransform(m_stateMachine->GetBoneMatrices());
 
 	UpdateWeapon();
@@ -362,7 +380,7 @@ void Lumine::Draw(void)
 	if (storeWeaponOnBack)
 	{
 		instance.renderProgress.isRandomFade = true;
-		instance.renderProgress.progress -= 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
@@ -375,7 +393,7 @@ void Lumine::Draw(void)
 	}
 	else if (weaponOnBackTimer >= 0 && weaponOnBack == true)
 	{
-		instance.renderProgress.progress += 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress += 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress >= 1.0f)
 		{
 			//weaponOnBack = false;
@@ -384,7 +402,7 @@ void Lumine::Draw(void)
 	}
 	else if (storeWeapon)
 	{
-		instance.renderProgress.progress -= 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
@@ -403,7 +421,7 @@ void Lumine::Draw(void)
 
 	if (instance.attributes.charSwitchEffect == TRUE)
 	{
-		instance.renderProgress.progress += 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress += 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress >= 1.0f)
 		{
 			instance.renderProgress.progress = 1.0f;
@@ -501,7 +519,20 @@ void Lumine::PlayJumpAnim(float animSpeed)
 {
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_JUMP)
 		instance.pModel->SetCurrentAnim(m_stateMachine->GetCurrentAnimClip());
-	instance.pModel->PlayCurrentAnim(animSpeed * 1.2f);
+	instance.pModel->PlayCurrentAnim(animSpeed * 1.1f);
+
+	float playTime = m_stateMachine->GetCurrentAnimClip()->GetCurrentPlayTime();
+
+	constexpr float kJumpStartTime = 0.3f;
+	constexpr float kJumpPeakTime = 0.6f;
+	const float jumpDuration = kJumpPeakTime - kJumpStartTime;
+
+	if (playTime > kJumpStartTime && playTime < kJumpPeakTime)
+	{
+		playTime = (playTime - kJumpStartTime) / jumpDuration; // 0.0f ～ 1.0f に正規化
+		float jumpHeight = MAX_JUMP_HEIGHT * (2 * playTime - playTime * playTime);
+		instance.transform.pos.y = m_playerAttr->groundY + jumpHeight;
+	}
 }
 
 void Lumine::PlayClimbAnim(float animSpeed)
@@ -910,7 +941,7 @@ void Lumine::UpdateWeapon(void)
 {
 	if (weaponOnHandTimer > 0)
 	{
-		weaponOnHandTimer -= timer.GetScaledDeltaTime();
+		weaponOnHandTimer -= m_timer.GetScaledDeltaTime();
 		if (weaponOnHandTimer <= 0)
 		{
 			storeWeaponOnBack = true;
@@ -920,7 +951,7 @@ void Lumine::UpdateWeapon(void)
 
 	if (weaponOnBackTimer > 0)
 	{
-		weaponOnBackTimer -= timer.GetScaledDeltaTime();
+		weaponOnBackTimer -= m_timer.GetScaledDeltaTime();
 		if (weaponOnBackTimer <= 0)
 		{
 			storeWeapon = true;

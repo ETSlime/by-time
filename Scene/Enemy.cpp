@@ -42,33 +42,7 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	m_behaviorTree = nullptr;
 	m_player = nullptr;
 
-	instance.attributes.spd = 0.0f;
-
-	switch (m_enemyAttr.enemyType)
-	{
-	case EnemyType::Hilichurl:
-		m_enemyAttr.maxHP = HILI_MAX_HP;
-		m_enemyAttr.HP = HILI_MAX_HP;
-		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
-		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
-		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
-		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
-		m_behaviorTree = new BehaviorTree(this);
-		break;
-	case EnemyType::GBMonster:
-		m_enemyAttr.maxHP = HILI_MAX_HP;
-		m_enemyAttr.HP = HILI_MAX_HP;
-		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
-		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
-		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
-		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
-		m_behaviorTree = new BehaviorTree(this);
-		break;
-	default:
-		break;
-	}
+	Initialize();
 
 	m_enemyAttr.initTrans.pos = trans.pos;
 	m_enemyAttr.initTrans.rot = trans.rot;
@@ -115,11 +89,11 @@ void Enemy::Update(void)
 		m_HPGauge.pos = instance.transform.pos;
 		m_HPGauge.pos.y += height * m_enemyAttr.initTrans.scl.y;
 
-		m_enemyAttr.timer += timer.GetScaledDeltaTime();
+		m_enemyAttr.timer += m_timer.GetScaledDeltaTime();
 
-		if (instance.attributes.isGrounded == false)
+		if (instance.attributes.isGrounded == false && m_enemyAttr.disableGravity == false)
 		{
-			instance.transform.pos.y -= FALLING_SPEED * timer.GetScaledDeltaTime();
+			instance.transform.pos.y -= FALLING_SPEED * m_timer.GetScaledDeltaTime();
 		}
 
 		if (!CheckAvailableToMove())
@@ -130,7 +104,7 @@ void Enemy::Update(void)
 		float deltaDir = instance.attributes.targetDir - instance.attributes.dir;
 		if (deltaDir > XM_PI) deltaDir -= XM_2PI;
 		if (deltaDir < -XM_PI) deltaDir += XM_2PI;
-		instance.attributes.dir += deltaDir * ROTATION_SPEED * timer.GetScaledDeltaTime();
+		instance.attributes.dir += deltaDir * ROTATION_SPEED * m_timer.GetScaledDeltaTime();
 		instance.transform.rot.y = instance.attributes.dir;
 
 		if (instance.attributes.isMoveBlocked)
@@ -158,18 +132,18 @@ void Enemy::Update(void)
 			float dx = XMVectorGetX(dxVec);
 			float dz = XMVectorGetX(dzVec);
 
-			instance.transform.pos.x += dx * timer.GetScaledDeltaTime();
-			instance.transform.pos.z += dz * timer.GetScaledDeltaTime();
+			instance.transform.pos.x += dx * m_timer.GetScaledDeltaTime();
+			instance.transform.pos.z += dz * m_timer.GetScaledDeltaTime();
 
 		}
 		else
 		{
-			instance.transform.pos.x += sinf(instance.transform.rot.y) * instance.attributes.spd * timer.GetScaledDeltaTime();
-			instance.transform.pos.z += cosf(instance.transform.rot.y) * instance.attributes.spd * timer.GetScaledDeltaTime();
+			instance.transform.pos.x += sinf(instance.transform.rot.y) * instance.attributes.spd * m_timer.GetScaledDeltaTime();
+			instance.transform.pos.z += cosf(instance.transform.rot.y) * instance.attributes.spd * m_timer.GetScaledDeltaTime();
 		}
 
 
-		instance.attributes.spd *= pow(SPD_DECAY_RATE, timer.GetScaledDeltaTime());
+		instance.attributes.spd *= pow(SPD_DECAY_RATE, m_timer.GetScaledDeltaTime());
 	}
 }
 
@@ -177,7 +151,7 @@ bool Enemy::UpdateAliveState(void)
 {
 	if (m_enemyAttr.isDead == true)
 	{
-		m_enemyAttr.respawnTimer -= timer.GetScaledDeltaTime();
+		m_enemyAttr.respawnTimer -= m_timer.GetScaledDeltaTime();
 		if (m_enemyAttr.respawnTimer <= 0.0f)
 		{
 			m_enemyAttr.respawnTimer = 0.0f;
@@ -190,7 +164,7 @@ bool Enemy::UpdateAliveState(void)
 	if (instance.renderProgress.progress < 1.0f && !m_enemyAttr.startFadeOut)
 	{
 		instance.renderProgress.isRandomFade = true;
-		instance.renderProgress.progress += 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress += 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress > 1.0f)
 		{
 			instance.renderProgress.isRandomFade = false;
@@ -200,7 +174,7 @@ bool Enemy::UpdateAliveState(void)
 	else if (m_enemyAttr.startFadeOut == true)
 	{
 		instance.renderProgress.isRandomFade = true;
-		instance.renderProgress.progress -= 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress <= 0.0f)
 		{
 			instance.renderProgress.isRandomFade = false;
@@ -353,19 +327,53 @@ void Enemy::Initialize(void)
 {
 	m_enemyAttr.Initialize();
 
-	instance.transform.pos = m_enemyAttr.initTrans.pos;
-	instance.transform.rot = m_enemyAttr.initTrans.rot;
-	instance.transform.scl = m_enemyAttr.initTrans.scl;
+	if (m_enemyAttr.initialMove)
+		SetRandomMove(true);
+	else
+		SetRandomMove(false);
+
+	instance.attributes.spd = 0.0f;
 
 	switch (m_enemyAttr.enemyType)
 	{
 	case EnemyType::Hilichurl:
 		m_enemyAttr.maxHP = HILI_MAX_HP;
 		m_enemyAttr.HP = HILI_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::GBMonster:
+		m_enemyAttr.maxHP = HILI_MAX_HP;
+		m_enemyAttr.HP = HILI_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::NPC_Fish:
+		m_enemyAttr.maxHP = 1.0f;
+		m_enemyAttr.HP = 1.0f;
+		m_enemyAttr.viewAngle = 0.0f;
+		m_enemyAttr.viewDistance = 0.0f;
+		m_enemyAttr.chaseRange = 0.0f;
+		m_enemyAttr.attackRange = 0.0f;
+		m_enemyAttr.disableGravity = true;
+
+		m_behaviorTree = new BehaviorTree(this);
 		break;
 	default:
 		break;
 	}
+
+	instance.transform.pos = m_enemyAttr.initTrans.pos;
+	instance.transform.rot = m_enemyAttr.initTrans.rot;
+	instance.transform.scl = m_enemyAttr.initTrans.scl;
 
 	instance.renderProgress.isRandomFade = true;
 	instance.renderProgress.progress = 0.0f;
@@ -612,7 +620,7 @@ void Enemy::Patrol(void)
 	else
 	{
 		// 移動処理
-		m_enemyAttr.moveTimer += timer.GetScaledDeltaTime();
+		m_enemyAttr.moveTimer += m_timer.GetScaledDeltaTime();
 
 		// 目標時間に達した場合、待機モードに入る
 		if (m_enemyAttr.moveTimer >= m_enemyAttr.moveDuration)

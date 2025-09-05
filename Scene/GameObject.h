@@ -117,13 +117,14 @@ struct Attributes
 	bool			isAttacking3 = false;
 	bool			isDashing = false;
 	bool			isJumping = false;
-	bool			isGrounded = false;
+	bool			isGrounded = true;
 	bool			isMoveBlocked = false;
 	bool			isHit1 = false;
 	bool			isHit2 = false;
 	float			hitTimer = 0;
 	float			glideDuration = 0.0f; // グライドの持続時間
 	float			lastFireTimeCountDown = 0.0f; // 最後に弾を撃った時間（カウントダウン用）
+	float			fallSpeed = 0.0f; // 落下速度
 	bool			charSwitchEffect = false;
 
 	bool			attackWindow2 = false;
@@ -235,6 +236,7 @@ struct GameObjectConfig
 	bool drawWorldAABB = false;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
 	ColliderTag			colliderTag = ColliderTag::DEFAULT;
+	bool enableCollider = true;
 	ModelType modelType = ModelType::Static;
 	bool loadAsync = true;
 	AxisFlip flip = AxisFlip::None;
@@ -421,8 +423,12 @@ public:
 	inline void SetGrounded(bool grounded) 
 	{ 
 		instance.attributes.isGrounded = grounded; 
-		if (grounded) 
+		if (grounded)
+		{
 			instance.attributes.glideDuration = 0.0f; // 地面に着地したらグライドの持続時間をリセット
+			instance.attributes.fallSpeed = 0.0f; // 落下速度をリセット
+		}
+
 	}
 
 	inline void SetMoveBlock(bool blocked) { instance.attributes.isMoveBlocked = blocked; }
@@ -447,7 +453,7 @@ public:
 	}
 
 	Renderer& renderer = Renderer::get_instance();
-	Timer& timer = Timer::get_instance();
+	Timer& m_timer = Timer::get_instance();
 
 protected:
 	TModel instance;
@@ -471,11 +477,11 @@ public:
 	virtual bool CanWalk() const = 0;
 	virtual bool CanStopMoving() const = 0;
 	virtual bool CanStopRunning() const { return false; }
-	virtual bool CanAttack() const = 0;
+	virtual bool CanAttack() const { return false; }
 	virtual bool CanAttack2() const  { return false; }
 	virtual bool CanAttack3() const  { return false; }
-	virtual bool CanRun()	const = 0;
-	virtual bool CanHit()	const = 0;
+	virtual bool CanRun()	const { return false; }
+	virtual bool CanHit()	const { return false; }
 	virtual bool CanHit2()	const { return false; }
 	virtual bool CanJump()	const { return false; }
 	virtual bool CanSurprised() const { return false; }
@@ -669,14 +675,16 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		}
 		else if (instance.collisionType == ObjectCollisionType::COLLIDER_BOUNDING_BOX)
 		{
-			instance.collider.tag = m_config.colliderTag;
-			instance.collider.owner = this;
 			if (m_skinnedConfig.colliderTag != ColliderTag::PLAYER_ATTACK &&
 				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
-				instance.collider.enable = true;
+				instance.collider.enable = config.enableCollider;
+
 			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 			instance.collisionBuilt = true; // 当たり判定のビルドが完了
 		}
+
+		instance.collider.tag = m_config.colliderTag;
+		instance.collider.owner = this;
 
 		instance.modelBuildTaskRegistered = true;
 	}

@@ -9,6 +9,8 @@
 #include "Core/Camera.h"
 #include "Core/CursorManager.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/GameSystem.h"
+#include "Core/SaveSystem.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/PlayerEnterExitBehavior.h"
@@ -18,9 +20,11 @@
 // マクロ定義
 //*****************************************************************************
 #define ROTATION_SPEED				(0.18f)
-#define FALLING_SPEED				(12.50f)
+#define MAX_FALL_SPEED 				(25.0f)
+#define GRAVITY						(300.0f)
 #define SPD_DECAY_RATE				(0.93f)
 #define THROW_SPEED					(45.0f)
+
 //=============================================================================
 // 初期化処理
 //=============================================================================
@@ -46,11 +50,13 @@ Player::Player()
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
+	transform.scl = XMFLOAT3(1.2f, 1.2f, 1.2f);
 	m_playerAttr.initPos = PLAYER_INIT_POS;
 	lumine->SetTransform(transform);
 	lumine->SetPlayerAttributes(&m_playerAttr);
 	m_playerGO = lumine;
 	m_playerGO->SetDrawWorldAABB(m_drawBoundingBox);
+	m_playerGO->SetPosition(m_playerAttr.initPos);
 
 	m_light = new DirectionalLight();
 	m_light->SetEnable(true);
@@ -78,7 +84,6 @@ void Player::Update(void)
 	{
 		m_currentModelLoadCnt++;
 	}
-
 	
 	m_attributes = m_playerGO->GetAttributes();
 	m_transform = m_playerGO->GetTransform();
@@ -127,7 +132,7 @@ void Player::HandlePlayerMove(Transform& transform)
 	float deltaDir = m_attributes->targetDir - m_attributes->dir;
 	if (deltaDir > XM_PI) deltaDir -= XM_2PI;
 	if (deltaDir < -XM_PI) deltaDir += XM_2PI;
-	m_attributes->dir += deltaDir * ROTATION_SPEED * m_playerGO->timer.GetScaledDeltaTime();
+	m_attributes->dir += deltaDir * ROTATION_SPEED * m_playerGO->m_timer.GetScaledDeltaTime();
 
 	transform.rot.y = m_attributes->dir;
 
@@ -188,8 +193,8 @@ void Player::HandlePlayerMove(Transform& transform)
 #ifdef _DEBUG
 	if (m_inputManager.GetKeyboardPress(DIK_TAB))
 	{
-		transform.pos.x += sinf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->timer.GetScaledDeltaTime();
-		transform.pos.z += cosf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->timer.GetScaledDeltaTime();
+		transform.pos.x += sinf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->m_timer.GetScaledDeltaTime();
+		transform.pos.z += cosf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->m_timer.GetScaledDeltaTime();
 	}
 #endif // DEBUG
 
@@ -201,7 +206,7 @@ void Player::AlignPlayerYawToCamera(void)
 	float targetYaw = m_camera.GetRotation().y;
 	// 補間速度（値を上げると追従が速い）
 	float lerpSpeed = 10.0f;
-	float t = min(1.0f, m_playerGO->timer.GetDeltaTime() * lerpSpeed);
+	float t = min(1.0f, m_playerGO->m_timer.GetDeltaTime() * lerpSpeed);
 
 	// 線形補間で滑らかに回転を追従
 	m_attributes->dir = SmoothAngleLerp(m_attributes->dir, targetYaw, t);
@@ -219,7 +224,7 @@ void Player::InitializePlayerStatus(void)
 {
 	if (lumine)
 	{
-		Transform transform;
+		Transform transform = lumine->GetTransform();
 		transform.pos = PLAYER_INIT_POS;
 		lumine->SetTransform(transform);
 		lumine->InitializeStatus();
@@ -228,15 +233,10 @@ void Player::InitializePlayerStatus(void)
 	Update();
 }
 
-void Player::PickItem(Item* obj)
+void Player::LoadSaveData(const SaveData& saveData)
 {
-	// TODO ちゃんと色々なアイテムが手に入れるように、直す
-	// 現在、下のコードがダメだ　動かない　直せ
-	if(obj->GetItemAttributes().itemType == ItemType::Weapon)
-		m_hasWeapon = true;
-
-	obj->Use();
-
+	SetPosition(saveData.pos);
+	m_playerAttr.seedCount = saveData.seedCount;
 }
 
 void Player::SetClimbMode(PlayerState climbState)
@@ -398,6 +398,8 @@ void Player::UpdateNormalMode(void)
 				}
 
 				item->SetPosition(startPos);
+				XMFLOAT3 itemScale = XMFLOAT3(SEED_SIZE * 0.5f, SEED_SIZE * 0.5f, SEED_SIZE * 0.5f);
+				item->SetScale(itemScale);
 				item->SetRotation(XMFLOAT3(m_transform.rot.x - 2.0f, m_transform.rot.y + 0.2f, m_transform.rot.z + 0.3f));
 				item->GetAttributes()->use = true;
 
@@ -461,7 +463,7 @@ void Player::UpdateActionQueue(void)
 	m_playerAttr.actionQueueClearTime++;
 	for (UINT i = m_playerAttr.actionQueueStart; i < m_playerAttr.actionQueueEnd; i++)
 	{
-		m_playerAttr.actionQueue[i].liveTime += m_playerGO->timer.GetScaledDeltaTime();
+		m_playerAttr.actionQueue[i].liveTime += m_playerGO->m_timer.GetScaledDeltaTime();
 		if (m_playerAttr.actionQueue[i].liveTime >= ACTION_QUEUE_CLEAR_WAIT)
 		{
 			m_playerAttr.actionQueueStart++;
@@ -495,15 +497,24 @@ void Player::UpdatePlayerStatus(void)
 	if (!m_attributes->isGrounded)
 	{
 		// 滑空時間を更新
-		m_attributes->glideDuration += m_playerGO->timer.GetDeltaTime();
+		m_attributes->glideDuration += m_playerGO->m_timer.GetDeltaTime();
+
 		// 落下処理
-		m_transform.pos.y -= FALLING_SPEED;
+		m_attributes->fallSpeed += GRAVITY * m_playerGO->m_timer.GetDeltaTime();
+		// 最大落下速度を制限
+		if (m_attributes->fallSpeed < MAX_FALL_SPEED)
+		{
+			m_attributes->fallSpeed = MAX_FALL_SPEED;
+		}
+
+		// 位置を更新
+		m_transform.pos.y -= m_attributes->fallSpeed * m_playerGO->m_timer.GetDeltaTime();
 	}
 
 	// ヒット中かどうか
 	if (m_attributes->isHit1 || m_attributes->hitTimer > 0)
 	{
-		m_attributes->hitTimer -= m_playerGO->timer.GetScaledDeltaTime();
+		m_attributes->hitTimer -= m_playerGO->m_timer.GetScaledDeltaTime();
 		if (m_attributes->hitTimer < 0)
 		{
 			m_attributes->isHit1 = false;
@@ -512,11 +523,14 @@ void Player::UpdatePlayerStatus(void)
 
 	if (m_attributes->lastFireTimeCountDown > 0)
 	{
-		m_attributes->lastFireTimeCountDown -= m_playerGO->timer.GetDeltaTime();
+		m_attributes->lastFireTimeCountDown -= m_playerGO->m_timer.GetDeltaTime();
 	}
 
 	if (m_playerAttr.throwMode)
 		AlignPlayerYawToCamera();
+
+	if (m_playerAttr.fireCooldownSec > 0.0f)
+		m_playerAttr.fireCooldownSec -= m_playerGO->m_timer.GetDeltaTime();
 }
 
 void Player::UpdatePlayerMove(void)
@@ -573,9 +587,10 @@ void Player::UpdatePlayerMove(void)
 		}
 	}
 
-	if (m_inputManager.GetKeyboardTrigger(DIK_SPACE))
+	if (m_inputManager.GetKeyboardTrigger(DIK_SPACE) && !m_attributes->isJumping && m_attributes->isGrounded)
 	{
 		m_attributes->isJumping = true;
+		m_playerAttr.groundY = m_transform.pos.y;
 	}
 }
 
@@ -673,7 +688,7 @@ void Player::HandleInput(void)
 
 	if (m_inputManager.IsMouseRightPressed())
 	{
-		if (!m_playerAttr.throwMode)
+		if (!m_playerAttr.throwMode && !m_playerAttr.climbMode && m_playerAttr.currentState != PlayerState::GLIDE)
 		{
 			m_playerAttr.aimMode = true;
 			m_playerAttr.drawGun = true;
@@ -721,6 +736,7 @@ void Player::ConfirmThrow(void)
 	m_playerAttr.throwMode = false;
 	m_playerAttr.confirmThrow = true;
 	m_playerAttr.allowControl = false;
+	m_playerAttr.seedCount--;
 	m_camera.SetAimMode(CameraMode::ProjectileAiming, false);
 
 	Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
@@ -754,12 +770,5 @@ void Player::RenderImGui(void)
 		{
 			m_playerGO->SetDrawWorldAABB(m_drawBoundingBox);
 		}
-	}
-
-	if (ImGui::CollapsingHeader("Debug pos"))
-	{
-		ImGui::SliderFloat("a: ", &a, -2, 2, "%.1f");
-		ImGui::SliderFloat("b: ", &b, -2, 2, "%.1f");
-		ImGui::SliderFloat("c: ", &c, -2, 2, "%.1f");
 	}
 }

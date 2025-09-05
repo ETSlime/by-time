@@ -43,6 +43,7 @@
 #define SLOT_CB_SPH_VOLUM_PARAMS            11
 #define SLOT_CB_INSTANCED_DATA              12
 #define SLOT_CB_FLUID_SURFACE               12
+#define SLOT_CB_EFFECT_LAKE_SURFACE         12
 #define SLOT_CB_RENDER_PROGRESS             13
 #define SLOT_CB_VOXEL_META                  13
 #define SLOT_CB_CLUSTER_REMAP               13
@@ -64,6 +65,7 @@
 #define SLOT_TEX_TRANSLUCENCY       13
 #define SLOT_TEX_SKYBOX_DAY         15
 #define SLOT_TEX_SKYBOX_NIGHT       21
+#define SLOT_TEX_NORMAL_2           22
 
 // ===== ストラクチャードバッファ定義 =====
 #define SLOT_SRV_PARTICLE                   6   // パーティクル読み取りバッファ
@@ -91,8 +93,8 @@
 #define SLOT_SRV_CLUSTER_REMAP              28  // クラスタリマップ
 #define SLOT_SRV_CLUSTER_ISVALID_FLAG       29  // クラスタ有効フラグ
 #define SLOT_SRV_REMAP_PREFIX_SUM           30  // リマッププレフィックスサム
-#define SLOT_SRV_REMAP_LOCAL_SUMS           31  // 
-#define SLOT_SRV_REMAP_GLOBAL_OFFSETS       32  //
+#define SLOT_SRV_REMAP_LOCAL_SUMS           31  // リマップローカルサム
+#define SLOT_SRV_REMAP_GLOBAL_OFFSETS       32  // リマップグローバルオフセット
 
 // ===== RWストラクチャードバッファ定義 =====
 #define SLOT_UAV_PARTICLE                       0   // パーティクル更新バッファ

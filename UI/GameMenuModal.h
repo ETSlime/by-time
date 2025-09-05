@@ -47,12 +47,25 @@
 #define MENU_BTN_TIME_CONTROL_NUM					8 // 時間制御ボタンの数
 #define MENU_BTN_TIME_CONTROL_SPACING_X				39.5f // ボタン間のX方向の間隔
 
+enum class TimeControlButton
+{
+	Spring_Day = 0,
+	Spring_Night,
+	Summer_Day,
+	Summer_Night,
+	Autumn_Day,
+	Autumn_Night,
+	Winter_Day,
+	Winter_Night,
+	NUM
+};
+
 class GameSystem;
 
 class GameMenuModal : public UIElement
 {
 public:
-	GameMenuModal(GameSystem* gameSystem);
+	GameMenuModal(GameSystem* gameSystem, SceneID sceneID);
 	~GameMenuModal();
 
 	void OnAppear(void);
@@ -63,10 +76,17 @@ public:
 	void CollectTweenTargets(SimpleArray<ISpriteTransformable*>& outTargets) const override;
 
 private:
+	struct SceneSwitchClickedContext
+	{
+		GameMenuModal* self;
+		TimeControlButton currentTimeControl;
+	};
+
 	// ボタンのクリックイベントハンドラー
 	static void OnResumeClicked(void* userData);
 	static void OnExitClicked(void* userData);
 	static void OnSceneSwitchClicked(void* userData);
+	static void OnSaveClicked(void* userData);
 
 	void ApplyBounceTween(ISpriteTransformable* target, const XMFLOAT2& targetPos, float offset = 300.0f);
 
@@ -84,6 +104,8 @@ private:
 	UIButton* m_btnTimeControl[MENU_BTN_TIME_CONTROL_NUM] = { nullptr }; // 時間制御ボタンの配列
 
 	UISprite* m_background = nullptr; // メニュー背景スプライト
+
+	TimeControlButton m_currentTimeControl = TimeControlButton::Spring_Day; // 現在の時間制御状態
 
     SimpleArray<UIElement*> m_elements;
 

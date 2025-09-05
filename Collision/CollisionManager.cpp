@@ -19,6 +19,7 @@
 //*****************************************************************************
 #define DRAW_BOUNDING_BOX               1
 #define MAX_TRIGGER_EVENT_NUM           256
+#define MAX_RAYCAST_DISTANCE            10000.0f
 
 constexpr float HEIGHT_EPSILON = 5.0f;
 constexpr float SMOOTHING_FACTOR = 0.2f;
@@ -105,11 +106,11 @@ void CollisionManager::Update()
 	m_debugTriangles.clear();
 #endif // _DEBUG
 
-    UINT numColliders = dynamicColliders.getSize();
+    UINT numColliders = m_dynamicColliders.getSize();
     
     for (UINT i = 0; i < numColliders; i++)
     {
-        const Collider* dynamicCol = dynamicColliders[i];
+        const Collider* dynamicCol = m_dynamicColliders[i];
 
         if (dynamicCol->tag == ColliderTag::WALL ||
             dynamicCol->tag == ColliderTag::STATIC_OBJECT ||
@@ -178,10 +179,10 @@ void CollisionManager::UnregisterDynamicCollider(const Collider* collider)
 {
     if (!m_initialized) return; // 初期化されていない場合は何もしない
 
-    int index = dynamicColliders.find_index(collider);
+    int index = m_dynamicColliders.find_index(collider);
     if (index >= 0)
     {
-        dynamicColliders.erase(index);
+        m_dynamicColliders.erase(index);
     }
 }
 
@@ -195,6 +196,64 @@ void CollisionManager::UnregisterEventCollider(Collider* collider)
         m_triggerEventColliders.erase(index);
     }
 
+}
+
+bool CollisionManager::RaycastForTargetPoint(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, XMFLOAT3* targetHitPosOut) const
+{
+    float closestDistSq = MAX_RAYCAST_DISTANCE * MAX_RAYCAST_DISTANCE;
+    bool hit = false;
+    XMFLOAT3 closestHitPos;
+
+    for (const auto& col : m_dynamicColliders)
+    {
+		if (col->tag == ColliderTag::PLAYER 
+            || col->tag == ColliderTag::PLAYER_PROJECTILE 
+            || col->tag == ColliderTag::AIR_WALL) 
+            continue; // プレイヤーとプレイヤーの弾は無視
+
+        float dist;
+        XMFLOAT3 hitPos;
+        if (col->aabb.IntersectRay(rayOrigin, rayDir, &dist, &hitPos))
+        {
+            if (dist < closestDistSq)
+            {
+                closestDistSq = dist;
+                closestHitPos = hitPos;
+                hit = true;
+            }
+        }
+    }
+
+	// 静的オブジェクト（地面）との衝突判定
+    if (m_voxelGrid)
+    {
+        XMFLOAT3 voxelHitPos;
+        float voxelHitDistSq;
+		XMFLOAT3 endPoint = {
+			rayOrigin.x + rayDir.x * MAX_RAYCAST_DISTANCE,
+			rayOrigin.y + rayDir.y * MAX_RAYCAST_DISTANCE,
+			rayOrigin.z + rayDir.z * MAX_RAYCAST_DISTANCE
+		};
+
+        bool voxelHit = m_voxelGrid->Raycast(rayOrigin, endPoint, &voxelHitPos, nullptr);
+        voxelHitDistSq = (voxelHitPos.x - rayOrigin.x) * (voxelHitPos.x - rayOrigin.x) +
+			(voxelHitPos.y - rayOrigin.y) * (voxelHitPos.y - rayOrigin.y) +
+			(voxelHitPos.z - rayOrigin.z) * (voxelHitPos.z - rayOrigin.z);
+
+        if (voxelHit && voxelHitDistSq < closestDistSq)
+        {
+            closestDistSq = voxelHitDistSq;
+            closestHitPos = voxelHitPos;
+            hit = true;
+        }
+    }
+
+    if (hit && targetHitPosOut)
+    {
+        *targetHitPosOut = closestHitPos;
+    }
+
+    return hit;
 }
 
 void CollisionManager::PrepareVoxelMappingAfterSceneChange(void)
@@ -358,6 +417,14 @@ void CollisionManager::HandleStaticCollision(const Collider* dynamicCol)
                         m_debugTriangles.push_back(*tri); // デバッグ用に三角形を保存
                     }
 #endif // _DEBUG
+
+                }
+                else if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE)
+                {
+                    CollisionEvent event;
+                    event.additionalData = &tri->normal;
+					dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::ProjectileHit);
+					//break; // 弾は最初に当たった面で処理を終える
                 }
 
                 CollisionEvent collisionEvent;
@@ -470,11 +537,11 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
 {
     if (dynamicCol->enableDynamicCollision)
     {
-        UINT numColliders = dynamicColliders.getSize();
+        UINT numColliders = m_dynamicColliders.getSize();
 
         for (UINT j = startIdx + 1; j < numColliders; j++)
         {
-            const Collider* dynamicCol2 = dynamicColliders[j];
+            const Collider* dynamicCol2 = m_dynamicColliders[j];
 
             if (!dynamicCol2->enable || !dynamicCol2->enableDynamicCollision)
                 continue; // 動的衝突が無効な場合はスキップ
@@ -482,7 +549,7 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
             else if (IsSelfCollision(dynamicCol, dynamicCol2)) continue;
 
             bool isObstacle = false;
-            if (dynamicColliders[startIdx]->aabb.intersects(dynamicColliders[j]->aabb))
+            if (m_dynamicColliders[startIdx]->aabb.intersects(m_dynamicColliders[j]->aabb))
             {
                 CollisionEvent event{ dynamicCol, dynamicCol2 };
 
@@ -642,8 +709,8 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                 }
 
                 CollisionEvent collisionEvent;
-                collisionEvent.colliderA = dynamicColliders[startIdx];
-                collisionEvent.colliderB = dynamicColliders[j];
+                collisionEvent.colliderA = m_dynamicColliders[startIdx];
+                collisionEvent.colliderB = m_dynamicColliders[j];
                 eventBus.publishCollision(collisionEvent);
             }
         }

@@ -33,6 +33,7 @@ enum class EnemyType
 {
 	Hilichurl,
 	GBMonster,
+	NPC_Fish,
 	Max,
 };
 
@@ -87,7 +88,10 @@ struct EnemyAttributes
 	bool				isDead;
 	bool				startFadeOut;
 	bool				randomMove;
+	bool				initialMove;
 	float				respawnTimer;
+
+	bool				disableGravity;
 
 	void Initialize()
 	{
@@ -114,6 +118,8 @@ struct EnemyAttributes
 		cooldownMoveTimer = 0.0f;
 		cooldownOrbitRadius = 0.0f;
 		cooldownProbability = 0.5f;
+
+		disableGravity = false;
 	}
 };
 
@@ -157,7 +163,7 @@ public:
 	~Enemy();
 
 	virtual void Initialize(void);
-	inline const EnemyAttributes& GetEnemyAttribute(void) { return m_enemyAttr; }
+	inline EnemyAttributes& GetEnemyAttribute(void) { return m_enemyAttr; }
 	void Update(void) override;
 	void Draw(void) override;
 	void DrawUI(EnemyUIType type);

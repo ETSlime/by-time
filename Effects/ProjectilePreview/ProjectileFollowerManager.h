@@ -51,7 +51,7 @@ public:
         if (!m_initialized)
             Initialize();
 
-        ProjectileSlot* slot = findFreeSlot();
+        ProjectileSlot* slot = FindFreeSlot();
         if (!slot) return false;
 
         slot->follower.ResetFromTrajectory(predicted);
@@ -88,13 +88,13 @@ public:
             s.entity->SetPosition(pos);
 
             // 向き（前方=dir）からオイラー角を算出して適用
-            applyEulerFromDir(dir, s.entity);
+            ApplyEulerFromDir(dir, s.entity);
 
             // 終了判定
             if (s.follower.IsFinished()) 
             {
                 // 爆発/消滅など
-                s.entity->PlayEffect(HitColliderType::Environment);
+                s.entity->PlayEffect(HitColliderType::Environment, s.follower.GetHitNormal());
                 s.entity->SetDestroy(true);
                 s.active = false;
                 s.entity = nullptr;
@@ -105,14 +105,14 @@ public:
 private:
     SimpleArray<ProjectileSlot> m_slots;
 
-    ProjectileSlot* findFreeSlot() 
+    ProjectileSlot* FindFreeSlot(void) 
     {
         for (auto& s : m_slots) if (!s.active) return &s;
         return nullptr; // 枠不足（必要なら自動拡張）
     }
 
     // 進行方向ベクトル→オイラー角(Yaw,Pitch,Roll=0) の簡易適用
-    static void applyEulerFromDir(const XMFLOAT3& dir, Item* entity)
+    static void ApplyEulerFromDir(const XMFLOAT3& dir, Item* entity)
     {
         // forward = dir, up = (0,1,0) 基準
         XMVECTOR f = XMVector3Normalize(XMLoadFloat3(&dir));

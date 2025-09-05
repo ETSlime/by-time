@@ -10,7 +10,7 @@
 // マクロ定義
 //*****************************************************************************
 constexpr float SPHERE_RADIUS = 1.0f;
-constexpr float SPHERE_SCALE = 65.0f;
+constexpr float SPHERE_SCALE = 120.0f;
 constexpr float RIBBON_WIDTH = 20.0f;
 constexpr float RIBBON_THICKNESS = 5.0f;
 
@@ -111,7 +111,7 @@ void ProjectilePreviewRenderer::Update(const SimpleArray<TrajectoryPoint>& traje
     const XMVECTOR rightVec = XMVectorScale(XMLoadFloat3(&camRight), RIBBON_WIDTH * 0.5f);
     const XMVECTOR upVec = XMVectorScale(XMLoadFloat3(&camUp), RIBBON_THICKNESS * 0.5f);
 
-    for (size_t i = 0; i + 1 < m_currentTrajectoryPoints; ++i) 
+    for (UINT i = 0; i + 1 < m_currentTrajectoryPoints; ++i) 
     {
         const XMFLOAT3& p0 = trajectoryPoints[i].pos;
         const XMFLOAT3& p1 = trajectoryPoints[i + 1].pos;
@@ -218,7 +218,7 @@ void ProjectilePreviewRenderer::Update(const SimpleArray<TrajectoryPoint>& traje
         CBPreviewData* cb = reinterpret_cast<CBPreviewData*>(mapped.pData);
         cb->hitPos = m_hitPos;
         cb->scale = SPHERE_SCALE; // 半球のスケール (必要なら外部で設定)
-        cb->color = XMFLOAT4(1.0f, 1.0f, 0.5f, 0.5f); // 黄色系統
+		cb->color = XMFLOAT4(0.8f, 0.0f, 0.0f, 0.5f); // ピンク色 (必要なら外部で設定)
         cb->time = m_timer.GetDeltaTime();
         cb->padding = XMFLOAT2(0, 0);
         m_context->Unmap(m_cbPreview, 0);
@@ -333,7 +333,6 @@ void ProjectilePreviewRenderer::UpdateSphereMesh(const XMFLOAT3& hitNormal, floa
                 XMVectorScale(B, c * st));
 
             XMStoreFloat3(&vtx[v].pos, pos);
-            //vtx[v].pos.y += 1;
             XMStoreFloat3(&vtx[v].normal, nrm);
             ++v;
         }

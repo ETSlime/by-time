@@ -40,12 +40,12 @@ public:
 	Item(ItemType itemType, Transform trans);
 	~Item();
 
-	virtual void Initialize(void);
+	virtual void Initialize(bool enableCollider = true);
 	inline const ItemAttributes& GetItemAttributes(void) { return m_itemAttributes; }
 
 	void Update(void) override;
 	void Draw(void) override;
-	void PlayEffect(HitColliderType type);
+	void PlayEffect(HitColliderType type, const XMFLOAT3& hitNormal = XMFLOAT3{});
 
 	void Use(void) { m_itemAttributes.used = true; }
 	void Pickup(void);

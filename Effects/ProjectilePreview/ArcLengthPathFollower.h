@@ -35,7 +35,11 @@ public:
         for (UINT i = 0; i < srcPoints.getSize(); ++i)
         {
             m_points.push_back(srcPoints[i]);
-            if (srcPoints[i].hit) break;
+            if (srcPoints[i].hit)
+            {
+				m_hitNormal = srcPoints[i].hitNormal;
+                break;
+            }
         }
 
         if (m_points.getSize() < 2)
@@ -102,6 +106,7 @@ public:
     bool   IsFinished(void) const { return m_finished; }
     float  GetTotalLength(void) const { return m_totalLen; }
     float  GetProgressS(void) const { return m_s; }
+	XMFLOAT3 GetHitNormal(void) const { return m_hitNormal; }
 
 private:
     SimpleArray<TrajectoryPoint> m_points; // 凍結した軌跡（命中で打ち切り）
@@ -109,4 +114,5 @@ private:
     float                        m_totalLen = 0.0f; // 総弧長
     float                        m_s = 0.0f; // 現在の弧長
     bool                         m_finished = true; // 完了フラグ
+	XMFLOAT3                     m_hitNormal = { 0,1,0 }; // 命中面の法線
 };

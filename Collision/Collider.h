@@ -19,8 +19,10 @@ enum class ColliderTag
     DEFAULT,
     PLAYER,
     ENEMY,
+    NPC,
     TRIGGER,
     WALL,
+    AIR_WALL,
     TREE,
     ITEM,
     STATIC_OBJECT,
@@ -49,6 +51,7 @@ struct CollisionEvent
 {
     const Collider* colliderA;
     const Collider* colliderB;
+	const void* additionalData; // 追加情報（必要に応じて使用）
 };
 
 // 通常のコライダーにコールバックを追加

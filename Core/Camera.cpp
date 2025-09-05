@@ -459,8 +459,8 @@ void Camera::SetAimMode(CameraMode aimMode, bool enable)
 
 void Camera::ComputeAimDirection(const XMFLOAT3& muzzlePos, XMFLOAT3* direction, XMFLOAT3* targetPoint) const
 {
-	// NDC空間の画面中心点 (z=1.0fは遠クリップ面)
-	XMVECTOR ndcCenter = XMVectorSet(0.0f, 0.0f, 1.0f, 1.0f);
+	// 画面中心 (NDC)，Z=0.1（近平面付近）で使うと精度高い
+	XMVECTOR ndcCenter = XMVectorSet(0.0f, 0.0f, 0.1f, 1.0f);
 
 	// ビュー・プロジェクション逆行列を計算
 	XMMATRIX view = XMLoadFloat4x4(&m_mtxView);
@@ -473,13 +473,30 @@ void Camera::ComputeAimDirection(const XMFLOAT3& muzzlePos, XMFLOAT3* direction,
 	// カメラ位置からワールド座標への射線方向
 	XMVECTOR camPos = XMLoadFloat3(&m_pos);
 	XMVECTOR rayDir = XMVector3Normalize(worldPos - camPos);
+	XMFLOAT3 rayDirF;
+	XMStoreFloat3(&rayDirF, rayDir);
 
-	// デフォルトの目標点：カメラ前方1000m
-	XMVECTOR tgt = camPos + rayDir * 1000.0f;
+	XMVECTOR tgt;
+	XMFLOAT3 targetPointOut;
+	if (CollisionManager::get_instance().RaycastForTargetPoint(m_pos, rayDirF, &targetPointOut))
+	{
+		// ヒットした場合はその位置を目標点とする
+		tgt = XMLoadFloat3(&targetPointOut);
+	}
+	else
+	{
+		// デフォルトの目標点：カメラ前方10000m
+		tgt = camPos + rayDir * 10000.0f;
+	}
+
+	// 微調整用オフセット
+	XMFLOAT3 offset = { 0.0f, 30.0f, 0.0f };
+	XMVECTOR offsetVec = XMLoadFloat3(&offset);
+	XMVECTOR tgtAdjusted = tgt + offsetVec;
 
 	// 銃口位置から目標点への最終発射方向
 	XMVECTOR muzzle = XMLoadFloat3(&muzzlePos);
-	XMVECTOR finalDir = XMVector3Normalize(tgt - muzzle);
+	XMVECTOR finalDir =  XMVector3Normalize(tgtAdjusted - muzzle);
 
 	// 結果を出力
 	if (direction) XMStoreFloat3(direction, finalDir);

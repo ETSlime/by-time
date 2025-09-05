@@ -1,6 +1,9 @@
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Item.h"
 #include "Scene/Ground.h"
+#include "Core/SaveSystem.h"
+
+
 
 void ItemManager::Init(void)
 {
@@ -84,11 +87,11 @@ void ItemManager::Update(void)
 
 }
 
-Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
+Item* ItemManager::SpawnItem(ItemType itemType, const Transform& trans, bool enableCollider)
 {
 
 	Item* item = new Item(itemType, trans);
-	item->Initialize();
+	item->Initialize(enableCollider);
 
 	if (!itemLoadMap.contains(TO_UINT64(itemType)))
 	{
@@ -127,6 +130,17 @@ Item* ItemManager::GetPickedItem(ItemType itemType) const
 		cur = cur->next;
 	}
 	return nullptr;
+}
+
+void ItemManager::LoadSaveData(const SaveData& saveData)
+{
+	for (int i = 0; i < saveData.seedCount; i++)
+	{
+		Transform trans;
+		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+		Item* seed = SpawnItem(ItemType::Seed, trans, false);
+		seed->Pickup();
+	}
 }
 
 void ItemManager::RenderImGui(void)

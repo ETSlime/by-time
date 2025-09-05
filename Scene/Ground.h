@@ -40,10 +40,15 @@
 
 enum class SceneID : uint64_t
 {
+	Spring_Day,
+	Spring_Night,
+	Summer_Day,
+	Summer_Night,
+	Autumn_Day,
+	Autumn_Night,
+	Winter_Day,
+	Winter_Night,
 	NONE,
-	SCENE_1,
-	SCENE_2,
-	SCENE_3,
 };
 
 // 前方宣言
@@ -62,7 +67,7 @@ public:
 
 	void UnloadCurrentScene(void); // 現在のシーンをアンロード
 	void LoadScene(SceneID id); // シーンをロード
-	SceneID GetCurrentScene(void) { return m_currentScene; }
+	SceneID GetCurrentSceneID(void) { return m_currentSceneID; }
 
 	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; } // 全モデルのロード数
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; } // 現在ロードしたモデル数
@@ -77,8 +82,8 @@ private:
 	void InitSceneLoadMap(void);
 
 	// シーンロード関数
-	void LoadScene1(void);
-	void LoadScene2(void);
+	void LoadSceneSpringDay(void);
+	void LoadSceneSpringNight(void);
 
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
@@ -96,7 +101,7 @@ private:
 	void DrawGameObjectArray(const SimpleArray<T*>& array);
 
 	virtual void RenderImGui(void) override;
-	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };
+	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; }
 
 	int m_currentModelLoadCnt = 0; // 現在ロードしたモデル数
 	int m_totalModelLoadCnt = 0; // 全モデルのロード数
@@ -149,7 +154,7 @@ private:
 	Environment* m_environment = nullptr;
 	WaterFluidParticleRenderer* m_waterFluid = nullptr;
 
-	SceneID m_currentScene = SceneID::NONE;
+	SceneID m_currentSceneID = SceneID::NONE;
 	Scene& m_scene = Scene::get_instance();
 	Renderer& m_renderer = Renderer::get_instance();
 
@@ -227,6 +232,10 @@ inline void Ground::DrawGameObjectArray(const SimpleArray<T*>& array)
 		auto& gameObject = array[i]; // GameObjectのポインタを取得
 
 		if (gameObject->GetUse() == false) continue;
+		if (gameObject->GetCollider().tag == ColliderTag::AIR_WALL)
+		{
+			//continue;
+		}
 
 		gameObject->Draw();
 	}

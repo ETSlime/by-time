@@ -197,6 +197,55 @@ struct BOUNDING_BOX
         outCorners[6] = XMFLOAT3(xMin, yMax, zMax);
         outCorners[7] = XMFLOAT3(xMax, yMax, zMax);
     }
+
+    // AABBとレイの交差判定
+    bool IntersectRay(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, float* dist, XMFLOAT3* hitPos) const
+    {
+        float tmin = 0.0f;
+        float tmax = FLT_MAX;
+
+        // XYZそれぞれの軸に対してスラブ法を使用
+        for (int i = 0; i < 3; ++i)
+        {
+            float origin = (&rayOrigin.x)[i];
+            float direction = (&rayDir.x)[i];
+            float minVal = (&minPoint.x)[i];
+            float maxVal = (&maxPoint.x)[i];
+
+            if (fabsf(direction) < 1e-6f)
+            {
+                // レイが平行でAABBのスラブ外 → 当たらない
+                if (origin < minVal || origin > maxVal)
+                    return false;
+            }
+            else
+            {
+                float invD = 1.0f / direction;
+                float t1 = (minVal - origin) * invD;
+                float t2 = (maxVal - origin) * invD;
+
+                if (t1 > t2) std::swap(t1, t2);
+
+                tmin = max(tmin, t1);
+                tmax = min(tmax, t2);
+
+                if (tmin > tmax)
+                    return false; // 分離している
+            }
+        }
+
+        if (dist) *dist = tmin;
+
+        if (hitPos)
+        {
+            XMVECTOR origin = XMLoadFloat3(&rayOrigin);
+            XMVECTOR dir = XMLoadFloat3(&rayDir);
+            XMVECTOR point = XMVectorAdd(origin, XMVectorScale(dir, tmin));
+            XMStoreFloat3(hitPos, point);
+        }
+
+        return true;
+    }
 };
 
 struct Triangle

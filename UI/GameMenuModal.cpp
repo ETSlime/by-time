@@ -5,10 +5,13 @@
 // 
 //=============================================================================
 #include "UI/GameMenuModal.h"
+#include "UI/SaveCompleteModal.h"
 #include "Core/GameSystem.h"
+#include "Core/SaveSystem.h"
 
-GameMenuModal::GameMenuModal(GameSystem* gameSystem) : m_gameSystem(gameSystem)
+GameMenuModal::GameMenuModal(GameSystem* gameSystem, SceneID sceneID) : m_gameSystem(gameSystem)
 {
+	m_currentTimeControl = static_cast<TimeControlButton>(sceneID);
 	m_elements.reserve(12);
 
 	m_background = new UISprite(
@@ -44,6 +47,7 @@ GameMenuModal::GameMenuModal(GameSystem* gameSystem) : m_gameSystem(gameSystem)
 		XMFLOAT4(0.5f, 0.5f, 0.5f, 1) // Disabled
 	);
 	m_btnSave->SetScale(0.5f, 0.5f);
+	m_btnSave->SetOnClick(OnSaveClicked, nullptr); // セーブボタンにコールバックを設定
 	m_elements.push_back(m_btnSave);
 
 	m_btnQuit = new UIButton(
@@ -77,11 +81,11 @@ GameMenuModal::GameMenuModal(GameSystem* gameSystem) : m_gameSystem(gameSystem)
 		);
 		m_btnTimeControl[i]->SetScale(0.5f, 0.5f);
 		m_btnTimeControl[i]->SetUseTweenScale(true); // Tweenスケールを有効にする
+		m_btnTimeControl[i]->SetOnClick(OnSceneSwitchClicked, new SceneSwitchClickedContext{ this, static_cast<TimeControlButton>(i)}); // 最初のボタンにシーン切り替えのコールバックを設定
 		m_elements.push_back(m_btnTimeControl[i]);
 	}
 
-	m_btnTimeControl[0]->SetOnClick(OnSceneSwitchClicked, m_gameSystem); // 最初のボタンにシーン切り替えのコールバックを設定
-
+	m_btnTimeControl[static_cast<UINT>(m_currentTimeControl)]->SetEnabled(false); // 最初のボタンを選択状態にする
 
 	OnAppear();
 }
@@ -184,35 +188,51 @@ void GameMenuModal::OnExitClicked(void* userData)
 
 void GameMenuModal::OnSceneSwitchClicked(void* userData)
 {
-	GameSystem* self = static_cast<GameSystem*>(userData);
+	SceneSwitchClickedContext* ctx = static_cast<SceneSwitchClickedContext*>(userData);
 
 	auto& fader = UIManager::get_instance().GetFader();
 
 	if (!fader.IsFading())
 	{
-		struct ReturnToTitleContext
-		{
-			GameSystem* gameSystem;
-		};
-
 		fader.StartFadeOut(); // 画面を黒くフェードイン
 
 		DeferredTaskOptions options{};
 		options.async = false; // 同期で実行
 		options.debugName = "Switch_Scene"; // デバッグ用の名前
-		auto* ctx = new ReturnToTitleContext{ self }; // コンテキストを作成して渡す
 
 		RawDeferredTask::Add(
 			ctx, // コンテキストを渡す
 			[](void* ptr)
 			{
 				Ground& ground = Ground::get_instance();
+				auto* ctx = static_cast<SceneSwitchClickedContext*>(ptr);
+				GameMenuModal* self = ctx->self;
 
-				if (ground.GetCurrentScene() == SceneID::SCENE_1)
-					ground.LoadScene(SceneID::SCENE_2);
-				else
-					ground.LoadScene(SceneID::SCENE_1);
+				switch (ctx->currentTimeControl)
+				{
+				case TimeControlButton::Spring_Day:
+					self->m_currentTimeControl = TimeControlButton::Spring_Day;
+					ground.LoadScene(SceneID::Spring_Day);
+					break;
+				case TimeControlButton::Spring_Night:
+					self->m_currentTimeControl = TimeControlButton::Spring_Night;
+					ground.LoadScene(SceneID::Spring_Night);
+					break;
+				default:
+					return;
+				}
+					
 				UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+
+				// 全ての時間制御ボタンを有効化
+				for (int i = 0; i < MENU_BTN_TIME_CONTROL_NUM; ++i)
+				{
+					self->m_btnTimeControl[i]->SetEnabled(true);
+				}
+				// 現在の時間制御ボタンだけ無効化
+				self->m_btnTimeControl[static_cast<UINT>(self->m_currentTimeControl)]->SetEnabled(false); 
+
+				SAFE_DELETE(ctx); // コンテキストを削除
 			},
 			[](void* ptr)
 			{
@@ -221,4 +241,10 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 			options
 		);
 	}
+}
+
+void GameMenuModal::OnSaveClicked(void* userData)
+{
+	SaveSystem::get_instance().SaveGame(); // ゲームをセーブする
+	UIManager::get_instance().PushModal<SaveCompleteModal>();
 }

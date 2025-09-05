@@ -38,7 +38,7 @@ void ProjectilePredictor::ComputeTrajectory(const XMFLOAT3& start, const XMFLOAT
         XMFLOAT3 hitPos, hitNormal;
         if (m_voxelGrid && m_voxelGrid->Raycast(prevPos, pos, &hitPos, &hitNormal))
         {
-            m_trajectoryPoints.push_back({ hitPos, true });
+            m_trajectoryPoints.push_back({ hitPos, true, hitNormal });
             if (outHitPos) *outHitPos = hitPos;
 			if (outHitNormal) *outHitNormal = hitNormal;
             hitFound = true;

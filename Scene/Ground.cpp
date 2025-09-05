@@ -10,20 +10,18 @@
 #include "Model/Model.h"
 #include "Utility/InputManager.h"
 #include "Utility/Debug/Debugproc.h"
-#include "Scene/Ground.h"
 #include "Collision/CollisionManager.h"
 #include "Effects/EffectSystem.h"
+#include "Effects/SpecialEffects/LakeSurfaceRenderer.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
+#include "Scene/Ground.h"
 #include "Scene/Item/ItemManager.h"
 
 //*****************************************************************************
-// マクロ定義r
+// マクロ定義
 //*****************************************************************************
-#define MAX_TREE			(0)
-
 #define TREE_SIZE			(350.0f)
-#define KEY_SIZE			(15.0f)
-#define SEED_SIZE			(0.05f)
+
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(12.0f)
 #define BONFIRE_SIZE		(12.0f)
@@ -37,10 +35,10 @@
 #define IVY_POS				XMFLOAT3(8881.0f, 7338.0f, 8112.0f)
 #define IVY_SCALE			XMFLOAT3(148.0f, 265.0f, 58.0f)
 #define IVY_ROT_Y			(1.2f)
+
 //=============================================================================
 // 初期化処理
 //=============================================================================
-
 void Ground::Initialize(void)
 {
 #ifdef _DEBUG
@@ -67,6 +65,15 @@ void Ground::Initialize(void)
 	soilConfig.castShadow = false;
 	CreateTerrainGO(soilConfig);
 
+	LakeSurfaceRenderer* lakeSurface = new LakeSurfaceRenderer(XMFLOAT3(4500.0f, 1500.0f, 4000.0f));
+	if (lakeSurface->Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()))
+	{
+		lakeSurface->SetPosition(XMFLOAT3(7954.0f, 6220.0f, 1996.0f)); // 湖の位置を調整
+		EffectSystem::get_instance().AddEffect(lakeSurface);
+	}
+	else
+		SAFE_DELETE(lakeSurface);
+	
 
 
 	//SkinnedGameObjectConfig config;
@@ -143,18 +150,14 @@ void Ground::Update(void)
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 
-	//if (InputManager::get_instance().GetKeyboardPress(DIK_K))
-	//{
-	//	if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-	//		m_waterFluid->EmitWater(35.0f, 1);
-	//}
-
 	if (m_town)
 		m_town->Update();
 
 	if (m_environment)
 		m_environment->Update();
 
+
+#ifdef _DEBUG
 	if (debugGO)
 	{
 		debugGO->SetPosition(XMFLOAT3(debugGOPosX, debugGOPosY, debugGOPosZ));
@@ -176,6 +179,7 @@ void Ground::Update(void)
 		debugItem->SetScale(XMFLOAT3(debugItemScaleX, debugItemScaleY, debugItemScaleZ));
 		debugItem->SetRotation(XMFLOAT3(debugItemRotX, debugItemRotY, debugItemRotZ));
 	}
+#endif // _DEBUG
 }
 
 //=============================================================================
@@ -233,10 +237,10 @@ void Ground::UnloadCurrentScene(void)
 	m_currentTerrainModelLoadCnt = 0;
 
 	// 現在のシーンが存在しない場合は何もしない
-	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentScene)))
+	if (!m_sceneEntityMap.contains(TO_UINT64(m_currentSceneID)))
 		return;
 
-	auto& sceneData = m_sceneEntityMap[TO_UINT64(m_currentScene)];
+	auto& sceneData = m_sceneEntityMap[TO_UINT64(m_currentSceneID)];
 
 	// まずはシーンから登録解除
 	for (ISceneEntity* entity : sceneData)
@@ -256,7 +260,7 @@ void Ground::UnloadCurrentScene(void)
 
 	sceneData.clear();
 
-	m_currentScene = SceneID::NONE;
+	m_currentSceneID = SceneID::NONE;
 }
 
 void Ground::LoadScene(SceneID sceneID)
@@ -264,7 +268,7 @@ void Ground::LoadScene(SceneID sceneID)
 	if (!m_initialized) return;
 
 	// 現在のシーンと同じ場合は何もしない
-	if (m_currentScene == sceneID)
+	if (m_currentSceneID == sceneID)
 		return;
 
 	UnloadCurrentScene(); // 現在のシーンを破棄
@@ -274,7 +278,7 @@ void Ground::LoadScene(SceneID sceneID)
 	{
 		SceneLoadFunc func = it->value;
 		(this->*func)(); // 登録されたロード関数を呼び出す
-		m_currentScene = sceneID;
+		m_currentSceneID = sceneID;
 	}
 }
 
@@ -300,38 +304,146 @@ void Ground::InitTerrain(void)
 		m_persistentModelLoadCnt++;
 	}
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/house.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/bridge1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/bridge1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/broken_bridge1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/broken_bridge2.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge2.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/CD1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/CD1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/cubes.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/cubes.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/door_l.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/lines.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/door_r.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/fence1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain2.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/fence2.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/house_new.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/tree.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/lines.obj";
 	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain1.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain2.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain3.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/tree.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+
+
+	terrainBuildConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+	terrainBuildConfig.castShadow = false;
+	terrainBuildConfig.drawWorldAABB = false;
+	terrainBuildConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	terrainBuildConfig.colliderTag = ColliderTag::AIR_WALL;
+	terrainBuildConfig.position = XMFLOAT3(9731.0f, 4142.0f, 2443.0f);
+	terrainBuildConfig.scale = XMFLOAT3(277.0f, 269.0f, 370.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(6608.0f, 4353.0f, 2173.0f);
+	terrainBuildConfig.scale = XMFLOAT3(32.0f, 269.0f, 344.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(6017.0f, 4353.0f, 2169.0f);
+	terrainBuildConfig.scale = XMFLOAT3(32.0f, 287.0f, 280.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
+	terrainBuildConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(-2933.0f, 4353.0f, 4277.0f);
+	terrainBuildConfig.scale = XMFLOAT3(25.0f, 234.0f, 1000.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(4013.0f, 4072.0f, -2390.0f);
+	terrainBuildConfig.scale = XMFLOAT3(1000.0f, 234.0f, 25.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(13539.0f, 4072.0f, 4868.0f);
+	terrainBuildConfig.scale = XMFLOAT3(25.0f, 234.0f, 1000.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(6655.0f, 4072.0f, 14119.0f);
+	terrainBuildConfig.scale = XMFLOAT3(1000.0f, 234.0f, 25.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(9002.0f, 8708.0f, 11350.0f);
+	terrainBuildConfig.scale = XMFLOAT3(8.6f, 16.3f, 8.7f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(8546.0f, 8708.0f, 10529.0f);
+	terrainBuildConfig.scale = XMFLOAT3(8.6f, 16.3f, 8.7f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7864.0f, 8708.0f, 10244.0f);
+	terrainBuildConfig.scale = XMFLOAT3(5.8f, 16.3f, 5.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7763.0f, 8889.0f, 9911.0f);
+	terrainBuildConfig.scale = XMFLOAT3(5.8f, 16.3f, 5.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7434.0f, 8889.0f, 9863.0f);
+	terrainBuildConfig.scale = XMFLOAT3(5.8f, 16.3f, 5.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7737.0f, 8095.0f, 11407.0f);
+	terrainBuildConfig.scale = XMFLOAT3(5.8f, 61.7f, 143.1f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7887.0f, 8177.0f, 11838.0f);
+	terrainBuildConfig.scale = XMFLOAT3(12.4f, 6.1f, 12.3f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(7174.1f, 7885.4f, 10801.6f);
+	terrainBuildConfig.scale = XMFLOAT3(68.8f, 58.6f, 95.1f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(5778.3f, 6297.6f, 11385.0f);
+	terrainBuildConfig.scale = XMFLOAT3(220.9f, 51.2f, 158.7f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(9926.3f, 6297.6f, 11320.0f);
+	terrainBuildConfig.scale = XMFLOAT3(56.1f, 50.5f, 60.6f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(11870.2f, 6297.6f, 6913.2f);
+	terrainBuildConfig.scale = XMFLOAT3(61.6f, 50.5f, 62.8f);
+	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(4652.5f, 7690.8f, 11416.0f);
+	terrainBuildConfig.scale = XMFLOAT3(109.3f, 79.8f, 161.0f);
+	debugGO = CreateTerrainGO(terrainBuildConfig);
+
+	debugGOPosX = terrainBuildConfig.position.x;
+	debugGOPosY = terrainBuildConfig.position.y;
+	debugGOPosZ = terrainBuildConfig.position.z;
+	debugGOScaleX = terrainBuildConfig.scale.x;
+	debugGOScaleY = terrainBuildConfig.scale.y;
+	debugGOScaleZ = terrainBuildConfig.scale.z;
+	debugGORotY = terrainBuildConfig.rotation.y;
 }
 
 GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
@@ -347,11 +459,11 @@ GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
 
 void Ground::InitSceneLoadMap(void)
 {
-	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
-	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_2)] = &Ground::LoadScene2;
+	m_sceneLoadMap[TO_UINT64(SceneID::Spring_Day)] = &Ground::LoadSceneSpringDay;
+	m_sceneLoadMap[TO_UINT64(SceneID::Spring_Night)] = &Ground::LoadSceneSpringNight;
 }
 
-void Ground::LoadScene1(void)
+void Ground::LoadSceneSpringDay(void)
 {
 	if(m_sceneKey != nullptr)
 		m_sceneKey->SetActive(false);
@@ -371,39 +483,11 @@ void Ground::LoadScene1(void)
 	//IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
 	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
 
-	WaterFluidParams waterParams;
-	waterParams.type = EffectType::WaterFluid;
-	waterParams.scale = 15.0f; // 粒子の基本スケール（sizeの初期値）
-	waterParams.position = XMFLOAT3(11882.0f, -1790.0f, -19485.0f); // 初期生成位置
-	waterParams.acceleration = XMFLOAT3(0.0f, -65.0f, 0.0f); // 重力方向（Y軸マイナス）
-	waterParams.numParticles = 5000; // 最大粒子数
-	waterParams.startColor = XMFLOAT4(0.2f, 0.5f, 1.0f, 0.5f); // 水色
-	waterParams.endColor = XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);   // 寿命で暗く
-
-	// エミット制御（あまり使わないが、baseクラス必須）
-	waterParams.spawnRateMin = 0;
-	waterParams.spawnRateMax = 0;
-	waterParams.lifeMin = 9999.0f; // 実質無限寿命（蒸発未実装なら）
-	waterParams.lifeMax = 9999.0f; // 実質無限寿命（蒸発未実装なら）
-
-	// 水の物理パラメータ
-	waterParams.supportRadius = 15.0f;		// サポート半径（粒子影響範囲）
-	waterParams.restDensity = 50.0f;		// 静止密度（流体の基準密度）
-	waterParams.particleMass = 15.0f;		// 粒子質量
-	waterParams.stiffness = 4000.0f;		// 拘束強度（大きいと固くなる）
-	waterParams.friction = 0.05f;			// 速度減衰（地面との摩擦的な）
-	waterParams.viscosity = 5.0f;			// 粘性係数（流体の粘り気）
-	waterParams.restitution = 0.0f;			// 反発係数（衝突時の挙動制御用）
-
-	//IEffectRenderer* waterFluid =  EffectSystem::get_instance().SpawnParticleEffect(waterParams);
-	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(waterFluid);
-	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(waterFluid);
-
 	BOUNDING_BOX triggerBox;
 	triggerBox.minPoint = XMFLOAT3(8547.6f, 6394.0f , 7774.6f);
 	triggerBox.maxPoint = XMFLOAT3(8848.2f, 6490.0f, 8133.0f);
 
-	RegisterEventTrigger(triggerBox, PlayerCallbackAction::PlaceItem, SceneID::SCENE_1);
+	RegisterEventTrigger(triggerBox, PlayerCallbackAction::PlaceItem, SceneID::Spring_Day);
 
 
 	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
@@ -429,7 +513,7 @@ void Ground::LoadScene1(void)
 
 		Transform trans;
 		trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
-		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		trans.rot = XMFLOAT3(1.0f, 1.0f, 10.0f);
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
 		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
@@ -442,13 +526,13 @@ void Ground::LoadScene1(void)
 		m_sceneSeed->SetActive(true);
 }
 
-void Ground::LoadScene2(void)
+void Ground::LoadSceneSpringNight(void)
 {
 	if (m_sceneKey == nullptr) 
 	{
 
 		Transform trans;
-		trans.pos = XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
+		trans.pos = KEY_POS;
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
@@ -497,7 +581,7 @@ void Ground::LoadScene2(void)
 	GameObject<ModelInstance>* ivyGO = new GameObject<ModelInstance>();
 	ivyGO->Instantiate(IvyConfig);
 	m_staticGOs.push_back(ivyGO);
-	m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(ivyGO);
+	m_sceneEntityMap[TO_UINT64(SceneID::Spring_Night)].push_back(ivyGO);
 
 	if (!m_modelLoadMap.contains(IvyConfig.modelPath))
 	{
@@ -510,7 +594,7 @@ void Ground::LoadScene2(void)
 	triggerBox.minPoint = XMFLOAT3(8550.6f, 6367.0f, 7835.6f);
 	triggerBox.maxPoint = XMFLOAT3(8814.2f, 6404.0f, 8136.0f);
 
-	EventTrigger* eventTrigger = RegisterEventTrigger(triggerBox, PlayerCallbackAction::StartClimbUp, SceneID::SCENE_2);
+	EventTrigger* eventTrigger = RegisterEventTrigger(triggerBox, PlayerCallbackAction::StartClimbUp, SceneID::Spring_Night);
 
 	
 	debugTrigger = eventTrigger; // デバッグ用トリガー
@@ -524,7 +608,7 @@ void Ground::LoadScene2(void)
 	triggerBox.minPoint = XMFLOAT3(8625.6f, 9717.0f, 7986.6f);
 	triggerBox.maxPoint = XMFLOAT3(8964.2f, 9830.0f, 8399.0f);
 
-	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
+	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::Spring_Night);
 
 
 }
@@ -532,19 +616,21 @@ void Ground::LoadScene2(void)
 void Ground::GenerateEnvironmentObj(void*)
 {
 	InstanceParams instanceParams;
-	instanceParams.type = EnvironmentObjectType::Bush_2;
+	instanceParams.type = EnvironmentObjectType::Grass_1;
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		3024.0f,
-		3453.0f,
-		0.5 * XM_PI,
-		0.3f
+		3024.0f,		// posX
+		3453.0f,		// posZ
+		0.5 * XM_PI,	// rotY
+		20.0f,			// scl
+		25.0f			// offsetY
 	));
 
 	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		2453.0f,
-		2453.0f,
-		0.5,
-		0.3f
+		2453.0f,		// posX
+		2453.0f,		// posZ
+		0.5,			// rotY
+		20.0f,			// scl
+		25.0f			// offsetY
 	));
 
 	// 環境オブジェクト管理クラスのインスタンス生成
@@ -674,13 +760,13 @@ void Ground::RenderImGui(void)
 
 	if (ImGui::CollapsingHeader("Debug GameObject"))
 	{
-		ImGui::SliderFloat("PosX: ", &debugGOPosX, 1133.67f, 9833.67f, "%.1f");
-		ImGui::SliderFloat("PosY: ", &debugGOPosY, 1131.0f, 8131.0f, "%.1f");
-		ImGui::SliderFloat("PosZ: ", &debugGOPosZ, 1418.0f, 8718.0f, "%.1f");
-		ImGui::SliderFloat("ScaleX: ", &debugGOScaleX, 25.0f, 255.0f, "%.1f");
-		ImGui::SliderFloat("ScaleY: ", &debugGOScaleY, 25.0f, 355.0f, "%.1f");
-		ImGui::SliderFloat("ScaleZ: ", &debugGOScaleZ, 25.0f, 255.0f, "%.1f");
-		ImGui::SliderFloat("RotY: ", &debugGORotY, -3, 3, "%.1f");
+		ImGui::SliderFloat("PosX: ", &debugGOPosX, 1131.0f, 8718.0f, "%.1f");
+		ImGui::SliderFloat("PosY: ", &debugGOPosY, 5131.0f, 13718.0f, "%.1f");
+		ImGui::SliderFloat("PosZ: ", &debugGOPosZ, 9131.0f, 13718.0f, "%.1f");
+		ImGui::SliderFloat("ScaleX: ", &debugGOScaleX, 5.0f, 299.0f, "%.1f");
+		ImGui::SliderFloat("ScaleY: ", &debugGOScaleY, 5.0f, 99.0f, "%.1f");
+		ImGui::SliderFloat("ScaleZ: ", &debugGOScaleZ, 5.0f, 199.0f, "%.1f");
+		ImGui::SliderFloat("RotY: ", &debugGORotY, -3, 3, "%.2f");
 	}
 
 	if (ImGui::CollapsingHeader("Debug EventTrigger"))

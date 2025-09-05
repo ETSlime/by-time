@@ -78,16 +78,19 @@ public:
     void VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles);
 
     // 動的衝突体の登録&解除
-    void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
+    void RegisterDynamicCollider(const Collider* collider) { m_dynamicColliders.push_back(collider); }
     void UnregisterDynamicCollider(const Collider* collider);
     // 衝突イベントを発行するためのコライダーを登録&解除
 	void RegisterEventCollider(Collider* collider) { m_triggerEventColliders.push_back(collider); }
 	void UnregisterEventCollider(Collider* collider);
 
     // 動的衝突体リストのクリア
-    void ClearDynamicColliders(void) { dynamicColliders.clear(); }
+    void ClearDynamicColliders(void) { m_dynamicColliders.clear(); }
 	// 衝突イベントコライダーリストのクリア
 	void ClearEventColliders(void) { m_triggerEventColliders.clear(); }
+
+	// レイキャスト関数（rayOrigin から rayDir 方向に伸びるレイと静的オブジェクトの交差判定）
+    bool RaycastForTargetPoint(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, XMFLOAT3* targetHitPosOut) const;
 
     // シーン切り替え時に呼び出すVoxelMapping登録関数
     void PrepareVoxelMappingAfterSceneChange(void);
@@ -127,7 +130,7 @@ private:
     VoxelGrid* m_voxelGrid = nullptr;
 
     // 動的オブジェクト（プレイヤー、敵、その他）の衝突体リスト
-    SimpleArray<const Collider*> dynamicColliders;
+    SimpleArray<const Collider*> m_dynamicColliders;
 
 	// 衝突イベントを発行するためのコライダーリスト
     SimpleArray<Collider*> m_triggerEventColliders;

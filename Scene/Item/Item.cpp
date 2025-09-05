@@ -1,6 +1,7 @@
 #include "Scene/Item/Item.h"
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
+#include "Effects/DecalRenderer.h"
 
 Item::Item(ItemType itemType, Transform trans)
 {
@@ -16,7 +17,7 @@ Item::~Item()
 {
 }
 
-void Item::Initialize(void)
+void Item::Initialize(bool enableCollider)
 {
 	if (m_itemAttributes.initialized)
 		return;
@@ -32,7 +33,7 @@ void Item::Initialize(void)
 		break;
 	case ItemType::Seed:
 		config.modelPath = "data/MODEL/Item/Seed/Seed.obj";
-		config.scale = XMFLOAT3(5.0f, 5.0f, 5.0f);
+		config.scale = XMFLOAT3(15.0f, 15.0f, 15.0f);
 		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
 		break;
 	}
@@ -40,6 +41,7 @@ void Item::Initialize(void)
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	config.colliderTag = ColliderTag::ITEM;
 	config.modelType = ModelType::Default;
+	config.enableCollider = enableCollider;
 
 	Instantiate(config);
 
@@ -57,7 +59,7 @@ void Item::Draw(void)
 	GameObject::Draw();
 }
 
-void Item::PlayEffect(HitColliderType type)
+void Item::PlayEffect(HitColliderType type, const XMFLOAT3& hitNormal)
 {
 	if (m_itemAttributes.itemType == ItemType::Seed)
 	{
@@ -114,6 +116,12 @@ void Item::PlayEffect(HitColliderType type)
 		}
 
 		IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
+
+		if (type == HitColliderType::Environment)
+		{
+			// 地面に当たった時はデカールも追加
+			DecalRenderer::get_instance().AddDecal(instance.transform.pos, hitNormal, 175.0f, 40.0f);
+		}
 	}
 
 }
@@ -155,16 +163,6 @@ void Item::OnItemCollisionCallback(const CollisionEvent& event, void* context)
 
 void Item::Update(void)
 {
-	if (!instance.load)
-	{
-		GameObject::Update();
-
-		if(instance.load)
-			instance.collider.enable = true;
-
-		return;
-	}
-
 	if (instance.use == true)
 	{
 

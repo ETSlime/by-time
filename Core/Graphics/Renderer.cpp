@@ -707,6 +707,7 @@ HRESULT Renderer::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	m_D3DDevice->CreateSamplerState( &samplerDesc, &m_SamplerState);
+	m_ShaderResourceBinder.BindSampler(ShaderStage::VS, SLOT_SAMPLER_DEFAULT, m_SamplerState);
 	m_ShaderResourceBinder.BindSampler(ShaderStage::PS, SLOT_SAMPLER_DEFAULT, m_SamplerState);
 
 	ZeroMemory(&samplerDesc, sizeof(samplerDesc));

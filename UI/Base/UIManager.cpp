@@ -31,8 +31,12 @@ void UIManager::Update(void)
 	// UI要素の更新
     if (IsModalActive())
     {
-        for (auto* modal : m_modals)
-            modal->Update(); // モーダルがアクティブな場合はモーダルだけ更新
+		UIElement* topModal = GetTopModal();
+		if (topModal)
+		{
+            // モーダルがアクティブな場合はモーダルだけ更新
+            topModal->Update();
+		}
     }
     else
     {

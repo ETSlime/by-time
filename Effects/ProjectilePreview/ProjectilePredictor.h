@@ -21,6 +21,7 @@ struct TrajectoryPoint
 {
     XMFLOAT3 pos;  // ˆÊ’u
     bool hit;      // –½’†“_‚©‚Ç‚¤‚©
+	XMFLOAT3 hitNormal; // –½’†–@ü
 };
 
 class ProjectilePredictor 

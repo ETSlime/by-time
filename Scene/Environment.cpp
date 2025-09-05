@@ -18,8 +18,6 @@ Environment::Environment() :
     m_device(Renderer::get_instance().GetDevice()), 
     m_context(Renderer::get_instance().GetDeviceContext())
 {
-    m_time = 0.0f; // 累積時間
-
     Initialize();
 }
 
@@ -27,7 +25,6 @@ Environment::Environment(EnvironmentConfig config) :
     m_device(Renderer::get_instance().GetDevice()),
     m_context(Renderer::get_instance().GetDeviceContext())
 {
-    m_time = 0.0f; // 累積時間
 
 	Initialize();
 
@@ -112,7 +109,7 @@ EnvironmentObject* Environment::InitializeEnvironmentObjAttributes(EnvironmentOb
         obj->attributes.isDynamic = false;
         obj->attributes.maxSlopeAngle = GRASS_MAX_SLOPE_ANGLE;
         obj->modelPath = GRASS_1_MODEL_PATH;
-        obj->extDiffuseTexPath = GRASS_1_TEX_PATH;
+        //obj->extDiffuseTexPath = GRASS_1_TEX_PATH;
         return obj;
     case EnvironmentObjectType::Grass_2:
         obj = new EnvironmentObject();
@@ -253,16 +250,16 @@ Environment::~Environment()
 
 void Environment::Update(void)
 {
-    m_time++; // 時間更新
 
     // 定数バッファマッピング
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     m_context->Map(m_perFrameBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     PerFrameBuffer* bufferData = reinterpret_cast<PerFrameBuffer*>(mappedResource.pData);
 
-    bufferData->Time = m_time * 0.0005f; // 時間設定
-    bufferData->WindDirection = CalculateDynamicWindDirection(m_time); // 動的風向き計算
-    bufferData->WindStrength = 0.2f + 0.05f * sinf(m_time * 0.5f); // 風強さ変動
+	float currentTime = m_timer.GetElapsedTime();
+    bufferData->Time = currentTime; // 時間設定
+    bufferData->WindDirection = XMFLOAT3(1, 0, 0);// CalculateDynamicWindDirection(currentTime); // 動的風向き計算
+    bufferData->WindStrength =  180.0f + 90.0f * sinf(currentTime); // 風強さ変動
 
     m_context->Unmap(m_perFrameBuffer, 0); // バッファアンマップ
 
@@ -312,8 +309,11 @@ void Environment::Update(void)
 
 void Environment::Draw(void)
 {
-	if (m_shaderHotReload)
-		LoadAllShaders();
+#ifdef _DEBUG
+    LoadAllShaders();
+#endif // _DEBUG
+
+	m_renderer.SetCullingMode(CULL_MODE::CULL_MODE_NONE);
 
     for (UINT i = 0; i < m_environmentObjects.getSize(); i++)
 	{
@@ -326,12 +326,14 @@ void Environment::Draw(void)
 		}
 	}
 
+    m_renderer.SetCullingMode(CULL_MODE::CULL_MODE_BACK);
 }
 
 void Environment::RenderEnvironmentObj(EnvironmentObject* obj)
 {
-    if (m_shaderHotReload)
-        LoadShadersForEachObj(obj);
+#ifdef _DEBUG
+    LoadShadersForEachObj(obj);
+#endif // _DEBUG
 
     UINT strides[2] = { sizeof(InstanceVertex), sizeof(InstanceData) }; // 頂点 & インスタンスストライド
     UINT offsets[2] = { 0, 0 }; // オフセット初期化
@@ -470,7 +472,7 @@ float Environment::CalculateWeight(float vertexY, float minY, float maxY)
 {
     if (maxY - minY == 0.0f) return 0.0f;
     float normalizedHeight = (vertexY - minY) / (maxY - minY);
-    return powf(normalizedHeight, 0.01f); // 高さの影響をより強調
+    return powf(normalizedHeight, 2.0f); // 高さの影響をより強調
 }
 
 float Environment::RayIntersectTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, const Triangle* tri)
@@ -861,7 +863,7 @@ bool Environment::GenerateInstanceByParams(const InstanceParams& params, const M
         if (!bestTriangle) continue;
 
         // オブジェクトの Y 座標を最高点に調整
-        pos.y = maxHeight;// +(instanceBoundingBox.maxPoint.y - instanceBoundingBox.minPoint.y);
+        pos.y = maxHeight + params.transformArray[i].offsetY;// +(instanceBoundingBox.maxPoint.y - instanceBoundingBox.minPoint.y);
 
         XMFLOAT4 initRotation;
         if (!GetInitRotation(obj, initRotation, bestTriangle))
