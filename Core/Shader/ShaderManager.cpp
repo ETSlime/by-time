@@ -665,6 +665,8 @@ void ShaderManager::CreateInstancedInputLayout(ID3D11Device* device)
             { "UVOFFSET",    0, DXGI_FORMAT_R32G32_FLOAT,    1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
             { "ELAPSED",     0, DXGI_FORMAT_R32_FLOAT,       1, 40, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
             { "ROTATION",    0, DXGI_FORMAT_R32_FLOAT,       1, 44, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			{ "ALPHA",       0, DXGI_FORMAT_R32_FLOAT,       1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			{ "PADDING",     0, DXGI_FORMAT_R32_UINT,        1, 52, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
         };
 
 

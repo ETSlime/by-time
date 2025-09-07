@@ -24,7 +24,6 @@
 
 #define Enemy_NPC_SIZE					XMFLOAT3(1.3f, 1.3f, 1.3f)
 
-#define HILI_MAX_HP					(50.0f)
 
 class Enemy_NPC : public Enemy, public ISkinnedMeshModelChar
 {

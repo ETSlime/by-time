@@ -24,7 +24,7 @@
 
 #define GBMONSTER_SIZE					XMFLOAT3(1.3f, 1.3f, 1.3f)
 
-#define HILI_MAX_HP					(50.0f)
+#define GBMONSTER_MAX_HP				(600.0f)
 
 class GBMonster : public Enemy, public ISkinnedMeshModelChar
 {

@@ -10,10 +10,14 @@
 #include "Utility/InputManager.h"
 #include "Utility/Debug/Debugproc.h"
 #include "Scene/Enemy.h"
+#include "Scene/Character/GBMonster.h"
+#include "Scene/Character/Boss.h"
+#include "Scene/Weapon/Projectile.h"
 #include "Core/Camera.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Player.h"
 #include "AI/BehaviorTree.h"
+
 //*****************************************************************************
 // É}ÉNÉçíËã`
 //*****************************************************************************
@@ -51,7 +55,8 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	m_HPGaugeTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_PATH);
 	m_HPGaugeCoverTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_COVER_PATH);
 
-	instance.collider.AddCollisionCallback(OnProjectileHitCallback, this, CollisionCallbackID::Item);
+	instance.collider.AddCollisionCallback(OnPlayerHitCallback, this, CollisionCallbackID::PlayerAttackHit);
+	instance.collider.AddCollisionCallback(OnItemHitCallback, this, CollisionCallbackID::Item);
 
 	instance.use = true;		// true:ê∂Ç´ÇƒÇÈ
 }
@@ -221,6 +226,14 @@ void Enemy::DrawUI(EnemyUIType type)
 	}
 }
 
+void Enemy::ReduceHP(float amount)
+{
+	m_enemyAttr.HP -= amount; 
+	
+	if (m_enemyAttr.HP < 0.0f)
+		m_enemyAttr.HP = 0.0f;
+}
+
 void Enemy::DrawHPGauge(void)
 {
 	XMMATRIX mtxWorld;
@@ -347,8 +360,18 @@ void Enemy::Initialize(void)
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::GBMonster:
-		m_enemyAttr.maxHP = HILI_MAX_HP;
-		m_enemyAttr.HP = HILI_MAX_HP;
+		m_enemyAttr.maxHP = GBMONSTER_MAX_HP;
+		m_enemyAttr.HP = GBMONSTER_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::Boss:
+		m_enemyAttr.maxHP = BOSS_MAX_HP;
+		m_enemyAttr.HP = BOSS_MAX_HP;
 		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
@@ -457,11 +480,19 @@ bool Enemy::CheckAvailableToMove(void)
 		return true;
 }
 
-void Enemy::OnProjectileHitCallback(const CollisionEvent& event, void* context)
+void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 {
 	Enemy* self = static_cast<Enemy*>(context);
 
-	if (self->GetAttributesConst().hitTimer <= 0)
+	if (event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE || event.colliderB->tag == ColliderTag::PLAYER_PROJECTILE)
+	{
+		const Collider* projectileCol = event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE ? event.colliderA : event.colliderB;
+		auto itemColOwner = static_cast<Projectile*>(projectileCol->owner);
+
+		itemColOwner->SetActive(FALSE);
+		self->ReduceHP(10.0f);
+	}
+	else if (self->GetAttributesConst().hitTimer <= 0)
 	{
 		self->SetHitTimer(ENEMY_HIT_WINDOW);
 		if (!self->GetIsHit())
@@ -477,6 +508,29 @@ void Enemy::OnProjectileHitCallback(const CollisionEvent& event, void* context)
 			self->SetIsHit(false);
 		}
 	}
+
+	self->SetChasePlayer(true);
+}
+
+void Enemy::OnItemHitCallback(const CollisionEvent& event, void* context)
+{
+	Enemy* self = static_cast<Enemy*>(context);
+
+	if (!self->GetIsHit())
+	{
+		self->ReduceHP(200.0f);
+		self->SetIsHit(true);
+		self->SetIsHit2(false);
+	}
+	else if (!self->GetIsHit2())
+	{
+		self->ReduceHP(200.0f);
+		self->SetIsHit2(true);
+		self->SetIsHit(false);
+	}
+
+	self->SetChasePlayer(true);
+
 }
 
 void Enemy::InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag)

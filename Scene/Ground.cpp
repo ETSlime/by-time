@@ -73,7 +73,6 @@ void Ground::Initialize(void)
 	}
 	else
 		SAFE_DELETE(lakeSurface);
-	
 
 
 	//SkinnedGameObjectConfig config;
@@ -273,12 +272,21 @@ void Ground::LoadScene(SceneID sceneID)
 
 	UnloadCurrentScene(); // 現在のシーンを破棄
 
+	// シーンに対応するロード関数を呼び出す
 	auto it = m_sceneLoadMap.find(TO_UINT64(sceneID));
 	if (it != m_sceneLoadMap.end())
 	{
 		SceneLoadFunc func = it->value;
 		(this->*func)(); // 登録されたロード関数を呼び出す
 		m_currentSceneID = sceneID;
+	}
+
+	// "ALL" シーンのロード関数も呼び出す
+	auto all = m_sceneLoadMap.find(TO_UINT64(SceneID::ALL));
+	if (all != m_sceneLoadMap.end())
+	{
+		SceneLoadFunc func = all->value;
+		(this->*func)(); // 登録されたロード関数を呼び出す
 	}
 }
 
@@ -351,30 +359,36 @@ void Ground::InitTerrain(void)
 
 
 
+	//terrainBuildConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+	//terrainBuildConfig.castShadow = false;
+	//terrainBuildConfig.drawWorldAABB = false;
+	//terrainBuildConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	//terrainBuildConfig.colliderTag = ColliderTag::AIR_WALL;
+	//terrainBuildConfig.position = XMFLOAT3(9731.0f, 4142.0f, 2443.0f);
+	//terrainBuildConfig.scale = XMFLOAT3(277.0f, 269.0f, 370.0f);
+	//terrainBuildConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	//CreateTerrainGO(terrainBuildConfig);
+
+	//terrainBuildConfig.position = XMFLOAT3(6608.0f, 4353.0f, 2173.0f);
+	//terrainBuildConfig.scale = XMFLOAT3(32.0f, 269.0f, 344.0f);
+	//CreateTerrainGO(terrainBuildConfig);
+
+	//terrainBuildConfig.position = XMFLOAT3(6017.0f, 4353.0f, 2169.0f);
+	//terrainBuildConfig.scale = XMFLOAT3(32.0f, 287.0f, 280.0f);
+	//CreateTerrainGO(terrainBuildConfig);
+
+	//terrainBuildConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
+	//terrainBuildConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
+	//CreateTerrainGO(terrainBuildConfig);
+
 	terrainBuildConfig.modelPath = "data/MODEL/Environment/Cube.obj";
 	terrainBuildConfig.castShadow = false;
 	terrainBuildConfig.drawWorldAABB = false;
 	terrainBuildConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	terrainBuildConfig.colliderTag = ColliderTag::AIR_WALL;
-	terrainBuildConfig.position = XMFLOAT3(9731.0f, 4142.0f, 2443.0f);
-	terrainBuildConfig.scale = XMFLOAT3(277.0f, 269.0f, 370.0f);
-	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	CreateTerrainGO(terrainBuildConfig);
-
-	terrainBuildConfig.position = XMFLOAT3(6608.0f, 4353.0f, 2173.0f);
-	terrainBuildConfig.scale = XMFLOAT3(32.0f, 269.0f, 344.0f);
-	CreateTerrainGO(terrainBuildConfig);
-
-	terrainBuildConfig.position = XMFLOAT3(6017.0f, 4353.0f, 2169.0f);
-	terrainBuildConfig.scale = XMFLOAT3(32.0f, 287.0f, 280.0f);
-	CreateTerrainGO(terrainBuildConfig);
-
-	terrainBuildConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
-	terrainBuildConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
-	CreateTerrainGO(terrainBuildConfig);
-
 	terrainBuildConfig.position = XMFLOAT3(-2933.0f, 4353.0f, 4277.0f);
 	terrainBuildConfig.scale = XMFLOAT3(25.0f, 234.0f, 1000.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	CreateTerrainGO(terrainBuildConfig);
 
 	terrainBuildConfig.position = XMFLOAT3(4013.0f, 4072.0f, -2390.0f);
@@ -457,10 +471,31 @@ GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
 	return terrainGO;
 }
 
+GameObject<ModelInstance>* Ground::CreateSceneGO(GameObjectConfig config, SceneID sceneID)
+{
+	GameObject<ModelInstance>* staticGO = new GameObject<ModelInstance>();
+	staticGO->Instantiate(config);
+	m_staticGOs.push_back(staticGO);
+
+	RegisterModelLoadMap(config.modelPath, false, false);
+	if (sceneID != SceneID::ALL)
+		m_sceneEntityMap[TO_UINT64(sceneID)].push_back(staticGO);
+
+	return staticGO;
+}
+
 void Ground::InitSceneLoadMap(void)
 {
 	m_sceneLoadMap[TO_UINT64(SceneID::Spring_Day)] = &Ground::LoadSceneSpringDay;
 	m_sceneLoadMap[TO_UINT64(SceneID::Spring_Night)] = &Ground::LoadSceneSpringNight;
+	m_sceneLoadMap[TO_UINT64(SceneID::Summer_Day)] = &Ground::LoadSceneSummerDay;
+	m_sceneLoadMap[TO_UINT64(SceneID::Summer_Night)] = &Ground::LoadSceneSummerNight;
+	m_sceneLoadMap[TO_UINT64(SceneID::Autumn_Day)] = &Ground::LoadSceneAutumnDay;
+	m_sceneLoadMap[TO_UINT64(SceneID::Autumn_Night)] = &Ground::LoadSceneAutumnNight;
+	m_sceneLoadMap[TO_UINT64(SceneID::Winter_Day)] = &Ground::LoadSceneWinterDay;
+	m_sceneLoadMap[TO_UINT64(SceneID::Winter_Night)] = &Ground::LoadSceneWinterNight;
+
+	m_sceneLoadMap[TO_UINT64(SceneID::ALL)] = &Ground::LoadSceneAll;
 }
 
 void Ground::LoadSceneSpringDay(void)
@@ -487,7 +522,7 @@ void Ground::LoadSceneSpringDay(void)
 	triggerBox.minPoint = XMFLOAT3(8547.6f, 6394.0f , 7774.6f);
 	triggerBox.maxPoint = XMFLOAT3(8848.2f, 6490.0f, 8133.0f);
 
-	RegisterEventTrigger(triggerBox, PlayerCallbackAction::PlaceItem, SceneID::Spring_Day);
+	RegisterEventTrigger(triggerBox, EventCallbackAction::PlaceItem, SceneID::Spring_Day);
 
 
 	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
@@ -524,6 +559,8 @@ void Ground::LoadSceneSpringDay(void)
 	}
 	else if (!m_sceneSeed->GetPickedUp())
 		m_sceneSeed->SetActive(true);
+
+	LoadLakeAirWalls(SceneID::Spring_Day);
 }
 
 void Ground::LoadSceneSpringNight(void)
@@ -571,7 +608,8 @@ void Ground::LoadSceneSpringNight(void)
 
 	GameObjectConfig IvyConfig{};
 	IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";
-	IvyConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
+	IvyConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	IvyConfig.colliderTag = ColliderTag::STATIC_OBJECT;
 	IvyConfig.scale = IVY_SCALE;
 	IvyConfig.position = IVY_POS;
 	IvyConfig.rotation = XMFLOAT3(0.0f, IVY_ROT_Y, 0.0f);
@@ -594,23 +632,103 @@ void Ground::LoadSceneSpringNight(void)
 	triggerBox.minPoint = XMFLOAT3(8550.6f, 6367.0f, 7835.6f);
 	triggerBox.maxPoint = XMFLOAT3(8814.2f, 6404.0f, 8136.0f);
 
-	EventTrigger* eventTrigger = RegisterEventTrigger(triggerBox, PlayerCallbackAction::StartClimbUp, SceneID::Spring_Night);
-
-	
-	debugTrigger = eventTrigger; // デバッグ用トリガー
-	debugTriggerMinX = triggerBox.minPoint.x;
-	debugTriggerMinY = triggerBox.minPoint.y;
-	debugTriggerMinZ = triggerBox.minPoint.z;
-	debugTriggerMaxX = triggerBox.maxPoint.x;
-	debugTriggerMaxY = triggerBox.maxPoint.y;
-	debugTriggerMaxZ = triggerBox.maxPoint.z;
+	RegisterEventTrigger(triggerBox, EventCallbackAction::StartClimbUp, SceneID::Spring_Night);
 
 	triggerBox.minPoint = XMFLOAT3(8625.6f, 9717.0f, 7986.6f);
 	triggerBox.maxPoint = XMFLOAT3(8964.2f, 9830.0f, 8399.0f);
 
-	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::Spring_Night);
+	RegisterEventTrigger(triggerBox, EventCallbackAction::StopClimbUp, SceneID::Spring_Night);
 
+	LoadLakeAirWalls(SceneID::Spring_Night);
+}
 
+void Ground::LoadSceneSummerDay(void)
+{
+}
+
+void Ground::LoadSceneSummerNight(void)
+{
+}
+
+void Ground::LoadSceneAutumnDay(void)
+{
+}
+
+void Ground::LoadSceneAutumnNight(void)
+{
+}
+
+void Ground::LoadSceneWinterDay(void)
+{
+	m_skybox.SetCurrentTime(DAY_TIME);
+
+	GameObjectConfig airwallConfig{};
+	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+	airwallConfig.castShadow = false;
+	airwallConfig.drawWorldAABB = false;
+	airwallConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
+	airwallConfig.colliderTag = ColliderTag::AIR_WALL;
+	airwallConfig.position = XMFLOAT3(9731.0f, 5979.0f, 2443.0f);
+	airwallConfig.scale = XMFLOAT3(277.0f, 25.0f, 370.0f);
+	airwallConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	airwallConfig.trackTriangles = true;
+	debugGO = CreateSceneGO(airwallConfig, SceneID::Winter_Day);
+
+	debugGOPosX = airwallConfig.position.x;
+	debugGOPosY = airwallConfig.position.y;
+	debugGOPosZ = airwallConfig.position.z;
+	debugGOScaleX = airwallConfig.scale.x;
+	debugGOScaleY = airwallConfig.scale.y;
+	debugGOScaleZ = airwallConfig.scale.z;
+	debugGORotY = airwallConfig.rotation.y;
+}
+
+void Ground::LoadSceneWinterNight(void)
+{
+}
+
+void Ground::LoadSceneAll(void)
+{
+	BOUNDING_BOX triggerBox;
+	triggerBox.minPoint = XMFLOAT3(-27774.0f, 5753.0f, -27774.0f);
+	triggerBox.maxPoint = XMFLOAT3(28133.0f, 6113.0f, 28133.0f);
+
+	RegisterEventTrigger(triggerBox, EventCallbackAction::ResetPosition, SceneID::ALL);
+	RegisterEventTrigger(triggerBox, EventCallbackAction::SuddenDeath, SceneID::ALL);
+
+	//debugTrigger = eventTrigger; // デバッグ用トリガー
+	//debugTriggerMinX = triggerBox.minPoint.x;
+	//debugTriggerMinY = triggerBox.minPoint.y;
+	//debugTriggerMinZ = triggerBox.minPoint.z;
+	//debugTriggerMaxX = triggerBox.maxPoint.x;
+	//debugTriggerMaxY = triggerBox.maxPoint.y;
+	//debugTriggerMaxZ = triggerBox.maxPoint.z;
+}
+
+void Ground::LoadLakeAirWalls(SceneID sceneID)
+{
+	GameObjectConfig airwallConfig{};
+	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+	airwallConfig.castShadow = false;
+	airwallConfig.drawWorldAABB = false;
+	airwallConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	airwallConfig.colliderTag = ColliderTag::AIR_WALL;
+	airwallConfig.position = XMFLOAT3(9731.0f, 4142.0f, 2443.0f);
+	airwallConfig.scale = XMFLOAT3(277.0f, 269.0f, 370.0f);
+	airwallConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	CreateSceneGO(airwallConfig, sceneID);
+
+	airwallConfig.position = XMFLOAT3(6608.0f, 4353.0f, 2173.0f);
+	airwallConfig.scale = XMFLOAT3(32.0f, 269.0f, 344.0f);
+	CreateSceneGO(airwallConfig, sceneID);
+
+	airwallConfig.position = XMFLOAT3(6017.0f, 4353.0f, 2169.0f);
+	airwallConfig.scale = XMFLOAT3(32.0f, 287.0f, 280.0f);
+	CreateSceneGO(airwallConfig, sceneID);
+
+	airwallConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
+	airwallConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
+	CreateSceneGO(airwallConfig, sceneID);
 }
 
 void Ground::GenerateEnvironmentObj(void*)
@@ -704,16 +822,29 @@ void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool
 	}
 }
 
-EventTrigger* Ground::RegisterEventTrigger(const BOUNDING_BOX& triggerBox, PlayerCallbackAction action, SceneID sceneID)
+EventTrigger* Ground::RegisterEventTrigger(const BOUNDING_BOX& triggerBox, EventCallbackAction action, SceneID sceneID)
 {
 	EventTrigger* eventTriger = new EventTrigger();
 	eventTriger->SetBoundingBox(triggerBox);
 
 	// イベントの内容を設定
-	auto* behavior = new PlayerEnterExitBehavior();
-	behavior->SetAction(action);
-	eventTriger->SetEventBehavior(behavior);
-	eventTriger->Init();
+	if (action < EventCallbackAction::EnemyEventCallback)
+	{
+		// プレイヤー用
+		auto* behavior = new PlayerEnterExitBehavior();
+		behavior->SetAction(action);
+		eventTriger->SetEventBehavior(behavior);
+		eventTriger->Init();
+	}
+	else
+	{
+		// 敵用
+		auto* behavior = new EnemyEnterExitBehavior();
+		behavior->SetAction(action);
+		eventTriger->SetEventBehavior(behavior);
+		eventTriger->Init();
+	}
+
 
 	// 登録
 	m_sceneEntityMap[TO_UINT64(sceneID)].push_back(eventTriger);

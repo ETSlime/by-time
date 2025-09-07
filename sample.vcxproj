@@ -207,6 +207,7 @@
     <ClInclude Include="Model\ModelCacheLoader.h" />
     <ClInclude Include="Model\OBJLoader.h" />
     <ClInclude Include="Model\SkinnedMeshModel.h" />
+    <ClInclude Include="Scene\Character\Boss.h" />
     <ClInclude Include="Scene\Character\Enemy_NPC.h" />
     <ClInclude Include="Scene\Character\GBMonster.h" />
     <ClInclude Include="Scene\Character\Hilichurl.h" />
@@ -220,7 +221,7 @@
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
     <ClInclude Include="Scene\Player.h" />
-    <ClInclude Include="Scene\PlayerEnterExitBehavior.h" />
+    <ClInclude Include="Scene\EnterExitBehavior.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
     <ClInclude Include="Scene\Weapon\Bullet.h" />
@@ -316,6 +317,7 @@
     <ClCompile Include="Model\ModelCacheLoader.cpp" />
     <ClCompile Include="Model\OBJLoader.cpp" />
     <ClCompile Include="Model\SkinnedMeshModel.cpp" />
+    <ClCompile Include="Scene\Character\Boss.cpp" />
     <ClCompile Include="Scene\Character\Enemy_NPC.cpp" />
     <ClCompile Include="Scene\Character\GBMonster.cpp" />
     <ClCompile Include="Scene\Character\Hilichurl.cpp" />
@@ -328,7 +330,7 @@
     <ClCompile Include="Scene\Item\Item.cpp" />
     <ClCompile Include="Scene\Item\ItemManager.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
-    <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp" />
+    <ClCompile Include="Scene\EnterExitBehavior.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
     <ClCompile Include="Scene\Weapon\Bullet.cpp" />

@@ -12,7 +12,7 @@
 #include "Scene/GameObject.h"
 #include "Scene/Item/Item.h"
 #include "Scene/EventTrigger.h"
-#include "Scene/PlayerEnterExitBehavior.h"
+#include "Scene/EnterExitBehavior.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 #include "Effects/Skybox.h"
 
@@ -49,6 +49,7 @@ enum class SceneID : uint64_t
 	Winter_Day,
 	Winter_Night,
 	NONE,
+	ALL,
 };
 
 // 前方宣言
@@ -78,12 +79,22 @@ public:
 private:
 	void InitTerrain(void);
 	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);
+	GameObject<ModelInstance>* CreateSceneGO(GameObjectConfig config, SceneID sceneID = SceneID::ALL);
 	// シーンロードマップの初期化
 	void InitSceneLoadMap(void);
 
 	// シーンロード関数
 	void LoadSceneSpringDay(void);
 	void LoadSceneSpringNight(void);
+	void LoadSceneSummerDay(void);
+	void LoadSceneSummerNight(void);
+	void LoadSceneAutumnDay(void);
+	void LoadSceneAutumnNight(void);
+	void LoadSceneWinterDay(void);
+	void LoadSceneWinterNight(void);
+	void LoadSceneAll(void);
+
+	void LoadLakeAirWalls(SceneID sceneID); // エアウォールのロード
 
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
@@ -92,7 +103,7 @@ private:
 	// モデルのロードマップ登録
 	void RegisterModelLoadMap(const char* modelPath, bool isPersistent = false, bool isTerrain = true);
 
-	EventTrigger* RegisterEventTrigger(const BOUNDING_BOX& triggerBox, PlayerCallbackAction action, SceneID sceneID);
+	EventTrigger* RegisterEventTrigger(const BOUNDING_BOX& triggerBox, EventCallbackAction action, SceneID sceneID);
 
 	// ゲームオブジェクトの更新と描画
 	template<typename T>

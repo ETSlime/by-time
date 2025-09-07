@@ -8,36 +8,36 @@
 #include "Effects/SpecialEffects/SwordTrail.h"
 
 
-SwordTrail::SwordTrail(const GameObject<SkinnedMeshModelInstance>* weapon) : weapon(weapon)
+SwordTrail::SwordTrail(const GameObject<SkinnedMeshModelInstance>* weapon) : m_weapon(weapon)
 {
-	vertexBuffer = nullptr;
-	swordTrailTexture = nullptr;
-	maxTrailFrames = 20;
-	trailType = SwordTrailType::Default;
+	m_vertexBuffer = nullptr;
+	m_swordTrailTexture = nullptr;
+	m_maxTrailFrames = 20;
+	m_trailType = SwordTrailType::Default;
 
 	D3D11_BUFFER_DESC bufferDesc;
 	ZeroMemory(&bufferDesc, sizeof(bufferDesc));
 	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	bufferDesc.ByteWidth = sizeof(VFXVertex) * maxTrailFrames * 6;
+	bufferDesc.ByteWidth = sizeof(VFXVertex) * m_maxTrailFrames * 6;
 	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	Renderer::get_instance().GetDevice()->CreateBuffer(&bufferDesc, nullptr, &vertexBuffer);
+	Renderer::get_instance().GetDevice()->CreateBuffer(&bufferDesc, nullptr, &m_vertexBuffer);
 
 }
 
 SwordTrail::~SwordTrail()
 {
-	SafeRelease(&vertexBuffer);
-	SafeRelease(&swordTrailTexture);
+	SafeRelease(&m_vertexBuffer);
+	SafeRelease(&m_swordTrailTexture);
 }
 
 
 void SwordTrail::GetSwordTrailPoints(XMVECTOR& hiltWorld, XMVECTOR& tipWorld)
 {
-	if (!weapon) 
+	if (!m_weapon)
 		return;
 
-	BOUNDING_BOX swordAABB = weapon->GetSkinnedMeshModelConst()->GetBoundingBox();
+	BOUNDING_BOX swordAABB = m_weapon->GetSkinnedMeshModelConst()->GetBoundingBox();
 	float hiltPosZ = swordAABB.minPoint.z;
 	float tipPosZ = swordAABB.maxPoint.z;
 	float swordPosY = (swordAABB.maxPoint.y + swordAABB.minPoint.y) * 0.5f;
@@ -47,10 +47,17 @@ void SwordTrail::GetSwordTrailPoints(XMVECTOR& hiltWorld, XMVECTOR& tipWorld)
 	XMFLOAT3 hiltLocalPos = XMFLOAT3(sowrdPosX, swordPosY, hiltPosZ);
 	XMFLOAT3 tipLocalPos = XMFLOAT3(sowrdPosX, swordPosY, tipPosZ);
 
-	XMMATRIX swordWorldMatrix = weapon->GetWorldMatrix();
+	XMMATRIX swordWorldMatrix = m_weapon->GetWorldMatrix();
 
 	hiltWorld = XMVector3Transform(XMLoadFloat3(&hiltLocalPos), swordWorldMatrix);
 	tipWorld = XMVector3Transform(XMLoadFloat3(&tipLocalPos), swordWorldMatrix);
+}
+
+void SwordTrail::ClearTrail(void)
+{
+	m_hiltTrail.clear();
+	m_tipTrail.clear();
+	m_swordTrailVertices.clear();
 }
 
 void SwordTrail::Update(void)
@@ -58,31 +65,31 @@ void SwordTrail::Update(void)
 	XMVECTOR hiltWorld, tipWorld;
 	GetSwordTrailPoints(hiltWorld, tipWorld);
 
-	hiltTrail.push_back(hiltWorld);
-	tipTrail.push_back(tipWorld);
+	m_hiltTrail.push_back(hiltWorld);
+	m_tipTrail.push_back(tipWorld);
 
 	// トレイルの最初のフレームを削除
-	if (static_cast<int>(hiltTrail.getSize()) > maxTrailFrames)
-		hiltTrail.erase(0);
-	if (static_cast<int>(tipTrail.getSize()) > maxTrailFrames)
-		tipTrail.erase(0);
+	if (static_cast<int>(m_hiltTrail.getSize()) > m_maxTrailFrames)
+		m_hiltTrail.erase(0);
+	if (static_cast<int>(m_tipTrail.getSize()) > m_maxTrailFrames)
+		m_tipTrail.erase(0);
 
 	GenerateSwordTrailMesh();
 }
 
 void SwordTrail::GenerateSwordTrailMesh(void)
 {
-	swordTrailVertices.clear();
+	m_swordTrailVertices.clear();
 
-	if (hiltTrail.getSize() < 2) return;
+	if (m_hiltTrail.getSize() < 2) return;
 
 	// トレイルのメッシュを生成
-	for (UINT i = 1; i < hiltTrail.getSize(); i++)
+	for (UINT i = 1; i < m_hiltTrail.getSize(); i++)
 	{
-		XMVECTOR hilt1 = hiltTrail[i - 1];
-		XMVECTOR tip1 = tipTrail[i - 1];
-		XMVECTOR hilt2 = hiltTrail[i];
-		XMVECTOR tip2 = tipTrail[i];
+		XMVECTOR hilt1 = m_hiltTrail[i - 1];
+		XMVECTOR tip1 = m_tipTrail[i - 1];
+		XMVECTOR hilt2 = m_hiltTrail[i];
+		XMVECTOR tip2 = m_tipTrail[i];
 
 		VFXVertex v1, v2, v3, v4;
 
@@ -102,23 +109,23 @@ void SwordTrail::GenerateSwordTrailMesh(void)
 		v3.uv = XMFLOAT2(0.0f, 1.0f);
 		v4.uv = XMFLOAT2(1.0f, 1.0f);
 
-		swordTrailVertices.push_back(v1);
-		swordTrailVertices.push_back(v2);
-		swordTrailVertices.push_back(v3);
+		m_swordTrailVertices.push_back(v1);
+		m_swordTrailVertices.push_back(v2);
+		m_swordTrailVertices.push_back(v3);
 
-		swordTrailVertices.push_back(v3);
-		swordTrailVertices.push_back(v2);
-		swordTrailVertices.push_back(v4);
+		m_swordTrailVertices.push_back(v3);
+		m_swordTrailVertices.push_back(v2);
+		m_swordTrailVertices.push_back(v4);
 	}
 }
 
 bool SwordTrail::LoadTrailTexture(char* path)
 {
-	HRESULT hr = D3DX11CreateShaderResourceViewFromFile(renderer.GetDevice(),
+	HRESULT hr = D3DX11CreateShaderResourceViewFromFile(m_renderer.GetDevice(),
 		path,
 		NULL,
 		NULL,
-		&swordTrailTexture,
+		&m_swordTrailTexture,
 		NULL);
 
 	if (FAILED(hr))
@@ -131,16 +138,16 @@ bool SwordTrail::SetTrailType(SwordTrailType type)
 {
 	bool loadTexture = false;
 
-	if (trailType == type) 
+	if (m_trailType == type)
 		return true;
 	else
 	{
 		// テクスチャを解放
-		SafeRelease(&swordTrailTexture);
+		SafeRelease(&m_swordTrailTexture);
 		// トレイルタイプを設定
-		trailType = type;
+		m_trailType = type;
 		// テクスチャを読み込む
-		switch (trailType)
+		switch (m_trailType)
 		{
 		case SwordTrailType::Normal:
 			loadTexture = LoadTrailTexture(SWORD_TRAIL_TEXTURE_PATH);
@@ -162,36 +169,36 @@ bool SwordTrail::SetTrailType(SwordTrailType type)
 
 void SwordTrail::SetTrailFrames(int Frames)
 {
-	maxTrailFrames = Frames;
+	m_maxTrailFrames = Frames;
 }
 
 void SwordTrail::Draw(void)
 {
-	if (swordTrailVertices.getSize() == 0)
+	if (m_swordTrailVertices.getSize() == 0)
 		return;
 
-	VFXVertex* trailVerticesArray = new VFXVertex[swordTrailVertices.getSize()];
-	for (UINT i = 0; i < swordTrailVertices.getSize(); i++)
+	VFXVertex* trailVerticesArray = new VFXVertex[m_swordTrailVertices.getSize()];
+	for (UINT i = 0; i < m_swordTrailVertices.getSize(); i++)
 	{
-		trailVerticesArray[i] = swordTrailVertices[i];
+		trailVerticesArray[i] = m_swordTrailVertices[i];
 	}
 
 	// バーテックスバッファを作成
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
-	Renderer::get_instance().GetDeviceContext()->Map(vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	memcpy(mappedResource.pData, trailVerticesArray, sizeof(VFXVertex) * swordTrailVertices.getSize());
-	renderer.GetDeviceContext()->Unmap(vertexBuffer, 0);
+	Renderer::get_instance().GetDeviceContext()->Map(m_vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	memcpy(mappedResource.pData, trailVerticesArray, sizeof(VFXVertex) * m_swordTrailVertices.getSize());
+	m_renderer.GetDeviceContext()->Unmap(m_vertexBuffer, 0);
 
-	renderer.GetDeviceContext()->PSSetShaderResources(0, 1, &swordTrailTexture);
+	m_renderer.GetDeviceContext()->PSSetShaderResources(0, 1, &m_swordTrailTexture);
 
 	// 描画
 	UINT stride = sizeof(VFXVertex);
 	UINT offset = 0;
-	renderer.GetDeviceContext()->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-	renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_renderer.GetDeviceContext()->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+	m_renderer.GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 
-	renderer.GetDeviceContext()->Draw(swordTrailVertices.getSize(), 0);
+	m_renderer.GetDeviceContext()->Draw(m_swordTrailVertices.getSize(), 0);
 
 	SAFE_DELETE_ARRAY(trailVerticesArray);
 }

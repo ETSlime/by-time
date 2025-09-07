@@ -120,7 +120,7 @@ void Item::PlayEffect(HitColliderType type, const XMFLOAT3& hitNormal)
 		if (type == HitColliderType::Environment)
 		{
 			// 地面に当たった時はデカールも追加
-			DecalRenderer::get_instance().AddDecal(instance.transform.pos, hitNormal, 175.0f, 40.0f);
+			DecalRenderer::get_instance().AddDecal(instance.transform.pos, hitNormal, 175.0f, 50.0f);
 		}
 	}
 

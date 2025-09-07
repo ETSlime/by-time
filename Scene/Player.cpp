@@ -13,7 +13,7 @@
 #include "Core/SaveSystem.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
-#include "Scene/PlayerEnterExitBehavior.h"
+#include "Scene/EnterExitBehavior.h"
 
 
 //*****************************************************************************
@@ -88,9 +88,14 @@ void Player::Update(void)
 	m_attributes = m_playerGO->GetAttributes();
 	m_transform = m_playerGO->GetTransform();
 
-	if (m_inputManager.GetKeyboardTrigger(KEY_SWITCH_WEAPON))
+	if (m_inputManager.GetKeyboardTrigger(KEY_SWITCH_WEAPON) 
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_1)
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_2)
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_3))
 	{
 		m_playerAttr.isMeleeMode = !m_playerAttr.isMeleeMode;
+		if (!m_playerAttr.isMeleeMode && !m_playerAttr.finishStoreWeapon && !m_playerAttr.weaponOnBack)
+			m_playerAttr.storeWeaponOnBack = true;
 	}
 
 	if (m_playerAttr.climbMode)
@@ -600,22 +605,6 @@ void Player::UpdatePlayerAttack(void)
 	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
 
-		if (m_attributes->hasWeapon) {
-
-			Transform trans;
-			trans.pos = m_playerGO->GetTransform().pos;
-			trans.pos.y += 70;
-			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-			trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
-
-			XMFLOAT3 bulletDir;
-			bulletDir.x = sinf(m_transform.rot.y) * 5;
-			bulletDir.z = cosf(m_transform.rot.y) * 5;
-			bulletDir.y = 0;
-
-			ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, bulletDir, 5);
-		}
-
 		if (m_playerAttr.throwMode)
 			ConfirmThrow();
 
@@ -629,25 +618,25 @@ void Player::UpdatePlayerAttack(void)
 
 
 	// 攻撃
-	//if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
-	//{
-	//	if (m_attributes->hasWeapon)
-	//	{
+	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
+	{
+		if (m_playerAttr.isMeleeMode)
+		{
+			PlayerAction action;
+			action.actionType = ActionEnum::ATTACK;
+			action.liveTime = 0;
+			m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
+			m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+			m_playerAttr.finishStoreWeapon = false;
 
-	//		PlayerAction action;
-	//		action.actionType = ActionEnum::ATTACK;
-	//		action.liveTime = 0;
-	//		m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
-	//		m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+			// キューのオーバーフローを防止
+			if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
+			{
+				m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			}
 
-	//		// キューのオーバーフローを防止
-	//		if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
-	//		{
-	//			m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
-	//		}
-
-	//	}
-	//}
+		}
+	}
 }
 
 void Player::UpdateSwitchCharacter(void)
@@ -686,7 +675,7 @@ void Player::HandleInput(void)
 		&& !m_inputManager.GetKeyboardPress(DIK_D))
 		m_attributes->isMoving = false;
 
-	if (m_inputManager.IsMouseRightPressed())
+	if (m_inputManager.IsMouseRightPressed() && !m_playerAttr.isMeleeMode)
 	{
 		if (!m_playerAttr.throwMode && !m_playerAttr.climbMode && m_playerAttr.currentState != PlayerState::GLIDE)
 		{

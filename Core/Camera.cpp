@@ -489,14 +489,14 @@ void Camera::ComputeAimDirection(const XMFLOAT3& muzzlePos, XMFLOAT3* direction,
 		tgt = camPos + rayDir * 10000.0f;
 	}
 
-	// 微調整用オフセット
-	XMFLOAT3 offset = { 0.0f, 30.0f, 0.0f };
-	XMVECTOR offsetVec = XMLoadFloat3(&offset);
-	XMVECTOR tgtAdjusted = tgt + offsetVec;
+	//// 微調整用オフセット
+	//XMFLOAT3 offset = { 0.0f, 0.0f, 0.0f };
+	//XMVECTOR offsetVec = XMLoadFloat3(&offset);
+	//XMVECTOR tgtAdjusted = tgt + offsetVec;
 
 	// 銃口位置から目標点への最終発射方向
 	XMVECTOR muzzle = XMLoadFloat3(&muzzlePos);
-	XMVECTOR finalDir =  XMVector3Normalize(tgtAdjusted - muzzle);
+	XMVECTOR finalDir =  XMVector3Normalize(tgt - muzzle);
 
 	// 結果を出力
 	if (direction) XMStoreFloat3(direction, finalDir);

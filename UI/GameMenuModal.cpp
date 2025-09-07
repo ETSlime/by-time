@@ -208,6 +208,12 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 				auto* ctx = static_cast<SceneSwitchClickedContext*>(ptr);
 				GameMenuModal* self = ctx->self;
 
+				if (!self)
+				{
+					UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+					return;
+				}
+
 				switch (ctx->currentTimeControl)
 				{
 				case TimeControlButton::Spring_Day:
@@ -218,8 +224,32 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 					self->m_currentTimeControl = TimeControlButton::Spring_Night;
 					ground.LoadScene(SceneID::Spring_Night);
 					break;
+				case TimeControlButton::Summer_Day:
+					self->m_currentTimeControl = TimeControlButton::Summer_Day;
+					ground.LoadScene(SceneID::Summer_Day);
+					break;
+				case TimeControlButton::Summer_Night:
+					self->m_currentTimeControl = TimeControlButton::Summer_Night;
+					ground.LoadScene(SceneID::Summer_Night);
+					break;
+				case TimeControlButton::Autumn_Day:
+					self->m_currentTimeControl = TimeControlButton::Autumn_Day;
+					ground.LoadScene(SceneID::Autumn_Day);
+					break;
+				case TimeControlButton::Autumn_Night:
+					self->m_currentTimeControl = TimeControlButton::Autumn_Night;
+					ground.LoadScene(SceneID::Autumn_Night);
+					break;
+				case TimeControlButton::Winter_Day:
+					self->m_currentTimeControl = TimeControlButton::Winter_Day;
+					ground.LoadScene(SceneID::Winter_Day);
+					break;
+				case TimeControlButton::Winter_Night:
+					self->m_currentTimeControl = TimeControlButton::Winter_Night;
+					ground.LoadScene(SceneID::Winter_Night);
+					break;
 				default:
-					return;
+					break;
 				}
 					
 				UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
@@ -232,7 +262,7 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 				// 現在の時間制御ボタンだけ無効化
 				self->m_btnTimeControl[static_cast<UINT>(self->m_currentTimeControl)]->SetEnabled(false); 
 
-				SAFE_DELETE(ctx); // コンテキストを削除
+				//SAFE_DELETE(ctx); // コンテキストを削除
 			},
 			[](void* ptr)
 			{

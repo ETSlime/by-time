@@ -103,7 +103,7 @@ void DecalRenderer::Draw(void)
     m_context->DrawInstanced(4, m_instances.getSize(), 0, 0);
 }
 
-void DecalRenderer::AddDecal(const XMFLOAT3& pos, const XMFLOAT3& normal, float size, float lifetime)
+void DecalRenderer::AddDecal(const XMFLOAT3& pos, const XMFLOAT3& normal, float size, float lifetime, float alpha)
 {
     if (m_instances.getSize() >= m_maxDecals)
         m_instances.erase(0); // ÅŒÃ‚ğÁ‹‚µ‚Ä‹ó‚«‚ğì‚é
@@ -113,6 +113,8 @@ void DecalRenderer::AddDecal(const XMFLOAT3& pos, const XMFLOAT3& normal, float 
     inst.normal = normal;
     inst.size = size;
     inst.lifetime = lifetime;
+	inst.alpha = alpha;
+	inst.padding = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
     float deg = static_cast<float>(GetRand(0, 0) % 360);
     inst.rotation = XMConvertToRadians(deg);

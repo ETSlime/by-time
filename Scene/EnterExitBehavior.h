@@ -1,13 +1,14 @@
 #pragma once
 //=============================================================================
 //
-// [PlayerEnterExitBehavior.h]
+// [ExitBehavior.h]
 // Author : 
 // 
 //=============================================================================
 #include "UI/Base/UIInteractPrompt.h"
 #include "UI/Base/UIManager.h"
 #include "Scene/Player.h"
+#include "Scene/Enemy.h"
 #include "Scene/EventTrigger.h"
 
 // 前方宣言
@@ -42,14 +43,18 @@ struct ClimbContext : PlayerEnterExitBehaviorContext
 	PlayerState climbState; // クライム状態
 };
 
-enum class PlayerCallbackAction
+enum class EventCallbackAction
 {
-	None = 0,		// アクションなし
+	PlayerEventCallback = 0, // プレイヤーイベントコールバック
 	PlaceItem,		// アイテムを配置するアクション
 	StartClimbUp,	// クライムアップアクション
 	StopClimbUp,	// クライムアップ停止アクション
 	StartClimbDown, // クライムダウンアクション
 	StopClimbDown,	// クライムダウン停止アクション
+	ResetPosition,	// プレイヤー位置リセットアクション
+
+	EnemyEventCallback, // エネミーイベントコールバック
+	SuddenDeath,	// 突然死アクション
 	Max				// 最大値
 };
 
@@ -57,11 +62,11 @@ class PlayerEnterExitBehavior : public IEventBehavior
 {
 public:
 	PlayerEnterExitBehavior() = default;
-	PlayerEnterExitBehavior(PlayerCallbackAction action)
+	PlayerEnterExitBehavior(EventCallbackAction action)
 		: m_actionType(action) {}
 
 	void Initialize(void) override;
-	void SetAction(PlayerCallbackAction action) { m_actionType = action; }
+	void SetAction(EventCallbackAction action) { m_actionType = action; }
 	void SetTriggerAABB(BOUNDING_BOX* aabb) override { m_triggerAABB = aabb; }
     void OnTrigger(const Collider* activator) override;
 
@@ -69,8 +74,27 @@ public:
 
 private:
 	bool m_interacted = false; // インタラクションが行われたかどうか
-	PlayerCallbackAction m_actionType = PlayerCallbackAction::None; // 現在のアクションタイプ
+	EventCallbackAction m_actionType = EventCallbackAction::PlayerEventCallback; // 現在のアクションタイプ
 	Player* m_player = nullptr; // プレイヤーキャラクターへのポインタ
 	UIInteractPrompt* m_prompt = nullptr; // インタラクションプロンプトへのポインタ
+	BOUNDING_BOX* m_triggerAABB = nullptr; // 
+};
+
+class EnemyEnterExitBehavior : public IEventBehavior
+{
+public:
+	EnemyEnterExitBehavior() = default;
+	EnemyEnterExitBehavior(EventCallbackAction action)
+		: m_actionType(action) {}
+
+	void SetAction(EventCallbackAction action) { m_actionType = action; }
+	void SetTriggerAABB(BOUNDING_BOX* aabb) override { m_triggerAABB = aabb; }
+	void OnTrigger(const Collider* activator) override;
+
+	void OnExit(const Collider* activator) override;
+
+private:
+	bool m_interacted = false; // インタラクションが行われたかどうか
+	EventCallbackAction m_actionType = EventCallbackAction::EnemyEventCallback; // 現在のアクションタイプ
 	BOUNDING_BOX* m_triggerAABB = nullptr; // 
 };

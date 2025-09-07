@@ -33,6 +33,7 @@ enum class EnemyType
 {
 	Hilichurl,
 	GBMonster,
+	Boss,
 	NPC_Fish,
 	Max,
 };
@@ -170,7 +171,7 @@ public:
 
 	void SetPlayer(const Player* player) { m_player = player; }
 
-	void ReduceHP(float amount) { m_enemyAttr.HP -= amount; }
+	void ReduceHP(float amount);
 
 	void SetRandomMove(bool random) { m_enemyAttr.randomMove = random; }
 
@@ -185,9 +186,12 @@ public:
 	bool DetectPlayer(void);
 	bool CheckAvailableToMove(void);
 
+	void SetChasePlayer(bool chase) { m_enemyAttr.isChasingPlayer = chase; }
+
 protected:
 	// コリジョンイベントコールバック関数
-	static void OnProjectileHitCallback(const CollisionEvent& event, void* context);
+	static void OnPlayerHitCallback(const CollisionEvent& event, void* context);
+	static void OnItemHitCallback(const CollisionEvent& event, void* context);
 
 	void InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag);
 	void UpdateBoneHitCollider(EnemyBoneHitCollider& hitCollider, BodyTransformIndex transformIdx);

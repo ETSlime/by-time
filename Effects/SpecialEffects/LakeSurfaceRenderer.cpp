@@ -223,6 +223,33 @@ bool LakeSurfaceRenderer::LoadShaders(void)
     return loadShaders;
 }
 
+void LakeSurfaceRenderer::UpdateWaterParams(void)
+{
+    switch (m_ground.GetCurrentSceneID())
+    {
+	case SceneID::Spring_Day:
+    case SceneID::Spring_Night:
+	case SceneID::Summer_Day:
+	case SceneID::Summer_Night:
+	case SceneID::Autumn_Day:
+	case SceneID::Autumn_Night:
+        m_lakeSurfaceParams.waveStrength = WAVE_STRENGTH_NORMAL;
+		m_lakeSurfaceParams.fresnelBias = FRESNEL_BIAS_NORMAL;
+		m_lakeSurfaceParams.fresnelPower = FRESNEL_POWER_NORMAL;
+		m_lakeSurfaceParams.waterColor = WATER_COLOR_NORMAL;
+		break;
+	case SceneID::Winter_Day:
+	case SceneID::Winter_Night:
+		m_lakeSurfaceParams.waveStrength = WAVE_STRENGTH_FREEZE;
+		m_lakeSurfaceParams.fresnelBias = FRESNEL_BIAS_FREEZE;
+		m_lakeSurfaceParams.fresnelPower = FRESNEL_POWER_FREEZE;
+        m_lakeSurfaceParams.waterColor = WATER_COLOR_NORMAL;
+		break;
+	default:
+		break;
+    }
+}
+
 bool LakeSurfaceRenderer::CreateDiffuseTex(void)
 {
     m_normalMap1 = TextureMgr::get_instance().CreateTexture(LAKE_SURFACE_NORMAL_MAP_1);
@@ -259,6 +286,7 @@ void LakeSurfaceRenderer::UpdateWaterParamsBuffer(void)
 	waterParams.cameraPos = m_camera.GetPosition();
     waterParams.time = m_timer.GetElapsedTime();
 
+	UpdateWaterParams(); // シーンに応じた水面パラメータの更新
     waterParams.waveStrength = m_lakeSurfaceParams.waveStrength;
     waterParams.fresnelBias = m_lakeSurfaceParams.fresnelBias;
     waterParams.fresnelPower = m_lakeSurfaceParams.fresnelPower;

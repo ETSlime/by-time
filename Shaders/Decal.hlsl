@@ -23,6 +23,9 @@ struct VS_INPUT
     float2 uvOffset : UVOFFSET; // UVアトラス or 回転オフセット
     float elapsed : ELAPSED; // 経過時間
     float rotation : ROTATION; // 回転（ラジアン）
+    
+    float alpha : ALPHA; // 透明度（0.0～1.0）
+    float3 padding : PADDING; // パディング
 };
 
 
@@ -32,6 +35,7 @@ struct VS_OUTPUT
     float2 uv : TEXCOORD0;
     float elapsed : TEXCOORD1;
     float lifetime : TEXCOORD2;
+    float alpha : TEXCOORD3;
 };
 
 //*****************************************************************************
@@ -131,6 +135,9 @@ VS_OUTPUT VS(VS_INPUT input)
     output.lifetime = input.lifetime;
     output.elapsed = input.elapsed;
     
+    // 透明度を渡す
+    output.alpha = input.alpha;
+    
     return output;
 }
 
@@ -145,8 +152,8 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
     // アルファフェード（寿命に応じた透明度）
     float fadeAlpha = saturate(1.0f - input.elapsed / input.lifetime);
     
-    // 元の透明度を乗算（マルチプライα）
-    texColor.a *= fadeAlpha;
+    // 初期透明度と乗算して最終的なアルファ値にする
+    texColor.a *= fadeAlpha * 0.1f;
 
     return texColor;
 }

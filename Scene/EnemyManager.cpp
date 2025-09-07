@@ -7,6 +7,7 @@
 #include "Scene/EnemyManager.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/GBMonster.h"
+#include "Scene/Character/Boss.h"
 #include "Scene/Character/Enemy_NPC.h"
 
 EnemyManager::EnemyManager()
@@ -41,6 +42,10 @@ void EnemyManager::Init(const Player* player)
 	trans.pos = XMFLOAT3(4024.0f, 6270.0f, 3453.0f);
 	trans.scl = GBMONSTER_SIZE;
 	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = XMFLOAT3(3024.0f, 6370.0f, 4453.0f);
+	trans.scl = BOSS_SIZE;
+	SpawnEnemy(EnemyType::Boss, trans, EnemyState::IDLE, true);
 
 
 	trans.pos = XMFLOAT3(6846.0f, 5919.0f, 4453.0f);
@@ -88,6 +93,9 @@ Enemy* EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState
 		break;
 	case EnemyType::GBMonster:
 		enemy = new GBMonster(trans, initState);
+		break;
+	case EnemyType::Boss:
+		enemy = new Boss(trans, initState);
 		break;
 	case EnemyType::NPC_Fish:
 		enemy = new Enemy_NPC(trans, EnemyType::NPC_Fish, initState);

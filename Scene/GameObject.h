@@ -240,6 +240,7 @@ struct GameObjectConfig
 	ModelType modelType = ModelType::Static;
 	bool loadAsync = true;
 	AxisFlip flip = AxisFlip::None;
+	bool trackTriangles = false; // メッシュの頂点情報を追跡するかどうか
 };
 
 struct SkinnedGameObjectConfig
@@ -291,6 +292,20 @@ public:
 	{ 
 		instance.markedForDelete = true; 
 		CollisionManager::get_instance().UnregisterDynamicCollider(&instance.collider);
+
+		if (instance.pModel->GetTrackTriangles()
+			&&  (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX 
+				|| instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX))
+		{
+			// メッシュの頂点情報を追跡している場合は、当たり判定システムから三角形情報を削除する
+			auto triangles = instance.pModel->GetTriangles();
+			for (UINT i = 0; i < triangles->getSize(); i++)
+			{
+				CollisionManager::get_instance().RemoveTriangleFromStaticOctree((*triangles)[i]); // 静的オクツリーから削除
+				CollisionManager::get_instance().RemoveTriangleFromVoxelGrid((*triangles)[i]); // ボクセルグリッドから削除
+			}
+		}
+
 	}
 	virtual bool IsMarkedForDelete() const override { return instance.markedForDelete; }
 	void SetPostInitCallback(PostInitCallback cb, void* userData) { instance.onPostInit = cb; instance.userData = userData;}
@@ -466,6 +481,8 @@ template<typename T>
 struct InstantiateTaskContext
 {
 	GameObject<T>* owner;
+	GameObjectConfig* config;
+	SkinnedGameObjectConfig* skinnedConfig;
 };
 
 class ISkinnedMeshModelChar
@@ -583,7 +600,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		DeferredTaskOptions options{};
 		options.async = false; // postInit は同期で実行
 		options.debugName = "GameObject_InstantiateGameObject_PostInit"; // デバッグ用の名前
-		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
+		auto* ctx = new InstantiateTaskContext<T>{ this, &m_config }; // コンテキストを作成して渡す
 
 		if (instance.modelType == ModelType::Instanced)
 			PostInit();
@@ -659,7 +676,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB, ctx->config->trackTriangles);
 					// モデルのボクセルグリッドをビルド
 					model->Deferred_BuildBoundingBoxVoxelGrid(boundingBox);
 				},

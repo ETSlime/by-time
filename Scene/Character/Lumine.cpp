@@ -19,12 +19,16 @@
 #define ANIM_BLEND_SPD				0.032f
 
 #define WEAPON_SIZE						50.0f
-#define WEAPON_ON_HANDS_POS_OFFSET_X	-55.0f
-#define WEAPON_ON_HANDS_POS_OFFSET_Y	95.0f
+#define WEAPON_ON_HANDS_POS_OFFSET_X	-38.0f
+#define WEAPON_ON_HANDS_POS_OFFSET_Y	82.0f
 #define WEAPON_ON_HANDS_POS_OFFSET_Z	-35.0f
 #define WEAPON_ON_HANDS_ROT_OFFSET_X	0.0f
 #define WEAPON_ON_HANDS_ROT_OFFSET_Y	XM_PI
 #define WEAPON_ON_HANDS_ROT_OFFSET_Z	0.0f
+
+//#define WEAPON_ON_HANDS_POS_OFFSET_X	-55.0f
+//#define WEAPON_ON_HANDS_POS_OFFSET_Y	95.0f
+//#define WEAPON_ON_HANDS_POS_OFFSET_Z	-35.0f
 
 #define GUN_SIZE			2.0f
 #define GUN_POS_OFFSET_X	-41.0f
@@ -51,6 +55,8 @@
 #define LAST_FIRE_TIME			(0.5f)
 
 #define MAX_JUMP_HEIGHT			(75.0f) // ジャンプの最大高さ
+
+#define MAX_NEAREST_ENEMY_DIST	(1500.0f) // 最も近い敵を探す距離
 
 Lumine::Lumine()
 {
@@ -86,11 +92,17 @@ Lumine::~Lumine()
 void Lumine::InitializeStatus(void)
 {
 	m_playAnimSpeed = PLAY_ANIM_SPD;
-	weaponOnBackTimer = 0;
-	weaponOnHandTimer = 0;
-	weaponOnBack = false;
-	storeWeaponOnBack = false;
-	storeWeapon = false;
+
+	if (m_playerAttr)
+	{
+		m_playerAttr->weaponOnBackTimer = 0.0f;
+		m_playerAttr->weaponOnHandTimer = 0.0f;
+		m_playerAttr->weaponOnBack = false;
+		m_playerAttr->storeWeaponOnBack = false;
+		m_playerAttr->storeWeapon = false;
+		m_playerAttr->finishStoreWeapon = true;
+	}
+
 	instance.renderProgress.progress = 0.0f;
 	instance.attributes.Initialize();
 	if (m_stateMachine)
@@ -162,7 +174,7 @@ void Lumine::HandleInput(void)
 {
 	if (m_playerAttr->currentState == PlayerState::GLIDE) return;
 
-	if (m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered())
+	if ((m_inputManager.IsMouseLeftPressed() || m_inputManager.IsMouseLeftTriggered()) && !m_playerAttr->isMeleeMode)
 	{
 		m_playerAttr->drawGun = true;
 
@@ -178,10 +190,15 @@ void Lumine::HandleInput(void)
 
 		// 弾の位置（WorldMatrixの平行移動成分）
 		XMFLOAT3 muzzlePos;
-		XMStoreFloat3(&muzzlePos, m_weapon.GetWorldMatrix().r[3]);
+		XMStoreFloat3(&muzzlePos, m_gun.GetWorldMatrix().r[3]);
 
 		// Cameraから照準方向を計算
 		XMFLOAT3 fireDir{}, targetPoint{};
+
+		// 武器の位置を少し上にずらす
+		muzzlePos.y += 10.0f;
+		muzzlePos.x += sinf(instance.transform.rot.y) * 35.0f;
+		muzzlePos.z += cosf(instance.transform.rot.y) * 35.0f;
 
 		if (m_inputManager.IsMouseRightPressed())
 		{
@@ -192,11 +209,6 @@ void Lumine::HandleInput(void)
 			float yaw = instance.transform.rot.y;
 			fireDir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
 		}
-
-		// 武器の位置を少し上にずらす
-		muzzlePos.y -= 35.0f;
-		muzzlePos.x += sinf(instance.transform.rot.y) * 35.0f;
-		muzzlePos.z += cosf(instance.transform.rot.y) * 35.0f;
 
 		instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // 弾を撃った時間をリセット
 
@@ -326,7 +338,7 @@ void Lumine::Update(void)
 		PlayGeneralAnim(AnimClipName::ANIM_WALK_AIMING, animSpeed);
 		break;
 	case STATE(PlayerState::RUN_AIMING):
-		PlayGeneralAnim(AnimClipName::ANIM_RUN_ANIMING, animSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_RUN_ANIMING, animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::STAND_JUMP_AIMING):
 		PlayGeneralAnim(AnimClipName::ANIM_STAND_JUMP_AIMING, animSpeed * 1.2f);
@@ -377,21 +389,21 @@ void Lumine::Draw(void)
 {
 	if (!instance.load) return;
 
-	if (storeWeaponOnBack)
+	if (m_playerAttr->storeWeaponOnBack)
 	{
 		instance.renderProgress.isRandomFade = true;
 		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
-			weaponOnBack = true;
-			weaponOnBackTimer = WEAPON_ON_BACK_TIME;
-			storeWeaponOnBack = false;
+			m_playerAttr->weaponOnBack = true;
+			m_playerAttr->weaponOnBackTimer = WEAPON_ON_BACK_TIME;
+			m_playerAttr->storeWeaponOnBack = false;
 			m_weapon.SetPosition(XMFLOAT3(WEAPON_ON_BACK_POS_OFFSET_X, WEAPON_ON_BACK_POS_OFFSET_Y, WEAPON_ON_BACK_POS_OFFSET_Z));
 			m_weapon.SetRotation(XMFLOAT3(WEAPON_ON_BACK_ROT_OFFSET_X, WEAPON_ON_BACK_ROT_OFFSET_Y, WEAPON_ON_BACK_ROT_OFFSET_Z));
 		}
 	}
-	else if (weaponOnBackTimer >= 0 && weaponOnBack == true)
+	else if (m_playerAttr->weaponOnBackTimer >= 0 && m_playerAttr->weaponOnBack == true)
 	{
 		instance.renderProgress.progress += 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress >= 1.0f)
@@ -400,14 +412,15 @@ void Lumine::Draw(void)
 			instance.renderProgress.progress = 1.0f;
 		}
 	}
-	else if (storeWeapon)
+	else if (m_playerAttr->storeWeapon)
 	{
 		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress < 0.0f)
 		{
 			instance.renderProgress.progress = 0.0f;
 			m_weapon.SetCastShadow(false);
-			storeWeapon = false;
+			m_playerAttr->storeWeapon = false;
+			m_playerAttr->finishStoreWeapon = true;
 		}
 	}
 
@@ -439,7 +452,7 @@ void Lumine::Draw(void)
 	}
 	GameObject::Draw();
 
-	if (m_playerAttr->drawGun)
+	if (m_playerAttr->drawGun && !m_playerAttr->isMeleeMode)
 	{
 		m_renderer.SetStaticModelInputLayout(); // モデルの入力レイアウトを設定
 		m_renderer.SetRenderObject(); // モデルの描画を設定
@@ -614,6 +627,7 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::CanStopMoving);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::JUMP), &ISkinnedMeshModelChar::CanJump);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::WALK), &ISkinnedMeshModelChar::CanStopRunning);
+	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::HIT), &ISkinnedMeshModelChar::CanHit);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::CanRunAim, false, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::ATTACK_1), STATE(PlayerState::STANDING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 	m_stateMachine->AddTransition(STATE(PlayerState::ATTACK_1), STATE(PlayerState::HIT), &ISkinnedMeshModelChar::CanHit);
@@ -631,14 +645,17 @@ void Lumine::SetupAnimStateMachine()
 	m_stateMachine->AddTransition(STATE(PlayerState::IDLE_AIMING), STATE(PlayerState::WALK_AIMING), &ISkinnedMeshModelChar::CanWalkAim);
 	m_stateMachine->AddTransition(STATE(PlayerState::IDLE_AIMING), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::CanRunAim);
 	m_stateMachine->AddTransition(STATE(PlayerState::IDLE_AIMING), STATE(PlayerState::STAND_JUMP_AIMING), &ISkinnedMeshModelChar::CanJumpAim);
+	m_stateMachine->AddTransition(STATE(PlayerState::IDLE_AIMING), STATE(PlayerState::HIT), &ISkinnedMeshModelChar::CanHit, false, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::IDLE_AIMING), &ISkinnedMeshModelChar::CanStopMoving);
 	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::CanRunAim);
 	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::WALK), &ISkinnedMeshModelChar::CanWalkAimToWalk);
 	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::STAND_JUMP_AIMING), &ISkinnedMeshModelChar::CanJumpAim);
+	m_stateMachine->AddTransition(STATE(PlayerState::WALK_AIMING), STATE(PlayerState::HIT), &ISkinnedMeshModelChar::CanHit, false, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::IDLE_AIMING), &ISkinnedMeshModelChar::CanStopMoving);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::WALK_AIMING), &ISkinnedMeshModelChar::CanStopRunning);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::RUN), &ISkinnedMeshModelChar::CanRunAimToRun, false, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::RUN_JUMP_AIMING), &ISkinnedMeshModelChar::CanJumpAim);
+	m_stateMachine->AddTransition(STATE(PlayerState::RUN_AIMING), STATE(PlayerState::HIT), &ISkinnedMeshModelChar::CanHit, false, false);
 	m_stateMachine->AddTransition(STATE(PlayerState::RUN_JUMP_AIMING), STATE(PlayerState::RUN_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 	m_stateMachine->AddTransition(STATE(PlayerState::STAND_JUMP_AIMING), STATE(PlayerState::IDLE_AIMING), &ISkinnedMeshModelChar::AlwaysTrue, true);
 
@@ -754,7 +771,7 @@ bool Lumine::ExecuteAction(ActionEnum action)
 			}
 			m_weapon.SetPosition(XMFLOAT3(WEAPON_ON_HANDS_POS_OFFSET_X, WEAPON_ON_HANDS_POS_OFFSET_Y, WEAPON_ON_HANDS_POS_OFFSET_Z));
 			m_weapon.SetRotation(XMFLOAT3(WEAPON_ON_HANDS_ROT_OFFSET_X, WEAPON_ON_HANDS_ROT_OFFSET_Y, WEAPON_ON_HANDS_ROT_OFFSET_Z));
-			weaponOnBack = false;
+			m_playerAttr->weaponOnBack = false;
 			instance.renderProgress.progress = 1.0f;
 			instance.attributes.attackWinwdowCnt = 0;
 			return true;
@@ -856,7 +873,7 @@ void Lumine::FaceToNearestEnemy(void)
 	auto enemyList = EnemyManager::get_instance().GetEnemy();
 	Node<Enemy*>* cur = enemyList->getHead();
 	Enemy* nearestEnemy = nullptr;
-	float minDistSq = FLT_MAX;
+	float minDistSq = MAX_NEAREST_ENEMY_DIST * MAX_NEAREST_ENEMY_DIST;
 	while (cur != nullptr)
 	{
 		if (cur->data->GetEnemyAttribute().isDead == true)
@@ -939,22 +956,22 @@ void Lumine::FaceToNearestEnemy(void)
 
 void Lumine::UpdateWeapon(void)
 {
-	if (weaponOnHandTimer > 0)
+	if (m_playerAttr->weaponOnHandTimer > 0)
 	{
-		weaponOnHandTimer -= m_timer.GetScaledDeltaTime();
-		if (weaponOnHandTimer <= 0)
+		m_playerAttr->weaponOnHandTimer -= m_timer.GetScaledDeltaTime();
+		if (m_playerAttr->weaponOnHandTimer <= 0)
 		{
-			storeWeaponOnBack = true;
+			m_playerAttr->storeWeaponOnBack = true;
 			instance.renderProgress.progress = 1.0f;
 		}
 	}
 
-	if (weaponOnBackTimer > 0)
+	if (m_playerAttr->weaponOnBackTimer > 0)
 	{
-		weaponOnBackTimer -= m_timer.GetScaledDeltaTime();
-		if (weaponOnBackTimer <= 0)
+		m_playerAttr->weaponOnBackTimer -= m_timer.GetScaledDeltaTime();
+		if (m_playerAttr->weaponOnBackTimer <= 0)
 		{
-			storeWeapon = true;
+			m_playerAttr->storeWeapon = true;
 		}
 	}
 
@@ -962,17 +979,17 @@ void Lumine::UpdateWeapon(void)
 	m_gun.Update();
 
 	XMMATRIX weaponMtx, gunMtx;
+	XMMATRIX rightHandMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
 
-	if (!weaponOnBack)
-		weaponMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
+	if (!m_playerAttr->weaponOnBack)
+		weaponMtx = rightHandMtx;
 	else
 		weaponMtx = instance.pModel->GetBodyTransformMtx();
-
 	weaponMtx = XMMatrixMultiply(m_weapon.GetWorldMatrix(), weaponMtx);
 	weaponMtx = XMMatrixMultiply(weaponMtx, instance.transform.mtxWorld);
 	m_weapon.SetWorldMatrix(weaponMtx);
 
-	gunMtx = instance.pModel->GetBodyTransformMtx(BodyTransformIndex::RightHand);
+	gunMtx = rightHandMtx;
 	gunMtx = XMMatrixMultiply(m_gun.GetWorldMatrix(), gunMtx);
 	gunMtx = XMMatrixMultiply(gunMtx, instance.transform.mtxWorld);
 	m_gun.SetWorldMatrix(gunMtx);
@@ -1134,8 +1151,8 @@ bool Lumine::CanStopThrowing(void) const
 void Lumine::OnAttackAnimationEnd(void)
 {
 	m_weapon.SetColliderEnable(false);
-	storeWeaponOnBack = false;
-	weaponOnHandTimer = WEAPON_ON_HAND_TIME;
+	m_playerAttr->storeWeaponOnBack = false;
+	m_playerAttr->weaponOnHandTimer = WEAPON_ON_HAND_TIME;
 	instance.attributes.isAttacking = false;
 	instance.attributes.isAttacking2 = false;
 	instance.attributes.isAttacking3 = false;
@@ -1157,6 +1174,7 @@ void Lumine::OnAttackAnimationEnd(void)
 	}
 
 	instance.attributes.attackWinwdowCnt = 0;
+	swordTrail->ClearTrail(); // エフェクトをクリア
 }
 
 void Lumine::OnHitAnimationEnd(void)

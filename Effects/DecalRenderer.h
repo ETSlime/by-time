@@ -25,9 +25,13 @@ struct DecalInstance
     XMFLOAT3 normal;    // デカール面の法線（貼り付け方向）
     float lifetime;     // 表示時間（秒）
 
-	XMFLOAT2 uvOffset;    // UVオフセット（ランダム回転用）
+	XMFLOAT2 uvOffset;  // UVオフセット（ランダム回転用）
     float elapsed;      // 経過時間（秒）
     float rotation;     // 回転（地面に対して回転させる用）
+
+	float alpha; 	    // 透明度（フェードアウト用）
+    XMFLOAT3 padding;
+
 };
 
 class DecalRenderer : public SingletonBase<DecalRenderer>
@@ -36,7 +40,7 @@ public:
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
     void Update(void);
     void Draw(void);
-    void AddDecal(const XMFLOAT3& pos, const XMFLOAT3& normal, float size = 25.0f, float lifetime = 20.0f);
+    void AddDecal(const XMFLOAT3& pos, const XMFLOAT3& normal, float size = 25.0f, float lifetime = 20.0f, float alpha = 1.0f);
 
 private:
     bool LoadShaders(void);

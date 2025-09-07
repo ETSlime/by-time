@@ -35,8 +35,8 @@ struct PlayerAttributes
 	int				seedCount = 0;
 	int				bulletCount = 0;
 
-	bool			isMeleeMode;
-	bool			allowControl;
+	bool			isMeleeMode = true;
+	bool			allowControl = true;
 	bool			aimMode = false;	// エイムモード
 	bool			throwMode = false;
 	bool			confirmThrow = false;
@@ -47,6 +47,13 @@ struct PlayerAttributes
 	bool 			climbDown = false; // クライムモードで下に移動中かどうか
 	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
 	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
+
+	float			weaponOnBackTimer = 0.0f;
+	float			weaponOnHandTimer = 0.0f;
+	bool			weaponOnBack = false;
+	bool			storeWeaponOnBack = false;
+	bool			storeWeapon = false;
+	bool			finishStoreWeapon = true;
 
 	bool			drawGun = false;
 	float			fireIntervalSec = 0.1f; // 射撃インターバル（秒）

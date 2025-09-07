@@ -92,7 +92,7 @@ void Projectile::OnHitGroundCallback(const CollisionEvent& event, void* context)
 	// è’ìÀÇµÇΩñ ÇÃñ@ê¸
 	XMFLOAT3 hitNormal = *static_cast<const XMFLOAT3*>(event.additionalData);
 
-	DecalRenderer::get_instance().AddDecal(self->m_projectileAttributes.potentialHitPos, hitNormal);
+	DecalRenderer::get_instance().AddDecal(self->m_projectileAttributes.potentialHitPos, hitNormal, 35.0f, 25.0f, 0.1f);
 }
 
 

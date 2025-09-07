@@ -173,7 +173,7 @@ public:
 
 	void BuildBoundingBoxTriangles(const BOUNDING_BOX& box);
 	void BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
-	bool BuildOctree(void);
+	bool BuildOctree(bool trackTriangles = false);
 	bool BuildVoxelGrid(bool batchInsert = false);
 
 	const StaticModelData* GetModelData(void) { return m_modelData; }
@@ -184,7 +184,9 @@ public:
 	const SimpleArray<Triangle*>* GetTriangles(void) const;
 	const SimpleArray<StaticMeshPart>& GetMeshParts(void) const;
 
-	bool Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false);
+	bool GetTrackTriangles(void) const { return m_trackTriangles; }
+
+	bool Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox = false, bool trackTriangles = false);
 	bool Deferred_BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false, bool drawBoundingBox = false);
 	bool Deferred_BuildMeshVoxelGrid(const XMMATRIX& worldMatrix, bool alwaysFaceUp = false);
 	bool Deferred_BuildBoundingBoxVoxelGrid(const BOUNDING_BOX& box);
@@ -211,6 +213,8 @@ private:
 	bool			m_buildTriangles = false; // 三角形を構築したかどうか
 
 	ID3D11Buffer* m_BBVertexBuffer = nullptr;
+
+	bool		m_trackTriangles = false; // 三角形の追跡を行うかどうか
 
 	Renderer& m_renderer = Renderer::get_instance();
 	ShaderResourceBinder& m_ShaderResourceBinder = ShaderResourceBinder::get_instance();

@@ -69,7 +69,7 @@ public:
 	// 静的オブジェクトの八分木を初期化する
     void InitOctree(const BOUNDING_BOX& boundingBox);
     bool IsInitializedOctree(void) const { return m_staticOctree != nullptr; }
-    bool OctreeInsertTriangle(const Triangle* tri);
+    bool OctreeInsertTriangle(const Triangle* tri, bool insertWithHandle = false);
 
     // 静的オブジェクトのボクセルグリッドを初期化する
     void InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize = 1.0f);
@@ -89,6 +89,9 @@ public:
 	// 衝突イベントコライダーリストのクリア
 	void ClearEventColliders(void) { m_triggerEventColliders.clear(); }
 
+    void RemoveTriangleFromStaticOctree(const Triangle* tri) { m_staticOctree->RemoveTriangle(tri); }
+    void RemoveTriangleFromVoxelGrid(const Triangle* tri) { m_voxelGrid->RemoveTriangleIncremental(tri); }
+
 	// レイキャスト関数（rayOrigin から rayDir 方向に伸びるレイと静的オブジェクトの交差判定）
     bool RaycastForTargetPoint(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, XMFLOAT3* targetHitPosOut) const;
 
@@ -98,6 +101,7 @@ public:
     const VoxelGrid* GetVoxelGrid(void) { return m_voxelGrid; }
 
 private:
+	void BlockColliderMovement(const Collider* collider, const Collider* collider2);
     void HandleStaticCollision(const Collider* dynamicCol);
     void HandleDynamicCollision(const Collider* dynamicCol, UINT startIdx);
     void HandleEventTriggerCollision(const Collider* dynamicCol);

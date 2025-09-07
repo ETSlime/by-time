@@ -36,6 +36,7 @@ enum class CollisionCallbackID
 {
     Item,
     EnemyAttackHit,
+    PlayerAttackHit,
     ProjectileHit,
 };
 

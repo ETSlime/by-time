@@ -7,6 +7,18 @@
 //=============================================================================
 #include "Effects/IEffectRenderer.h"
 #include "Core/Camera.h"
+#include "Scene/Ground.h"
+
+//*****************************************************************************
+// マクロ定義
+//*****************************************************************************
+#define WAVE_STRENGTH_NORMAL			0.34f
+#define WAVE_STRENGTH_FREEZE			0.0f
+#define FRESNEL_BIAS_NORMAL				0.02f
+#define FRESNEL_BIAS_FREEZE				0.1f
+#define FRESNEL_POWER_NORMAL			1.2f
+#define FRESNEL_POWER_FREEZE			1.7f
+#define WATER_COLOR_NORMAL				XMFLOAT3(0.0f, 0.5f, 0.8f)
 
 //*********************************************************
 // 構造体
@@ -65,6 +77,7 @@ private:
 	bool CreateDiffuseTex(void);
 	bool CreateWaterParamsCB(void);
 	bool LoadShaders(void);
+	void UpdateWaterParams(void);
 	void UpdateWaterParamsBuffer(void);
 	void UpdateWorldMatrix(void);
 
@@ -98,4 +111,5 @@ private:
 	Renderer& m_renderer = Renderer::get_instance();
 	Camera& m_camera = Camera::get_instance();
 	Timer& m_timer = Timer::get_instance();
+	Ground& m_ground = Ground::get_instance();
 };

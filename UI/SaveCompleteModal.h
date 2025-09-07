@@ -15,7 +15,7 @@
 //*****************************************************************************
 #define SAVE_COMPLETE_MESSAGE_TEXTURE_PATH		"data/TEXTURE/UI/gamesave_.png"
 #define SAVE_COMPLETE_MESSAGE_TEXTURE_POS_X		SCREEN_CENTER_X
-#define SAVE_COMPLETE_MESSAGE_TEXTURE_POS_Y		SCREEN_CENTER_Y * 0.85f // 画面中央の少し上に配置
+#define SAVE_COMPLETE_MESSAGE_TEXTURE_POS_Y		SCREEN_CENTER_Y * 0.75f // 画面中央の少し上に配置
 #define SAVE_COMPLETE_MESSAGE_TEXTURE_SIZE_X	2177.0f
 #define SAVE_COMPLETE_MESSAGE_TEXTURE_SIZE_Y	387.0f
 

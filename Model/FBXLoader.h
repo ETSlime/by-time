@@ -87,6 +87,7 @@ enum class SkinnedModelType
 	Hilichurl,
 	Mitachurl,
 	GBMonster,
+	Boss,
 	NPC,
 	AbyssMage,
 	Field,

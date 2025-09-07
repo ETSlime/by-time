@@ -125,12 +125,7 @@ private:
 
 	AnimStateMachine* m_stateMachine;
 	float m_playAnimSpeed;
-	float weaponOnBackTimer;
-	float weaponOnHandTimer;
 	float m_gunPosX, m_gunPosY, m_gunPosZ, m_gunRotX, m_gunRotY, m_gunRotZ;
-	bool weaponOnBack;
-	bool storeWeaponOnBack;
-	bool storeWeapon;
 
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();

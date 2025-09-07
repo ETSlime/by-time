@@ -32,19 +32,26 @@ private:
 
 //************************************************************
 // スコープロック（RAII形式）
+//  - RAII によりスコープに入るとロック、スコープを出ると自動でアンロック。
+//  - コピー/ムーブを禁止して誤用による二重アンロックを防止。
 //************************************************************
-class ScopedSpinLock
+class SpinLockGuard
 {
 public:
-    ScopedSpinLock(SpinLock& lock) : m_lock(lock)
+    SpinLockGuard(SpinLock& lock) noexcept : m_lock(lock)
     {
         m_lock.Lock();
     }
 
-    ~ScopedSpinLock()
+    ~SpinLockGuard() noexcept
     {
         m_lock.Unlock();
     }
+
+    SpinLockGuard(const SpinLockGuard&) = delete;
+    SpinLockGuard& operator=(const SpinLockGuard&) = delete;
+    SpinLockGuard(SpinLockGuard&&) = delete;
+    SpinLockGuard& operator=(SpinLockGuard&&) = delete;
 
 private:
     SpinLock& m_lock;
