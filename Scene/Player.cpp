@@ -99,23 +99,24 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
-	//For debugging : Automatic HP reduction(1 per second)
-		if (m_autoHPDrain)
-		{
-			float deltaTime = 1.0f / 60.0f;
-				m_hpDrainTimer += deltaTime;
+	////テストでHPを自動で減少させてみた
+	//	if (m_autoHPDrain)
+	//	{
+	//		float deltaTime = 1.0f / 60.0f;
+	//			m_hpDrainTimer += deltaTime;
+	//
+	//		if (m_hpDrainTimer >= 1.0f)
+	//		{
+	//			TakeDamage(1);
+	//			m_hpDrainTimer = 0.0f;
+	//		}
+	//	}
 
-			if (m_hpDrainTimer >= 1.0f)
-			{
-				TakeDamage(1);
-				m_hpDrainTimer = 0.0f;
-			}
-		}
-	//For Debugging : HP Recovery
-		if (m_inputManager.GetKeyboardPress(DIK_L))
-		{
-			m_currentHP = 100.0f;
-		}
+	////テストでHPを全回復させてみた
+	//	if (m_inputManager.GetKeyboardPress(DIK_L))
+	//	{
+	//		m_currentHP = 100.0f;
+	//	}
 
 
 #ifdef _DEBUG

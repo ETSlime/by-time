@@ -11,7 +11,7 @@ void PlayerEnterExitBehavior::Initialize(void)
 {
     m_prompt = new UIInteractPrompt();
     m_prompt->Initialize("data/TEXTURE/UI/interactUI.png");
-    m_prompt->SetPosition(700, 500); // ‰æ–Ê’†‰›‚É”z’u
+    m_prompt->SetPosition(1200, 500);
     m_player = GameSystem::get_instance().GetPlayer();
 }
 
