@@ -186,6 +186,9 @@ private:
 	Item* m_sceneSoil = nullptr;
 	Item* m_scenePSeed = nullptr;
 	Item* m_sceneVines = nullptr;
+	Item* m_scenesADoorL = nullptr;
+	Item* m_scenesADoorR = nullptr;
+
 	Skybox& m_skybox = Skybox::get_instance();
 };
 

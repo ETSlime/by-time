@@ -395,19 +395,23 @@ void Player::UpdateNormalMode(void)
 		m_attributes.isJumping = true;
 	}
 
+	*/
 	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
 		if (m_linkedInteractable != nullptr)
 		{
-			if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
+			/*if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
 				m_linkedInteractable->Use();
 				m_linkedInteractable->SetActive(false);
 			}
 			else if (m_linkedInteractable->GetItemType() == ItemType::IntVines) {
 				m_transform.pos.y += 500;
-			}
+			}*/
+
+			m_linkedInteractable->Interact();
+
 		}
 		m_linkedInteractable = nullptr;
-	}*/
+	}
 
 }
 

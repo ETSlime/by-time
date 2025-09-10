@@ -85,7 +85,7 @@ void ItemManager::Update(void)
 
 }
 
-Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
+Item* ItemManager::SpawnItem(Item* pItem)
 {
 
 	Item* item;
@@ -93,7 +93,7 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 	
 	// = new Item(itemType, trans);
 
-	if (itemType < ItemType::Interactable) {
+	/*if (itemType < ItemType::Interactable) {
 	
 		item = new Item(itemType, trans);
 	}
@@ -101,7 +101,9 @@ Item* ItemManager::SpawnItem(ItemType itemType, Transform trans)
 	
 		item = new Interactable(itemType, trans);
 	
-	}
+	}*/
+
+	item = pItem;
 
 	item->Initialize();
 

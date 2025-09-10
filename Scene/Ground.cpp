@@ -15,6 +15,7 @@
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Scene/Item/ItemManager.h"
+#include "Scene/Item/AutumnDoor.h"
 
 //*****************************************************************************
 // マクロ定義r
@@ -25,6 +26,7 @@
 #define KEY_SIZE			(5.0f)
 #define SEED_SIZE			(0.2f)
 #define SEEDSOIL_SIZE       (10)
+#define AUTUMNDOOR_SIZE       (5)
 #define SOIL_SIZE			(100.0f)
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(12.0f)
@@ -117,7 +119,7 @@ void Ground::Initialize(void)
 	//	m_persistentModelLoadCnt++;
 	//}
 
-	
+
 	DeferredTaskOptions options{};
 	options.async = false; // 同期実行
 	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
@@ -129,6 +131,27 @@ void Ground::Initialize(void)
 		&Ground::DeferredIsFieldReady,
 		options
 	);
+
+
+
+	Transform trans;
+	trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
+	trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	trans.scl = XMFLOAT3(AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE);
+
+	AutumnDoor* leftDoor = new AutumnDoor(DoorSide::Left, trans);
+
+	//trans.pos = XMFLOAT3(5436.0f, 4814.0f, 5034.0f);
+	trans.pos.x -= 300;
+
+	AutumnDoor* rightDoor = new AutumnDoor(DoorSide::Right, trans);
+
+	leftDoor->SetLinkedDoor(rightDoor);
+	rightDoor->SetLinkedDoor(leftDoor);
+
+	// いつでもある
+	m_scenesADoorL = ItemManager::get_instance().SpawnItem(leftDoor);
+	m_scenesADoorR = ItemManager::get_instance().SpawnItem(rightDoor);
 
 	m_initialized = true;
 }
@@ -466,7 +489,7 @@ void Ground::LoadScene1(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
-		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
 
 	}
 	else if (!m_sceneSeed->GetPickedUp())
@@ -480,7 +503,7 @@ void Ground::LoadScene1(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		trans.scl = XMFLOAT3(SEEDSOIL_SIZE, SEEDSOIL_SIZE, SEEDSOIL_SIZE);
 
-		m_sceneSoil = ItemManager::get_instance().SpawnItem(ItemType::IntSoil, trans);
+		m_sceneSoil = ItemManager::get_instance().SpawnItem(new Item(ItemType::IntSoil, trans));
 
 	}
 	else {
@@ -505,7 +528,7 @@ void Ground::LoadScene2(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
-		m_sceneKey = ItemManager::get_instance().SpawnItem(ItemType::Key, trans);
+		m_sceneKey = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
 
 	}
 	else if (!m_sceneKey->GetPickedUp())
@@ -522,7 +545,7 @@ void Ground::LoadScene2(void)
 			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			trans.scl = XMFLOAT3(120, 120, 120);
 
-			m_sceneVines = ItemManager::get_instance().SpawnItem(ItemType::IntVines, trans);
+			m_sceneVines = ItemManager::get_instance().SpawnItem(new Item(ItemType::IntVines, trans));
 		}
 		else if (!m_sceneVines->GetUsed())
 			m_sceneVines->SetActive(true);

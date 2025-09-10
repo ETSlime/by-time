@@ -53,6 +53,16 @@ void Item::Initialize(void)
 		config.scale = XMFLOAT3(20.0f, 20.0f, 20.0f);
 		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;
+	case ItemType::IntAutumnDoorL:
+		config.modelPath = "data/MODEL/Item/Door/door_left.obj";
+		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		break;
+	case ItemType::IntAutumnDoorR:
+		config.modelPath = "data/MODEL/Item/Door/door_right.obj";
+		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		break;
 	}
 
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
