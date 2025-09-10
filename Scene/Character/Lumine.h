@@ -120,6 +120,8 @@ public:
 	
 	void SetPlayerComponent(void* player);
 	void* GetPlayerComponent(void);
+	
+	void ForwardEnemyAttackHit(const CollisionEvent& event);
 
 private:
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);

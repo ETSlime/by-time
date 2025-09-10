@@ -59,6 +59,7 @@ Player::Player()
 
 	m_previewRenderer = new ProjectilePreviewRenderer();
 	m_predictor.SetCollisionVoxelGrid(CollisionManager::get_instance().GetVoxelGrid()); // 地形ボクセルをセット
+
 }
 
 Player::~Player()
@@ -68,6 +69,11 @@ Player::~Player()
 
 void Player::Update(void)
 {
+	// 無敵時間のカウントダウン
+	if (m_invincibleTimer > 0.0f) {
+		m_invincibleTimer -= m_playerGO->timer.GetScaledDeltaTime();
+	}
+
 	if (!m_playerGO->GetInstance()->load)
 	{
 		m_playerGO->Update();
@@ -770,3 +776,15 @@ void Player::Heal(int amount)
 	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
 	SetHP(hpRatio);  // HPバー更新
 }
+
+void Player::OnEnemyAttackHit(const CollisionEvent& e)
+{
+	if (m_invincibleTimer > 0.0f) {
+		return; // 無敵中は無視
+	}
+
+	TakeDamage(10);
+
+	m_invincibleTimer = 0.5f; // 0.5秒の無敵時間
+}
+

@@ -62,7 +62,7 @@ public:
 
 	void TakeDamage(int damage);
 	void Heal(int amount);
-
+	void OnEnemyAttackHit(const CollisionEvent& e);
 	void InitHPBar(UIManager* uiManager);
 	void SetHP(float hp);
 
@@ -121,4 +121,7 @@ private:
 
 	float m_hpDrainTimer = 0.0f;
 	bool m_autoHPDrain = true;
+
+	float m_invincibleTimer = 0.0f;         // –³“GŽžŠÔƒJƒEƒ“ƒg
+	const float INVINCIBLE_TIME = 0.5f;     // 0.5•bŠÔ–³“G
 };

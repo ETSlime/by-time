@@ -536,6 +536,7 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
 
                 }
+                //プレイヤーのHPとの関係性あり
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::INTERACTABLE)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::INTERACTABLE))
                 {
