@@ -1,7 +1,7 @@
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Item.h"
 #include "Scene/Ground.h"
-#include "Scene/Item/Interactable.h"
+#include "Scene/Item/Interactable/Interactable.h"
 
 void ItemManager::Init(void)
 {

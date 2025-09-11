@@ -1237,7 +1237,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
 			//self->EnableWeapon(true);
-			GameSystem::get_instance().ChangeMode(GameMode::RESULT, true);
+			self->m_playerAttr->keyCount++;
 		}
 	}
 

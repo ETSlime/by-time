@@ -16,6 +16,7 @@ enum class ItemType
 	IntVines,
 	IntAutumnDoorL,
 	IntAutumnDoorR,
+	IntGate,
 	Max
 };
 

@@ -36,6 +36,7 @@ struct PlayerAttributes
 	UINT			actionQueueEnd;
 
 	int				seedCount;
+	int				keyCount;
 
 	bool			isMeleeMode;
 	bool			allowControl;

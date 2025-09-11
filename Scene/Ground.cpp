@@ -15,7 +15,7 @@
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Scene/Item/ItemManager.h"
-#include "Scene/Item/AutumnDoor.h"
+#include "Scene/Item/Interactable/AutumnDoor.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`r

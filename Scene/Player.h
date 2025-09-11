@@ -10,7 +10,7 @@
 #include "Scene/Character/Lumine.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Item/Item.h"
-#include "Scene/Item/Interactable.h"
+#include "Scene/Item/Interactable/Interactable.h"
 #include "Scene/Item/ItemManager.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"

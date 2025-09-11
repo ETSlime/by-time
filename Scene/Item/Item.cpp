@@ -63,6 +63,11 @@ void Item::Initialize(void)
 		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;
+	case ItemType::IntGate:
+		config.modelPath = "data/MODEL/Item/Gate/final_door.obj";
+		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
+		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		break;
 	}
 
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;

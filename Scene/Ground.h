@@ -189,6 +189,7 @@ private:
 	Item* m_sceneVines = nullptr;
 	Item* m_scenesADoorL = nullptr;
 	Item* m_scenesADoorR = nullptr;
+	Item* m_scenesGate = nullptr;
 
 	Skybox& m_skybox = Skybox::get_instance();
 };

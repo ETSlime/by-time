@@ -11,7 +11,7 @@
 #include "Scene/Player.h"
 #include "Scene/Weapon/Projectile.h"
 #include "Scene/Ground.h"
-#include "Scene/Item/Interactable.h"
+#include "Scene/Item/Interactable/Interactable.h"
 #include "Utility/Debug/Debugproc.h"
 
 //*****************************************************************************

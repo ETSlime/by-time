@@ -212,10 +212,11 @@
     <ClInclude Include="Scene\GameObject.h" />
     <ClInclude Include="Scene\Ground.h" />
     <ClInclude Include="Scene\HPBarUI.h" />
-    <ClInclude Include="Scene\Item\AutumnDoor.h" />
+    <ClInclude Include="Scene\Item\Interactable\AutumnDoor.h" />
+    <ClInclude Include="Scene\Item\Interactable\Gate.h" />
+    <ClInclude Include="Scene\Item\Interactable\Interactable.h" />
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
-    <ClInclude Include="Scene\Item\Interactable.h" />
     <ClInclude Include="Scene\Player.h" />
     <ClInclude Include="Scene\PlayerEnterExitBehavior.h" />
     <ClInclude Include="Scene\Scene.h" />
@@ -320,10 +321,11 @@
     <ClCompile Include="Scene\GameObject.cpp" />
     <ClCompile Include="Scene\Ground.cpp" />
     <ClCompile Include="Scene\HPBarUI.cpp" />
-    <ClCompile Include="Scene\Item\AutumnDoor.cpp" />
+    <ClCompile Include="Scene\Item\Interactable\AutumnDoor.cpp" />
+    <ClCompile Include="Scene\Item\Interactable\Gate.cpp" />
+    <ClCompile Include="Scene\Item\Interactable\Interactable.cpp" />
     <ClCompile Include="Scene\Item\Item.cpp" />
     <ClCompile Include="Scene\Item\ItemManager.cpp" />
-    <ClCompile Include="Scene\Item\Interactable.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
     <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />

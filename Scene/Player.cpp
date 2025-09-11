@@ -44,6 +44,7 @@ Player::Player()
 	m_playerAttr.allowControl = true;
 	m_playerAttr.isMeleeMode = true; // ‰Šú‚Í‹ßÚƒ‚[ƒh
 	m_playerAttr.seedCount = 0; // ‰Šú‚Íí‚ğ‚Á‚Ä‚¢‚È‚¢
+	m_playerAttr.keyCount = 0;
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
