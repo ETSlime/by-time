@@ -1324,7 +1324,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 			//self->EnableWeapon(true);
 			self->m_playerAttr->keyCount++;
-		}
+		
 	}
 
 }
