@@ -22,9 +22,9 @@
 #define	HILI_MAX_COOLDOWN_MOVE_TIME		(0.2f)
 #define HILI_MIN_COOLDOWN_MOVE_TIME		(0.1f)
 
-#define GBMONSTER_SIZE					XMFLOAT3(1.3f, 1.3f, 1.3f)
+#define GBMONSTER_SIZE					XMFLOAT3(0.9f, 0.9f, 0.9f)
 
-#define HILI_MAX_HP					(50.0f)
+#define GBMONSTER_MAX_HP				(600.0f)
 
 class GBMonster : public Enemy, public ISkinnedMeshModelChar
 {

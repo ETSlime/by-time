@@ -93,12 +93,14 @@ public:
 	// 銃口を持たないスキル・手榴弾用の照準方向を計算する関数
 	void ComputeAimDirectionCenter(XMFLOAT3* direction, XMFLOAT3* targetPoint) const;
 
+	XMFLOAT3 GetThrowModeDirection(void) const { return m_throwModeDir; }
+
 private:
 	void UpdateCameraAdjustments(void);
 
 	// プレイヤーの右肩基準でカメラ位置を計算する共通関数
 	// localOffset: x=右肩オフセット, y=高さ, z=後方距離
-	XMFLOAT3 ComputeShoulderCameraPos(const XMFLOAT3& playerPos, const XMFLOAT3& playerForward, const XMFLOAT3& localOffset) const;
+	XMFLOAT3 ComputeShoulderCameraPos(const XMFLOAT3& playerPos, const XMFLOAT3& playerForward, const XMFLOAT3& localOffset, float horizontalAngleOffset = 0.0f) const;
 
 	// 行列
 	XMFLOAT4X4			m_mtxView{};		// ビューマトリックス
@@ -126,6 +128,8 @@ private:
 	XMFLOAT3	m_targetOffsetAim = { 0.5f, 1.6f, -2.0f };    // 照準時のカメラオフセット（右肩寄り）
 	XMFLOAT3	m_currentOffset{};
 
+	float		m_throwModeRotx = 0.0f; // 投擲モードの回転角度
+	XMFLOAT3	m_throwModeDir = { 0.0f, 0.0f, 1.0f }; // 投擲モードの方向
 	CameraType			m_CameraType = CameraType::SCENE;
 
 	// 各種参照

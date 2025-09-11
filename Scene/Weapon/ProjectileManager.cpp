@@ -1,11 +1,8 @@
 #include "ProjectileManager.h"
 #include "Projectile.h"
-#include "Bullet.h"
 
 void ProjectileManager::Init(void)
 {
-
-
 
 }
 
@@ -30,6 +27,12 @@ void ProjectileManager::Draw(void)
 	Node<Projectile*>* cur = m_projectileList.getHead();
 	while (cur != nullptr)
 	{
+		//if (cur->data->GetProjectileAttributes().draw == FALSE)
+		//{
+		//	cur = cur->next;
+		//	continue;
+		//}
+
 		// ƒ‚ƒfƒ‹•`‰æ
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);
@@ -75,11 +78,11 @@ void ProjectileManager::Update(void)
 			}
 		}
 
-		if (cur->data->GetUse() == FALSE)
+		if (cur->data->GetAttributes()->use == FALSE)
 		{
 			Node<Projectile*>* toDelete = cur;
 			cur = cur->next;
-			SAFE_DELETE(toDelete->data);
+			toDelete->data->Destroy();
 			m_projectileList.remove(toDelete);
 		}
 		else
@@ -90,16 +93,7 @@ void ProjectileManager::Update(void)
 
 Projectile* ProjectileManager::SpawnProjectile(ProjectileType projectileType, Transform trans, XMFLOAT3 dir, float speed)
 {
-	Projectile* projectile;
-
-	switch (projectileType)
-	{
-	case ProjectileType::Bullet:
-		projectile = new Bullet(trans, dir, speed);
-		break;
-	default:
-		return nullptr;
-	}
+	Projectile* projectile = new Projectile(projectileType, trans, dir, speed);
 
 	if (!projectileLoadMap.contains(TO_UINT64(projectileType)))
 	{
@@ -107,7 +101,6 @@ Projectile* ProjectileManager::SpawnProjectile(ProjectileType projectileType, Tr
 		m_totalProjectileLoadCnt++;
 	}
 
-	//item->SetDrawWorldAABB(m_drawBoundingBox);
 	m_projectileList.push_back(projectile);
 
 	return projectile;

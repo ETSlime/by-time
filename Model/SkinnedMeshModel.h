@@ -358,6 +358,8 @@ public:
 	void CreateGPUResources(void);
 	SkinnedMeshModelData* GetModelData(void) { return &m_modelData; }
 
+	bool GetTrackTriangles(void) const { return false; }
+
 	static SkinnedMeshModel* StoreModel(const char* modelPath, const char* modelName, const char* modelFullPath, 
 		SkinnedModelType modelType, AnimClipName clipName);
 	static SkinnedMeshModelPool* GetModel(const char* modelFullPath);

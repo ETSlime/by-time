@@ -12,7 +12,7 @@
 #include "Scene/GameObject.h"
 #include "Scene/Item/Item.h"
 #include "Scene/EventTrigger.h"
-#include "Scene/PlayerEnterExitBehavior.h"
+#include "Scene/EnterExitBehavior.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
 #include "Effects/Skybox.h"
 
@@ -40,13 +40,16 @@
 
 enum class SceneID : uint64_t
 {
+	Spring_Day,
+	Spring_Night,
+	Summer_Day,
+	Summer_Night,
+	Autumn_Day,
+	Autumn_Night,
+	Winter_Day,
+	Winter_Night,
 	NONE,
-	SCENE_1,
-	SCENE_2,
-	SCENE_3,
-	SCENE_4,
-	SCENE_5,
-	SCENE_6
+	ALL,
 };
 
 // 前方宣言
@@ -65,7 +68,9 @@ public:
 
 	void UnloadCurrentScene(void); // 現在のシーンをアンロード
 	void LoadScene(SceneID id); // シーンをロード
-	SceneID GetCurrentScene(void) { return m_currentScene; }
+	SceneID GetCurrentSceneID(void) { return m_currentSceneID; }
+
+	void SetEnableBossfightRoom(bool enable);
 
 	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; } // 全モデルのロード数
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; } // 現在ロードしたモデル数
@@ -76,16 +81,22 @@ public:
 private:
 	void InitTerrain(void);
 	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);
+	GameObject<ModelInstance>* CreateSceneGO(GameObjectConfig config, SceneID sceneID = SceneID::ALL);
 	// シーンロードマップの初期化
 	void InitSceneLoadMap(void);
 
 	// シーンロード関数
-	void LoadScene1(void);
-	void LoadScene2(void);
-	void LoadScene3(void);
-	void LoadScene4(void);
-	void LoadScene5(void);
-	void LoadScene6(void);
+	void LoadSceneSpringDay(void);
+	void LoadSceneSpringNight(void);
+	void LoadSceneSummerDay(void);
+	void LoadSceneSummerNight(void);
+	void LoadSceneAutumnDay(void);
+	void LoadSceneAutumnNight(void);
+	void LoadSceneWinterDay(void);
+	void LoadSceneWinterNight(void);
+	void LoadSceneAll(void);
+
+	void LoadLakeAirWalls(SceneID sceneID); // エアウォールのロード
 
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
@@ -94,7 +105,7 @@ private:
 	// モデルのロードマップ登録
 	void RegisterModelLoadMap(const char* modelPath, bool isPersistent = false, bool isTerrain = true);
 
-	EventTrigger* RegisterEventTrigger(const BOUNDING_BOX& triggerBox, PlayerCallbackAction action, SceneID sceneID);
+	EventTrigger* RegisterEventTrigger(const BOUNDING_BOX& triggerBox, EventCallbackAction action, SceneID sceneID);
 
 	// ゲームオブジェクトの更新と描画
 	template<typename T>
@@ -103,7 +114,7 @@ private:
 	void DrawGameObjectArray(const SimpleArray<T*>& array);
 
 	virtual void RenderImGui(void) override;
-	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; };
+	virtual const char* GetPanelName(void) const override { return "Map Model Manager"; }
 
 	int m_currentModelLoadCnt = 0; // 現在ロードしたモデル数
 	int m_totalModelLoadCnt = 0; // 全モデルのロード数
@@ -114,6 +125,7 @@ private:
 
 	SimpleArray<GameObject<ModelInstance>*>				m_staticGOs;
 	SimpleArray<GameObject<ModelInstance>*>             m_persistentStaticGOs;
+	SimpleArray<GameObject<ModelInstance>*>             m_tempGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>	m_skinnedGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>  m_persistentSkinnedGOs;
 
@@ -156,7 +168,7 @@ private:
 	Environment* m_environment = nullptr;
 	WaterFluidParticleRenderer* m_waterFluid = nullptr;
 
-	SceneID m_currentScene = SceneID::NONE;
+	SceneID m_currentSceneID = SceneID::NONE;
 	Scene& m_scene = Scene::get_instance();
 	Renderer& m_renderer = Renderer::get_instance();
 
@@ -192,6 +204,7 @@ private:
 	Item* m_scenesGate = nullptr;
 
 	Skybox& m_skybox = Skybox::get_instance();
+	Renderer& m_Renderer = Renderer::get_instance();
 };
 
 template<typename T>
@@ -242,6 +255,10 @@ inline void Ground::DrawGameObjectArray(const SimpleArray<T*>& array)
 		auto& gameObject = array[i]; // GameObjectのポインタを取得
 
 		if (gameObject->GetUse() == false) continue;
+		if (gameObject->GetCollider().tag == ColliderTag::AIR_WALL || gameObject->GetCollider().tag == ColliderTag::ICE_WALL)
+		{
+			continue;
+		}
 
 		gameObject->Draw();
 	}

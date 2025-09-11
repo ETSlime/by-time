@@ -19,22 +19,31 @@ enum class ColliderTag
     DEFAULT,
     PLAYER,
     ENEMY,
+    NPC,
     TRIGGER,
     WALL,
+	TRANSPARENT_WALL,
+    AIR_WALL,
+    ICE_WALL,
     TREE,
     ITEM,
     STATIC_OBJECT,
+    BOSS_ICE,
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
+    PLAYER_PROJECTILE,
+	ENEMY_PROJECTILE,
     PLAYER_PROJECTILE,
     INTERACTABLE
 };
 
 enum class CollisionCallbackID
 {
-    PickUpItem,
+    Item,
     EnemyAttackHit,
+    PlayerAttackHit,
+    ProjectileHit,
 };
 
 // 前方宣言
@@ -49,6 +58,7 @@ struct CollisionEvent
 {
     const Collider* colliderA;
     const Collider* colliderB;
+	const void* additionalData; // 追加情報（必要に応じて使用）
 };
 
 // 通常のコライダーにコールバックを追加

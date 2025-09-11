@@ -535,6 +535,18 @@ void PixelShaderPolygon( in  float4 inPosition		: SV_POSITION,
             color.a = opacity;
         else
 		    color.a = inDiffuse.a * Material.Diffuse.a;
+        
+        
+        if (isRandomFade == 1)
+        {
+            float noise = PerlinNoise(inTexCoord * 10.0);
+
+            if (noise > progress)
+                discard;
+
+            if (noise > progress - 0.1)
+                color.rgb *= 2.0;
+        }
 
     }
 

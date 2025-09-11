@@ -117,13 +117,14 @@ struct Attributes
 	bool			isAttacking3 = false;
 	bool			isDashing = false;
 	bool			isJumping = false;
-	bool			isGrounded = false;
+	bool			isGrounded = true;
 	bool			isMoveBlocked = false;
 	bool			isHit1 = false;
 	bool			isHit2 = false;
 	float			hitTimer = 0;
 	float			glideDuration = 0.0f; // グライドの持続時間
 	float			lastFireTimeCountDown = 0.0f; // 最後に弾を撃った時間（カウントダウン用）
+	float			fallSpeed = 0.0f; // 落下速度
 	bool			charSwitchEffect = false;
 
 	bool			attackWindow2 = false;
@@ -236,9 +237,11 @@ struct GameObjectConfig
 	bool drawWorldAABB = false;
 	ObjectCollisionType collisionType = ObjectCollisionType::NONE;
 	ColliderTag			colliderTag = ColliderTag::DEFAULT;
+	bool enableCollider = true;
 	ModelType modelType = ModelType::Static;
 	bool loadAsync = true;
 	AxisFlip flip = AxisFlip::None;
+	bool trackTriangles = false; // メッシュの頂点情報を追跡するかどうか
 };
 
 struct SkinnedGameObjectConfig
@@ -290,6 +293,20 @@ public:
 	{ 
 		instance.markedForDelete = true; 
 		CollisionManager::get_instance().UnregisterDynamicCollider(&instance.collider);
+
+		if (instance.pModel->GetTrackTriangles()
+			&&  (instance.collisionType == ObjectCollisionType::OBJECT_BOUNDING_BOX 
+				|| instance.collisionType == ObjectCollisionType::MESH_BOUNDING_BOX))
+		{
+			// メッシュの頂点情報を追跡している場合は、当たり判定システムから三角形情報を削除する
+			auto triangles = instance.pModel->GetTriangles();
+			for (UINT i = 0; i < triangles->getSize(); i++)
+			{
+				CollisionManager::get_instance().RemoveTriangleFromStaticOctree((*triangles)[i]); // 静的オクツリーから削除
+				CollisionManager::get_instance().RemoveTriangleFromVoxelGrid((*triangles)[i]); // ボクセルグリッドから削除
+			}
+		}
+
 	}
 	virtual bool IsMarkedForDelete() const override { return instance.markedForDelete; }
 	void SetPostInitCallback(PostInitCallback cb, void* userData) { instance.onPostInit = cb; instance.userData = userData;}
@@ -422,8 +439,12 @@ public:
 	inline void SetGrounded(bool grounded) 
 	{ 
 		instance.attributes.isGrounded = grounded; 
-		if (grounded) 
+		if (grounded)
+		{
 			instance.attributes.glideDuration = 0.0f; // 地面に着地したらグライドの持続時間をリセット
+			instance.attributes.fallSpeed = 0.0f; // 落下速度をリセット
+		}
+
 	}
 
 	inline void SetMoveBlock(bool blocked) { instance.attributes.isMoveBlocked = blocked; }
@@ -434,10 +455,18 @@ public:
 	inline int	GetHitTimer(void) { return instance.attributes.hitTimer; }
 	inline void SetHitTimer(float hitTimer) { instance.attributes.hitTimer = hitTimer; }
 	inline void EnableWeapon(bool enable) { instance.attributes.hasWeapon = enable; }
+	inline void SetRenderProgress(float progress) { instance.renderProgress.progress = progress; instance.renderProgress.isRandomFade = true; }
+	inline float GetRenderProgress() { return instance.renderProgress.progress; }
 	inline void EnableSeed(bool enable) { instance.attributes.hasSeed = enable; }
 	inline long GetID() { return m_id; }
 	//inline void SetRenderProgress(float progress) { instance.attributes.renderProgress.progress = progress; }
 	//inline void SetSwitchCharEffect(bool effectON) { instance.attributes.charSwitchEffect = effectOn; }
+
+	inline void AddCollisionCallback(CollisionCallback callback, void* context, CollisionCallbackID callbackID)
+	{
+		instance.collider.AddCollisionCallback(callback, context, callbackID);
+	}
+
 	virtual AnimStateMachine* GetStateMachine() { return nullptr; }
 
 	void SetBoundingboxSize(XMFLOAT3 size)
@@ -450,7 +479,7 @@ public:
 	}
 
 	Renderer& renderer = Renderer::get_instance();
-	Timer& timer = Timer::get_instance();
+	Timer& m_timer = Timer::get_instance();
 
 protected:
 	TModel instance;
@@ -464,6 +493,8 @@ template<typename T>
 struct InstantiateTaskContext
 {
 	GameObject<T>* owner;
+	GameObjectConfig* config;
+	SkinnedGameObjectConfig* skinnedConfig;
 };
 
 class ISkinnedMeshModelChar
@@ -475,11 +506,13 @@ public:
 	virtual bool CanWalk() const = 0;
 	virtual bool CanStopMoving() const = 0;
 	virtual bool CanStopRunning() const { return false; }
-	virtual bool CanAttack() const = 0;
+	virtual bool CanAttack() const { return false; }
 	virtual bool CanAttack2() const  { return false; }
+	virtual bool CanStopAttacking2() const { return false; }
 	virtual bool CanAttack3() const  { return false; }
-	virtual bool CanRun()	const = 0;
-	virtual bool CanHit()	const = 0;
+	virtual bool CanStopAttacking3() const { return false; }
+	virtual bool CanRun()	const { return false; }
+	virtual bool CanHit()	const { return false; }
 	virtual bool CanHit2()	const { return false; }
 	virtual bool CanJump()	const { return false; }
 	virtual bool CanSurprised() const { return false; }
@@ -497,6 +530,11 @@ public:
 	virtual bool CanClimb() const { return false; }
 	virtual bool CanGlide() const { return false; }
 	virtual bool CanStopGliding() const { return false; }
+	virtual bool CanFallDown() const { return false; }
+	virtual bool CanCastIce() const { return false; }
+	virtual bool CanDash() const { return false; }
+	virtual bool CanBackStep() const { return false; }
+	virtual bool CanLaser() const { return false; }
 	virtual void OnAttackAnimationEnd() {};
 	virtual void OnHitAnimationEnd() {};
 	virtual void OnDashAnimationEnd() {}
@@ -506,6 +544,8 @@ public:
 	virtual void OnPlantSeedAnimationEnd() {}
 	virtual void OnClimbAnimationEnd() {}
 	virtual void OnThrowAnimationEnd() {}
+	virtual void OnBossfightReady() {}
+	virtual void OnGetUpAnimationEnd() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
 	virtual void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) = 0;
@@ -581,7 +621,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		DeferredTaskOptions options{};
 		options.async = false; // postInit は同期で実行
 		options.debugName = "GameObject_InstantiateGameObject_PostInit"; // デバッグ用の名前
-		auto* ctx = new InstantiateTaskContext<T>{ this }; // コンテキストを作成して渡す
+		auto* ctx = new InstantiateTaskContext<T>{ this, &m_config }; // コンテキストを作成して渡す
 
 		if (instance.modelType == ModelType::Instanced)
 			PostInit();
@@ -657,7 +697,7 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 					const BOUNDING_BOX& boundingBox = ctx->owner->GetCollider().aabb;
 					Model* model = ctx->owner->instance.pModel;
 					// モデルの三角形をビルド
-					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB);
+					model->Deferred_BuildBoundingBoxTriangles(boundingBox, ctx->owner->instance.drawWorldAABB, ctx->config->trackTriangles);
 					// モデルのボクセルグリッドをビルド
 					model->Deferred_BuildBoundingBoxVoxelGrid(boundingBox);
 				},
@@ -673,14 +713,16 @@ void GameObject<T>::Instantiate(const GameObjectConfig& config)
 		}
 		else if (instance.collisionType == ObjectCollisionType::COLLIDER_BOUNDING_BOX)
 		{
-			instance.collider.tag = m_config.colliderTag;
-			instance.collider.owner = this;
 			if (m_skinnedConfig.colliderTag != ColliderTag::PLAYER_ATTACK &&
 				m_skinnedConfig.colliderTag != ColliderTag::ENEMY_ATTACK)
-				instance.collider.enable = true;
+				instance.collider.enable = config.enableCollider;
+
 			CollisionManager::get_instance().RegisterDynamicCollider(&instance.collider);
 			instance.collisionBuilt = true; // 当たり判定のビルドが完了
 		}
+
+		instance.collider.tag = m_config.colliderTag;
+		instance.collider.owner = this;
 
 		instance.modelBuildTaskRegistered = true;
 	}

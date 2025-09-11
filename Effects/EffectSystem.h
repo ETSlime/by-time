@@ -19,6 +19,7 @@
 #define MAX_BILLBOARD_FLIPBOOK_NUM      64      // 最大ビルボードフリップブック数
 #define MAX_WATER_FLUID_NUM             64      // 最大水面フルイドエフェクト数
 #define MAX_SOFTBODY_EFFECT_NUM         64      // 最大ソフトボディフェークト数
+#define MAX_OTHER_EFFECT_NUM            64      // その他のエフェクト数
 
 //*********************************************************
 // 構造体
@@ -26,6 +27,7 @@
 struct ParticleEffectParams
 {
     EffectType type = EffectType::None;
+	float duration = -1.0f; // エフェクトの持続時間（秒）
     XMFLOAT3 position = XMFLOAT3(0.0f, 0.0f, 0.0f);
     float scale = 1.0f;
     float lifeMin = 1.0f;
@@ -83,6 +85,7 @@ public:
 
     // エフェクト生成
     ParticleEffectRendererBase* SpawnParticleEffect(ParticleEffectParams& params);
+	void AddEffect(IEffectRenderer* effect);
 
     // 汎用特效削除
     void RemoveEffect(IEffectRenderer* effect);
@@ -96,6 +99,7 @@ private:
 	SimpleArray<IEffectRenderer*> m_billboardFlipbookEffects; // ビルボードフリップブックエフェクト
 	SimpleArray<IEffectRenderer*> m_waterFluidEffects; // 水面フルイドエフェクト
     SimpleArray<IEffectRenderer*> m_softBodyEffects;  // ソフトボディ
+    SimpleArray<IEffectRenderer*> m_otherEffects;
     SimpleArray<IEffectRenderer*> m_toRemove;     // 削除が必要なエフェクトを一時的に保管するリスト
 
     ID3D11Device* m_device = nullptr;

@@ -43,21 +43,23 @@ public:
 	void SetTrailFrames(int frames);
 	// 現在の武器から柄・刃先の3D位置を計算して取得
 	void GetSwordTrailPoints(XMVECTOR& hiltWorld, XMVECTOR& tipWorld);
+	// 履歴をクリアして、残像をリセットする
+	void ClearTrail(void);
 private:
 
 	bool LoadTrailTexture(char* path);
 
-	const GameObject<SkinnedMeshModelInstance>* weapon;
+	const GameObject<SkinnedMeshModelInstance>* m_weapon;
 
-	SwordTrailType trailType;
+	SwordTrailType m_trailType;
 
-	int maxTrailFrames;
+	int m_maxTrailFrames;
 
-	ID3D11Buffer* vertexBuffer;
-	ID3D11ShaderResourceView* swordTrailTexture;
-	SimpleArray<XMVECTOR> hiltTrail;
-	SimpleArray<XMVECTOR> tipTrail;
-	SimpleArray<VFXVertex> swordTrailVertices;
+	ID3D11Buffer* m_vertexBuffer;
+	ID3D11ShaderResourceView* m_swordTrailTexture;
+	SimpleArray<XMVECTOR> m_hiltTrail;
+	SimpleArray<XMVECTOR> m_tipTrail;
+	SimpleArray<VFXVertex> m_swordTrailVertices;
 
-	Renderer& renderer = Renderer::get_instance();
+	Renderer& m_renderer = Renderer::get_instance();
 };

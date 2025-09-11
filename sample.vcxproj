@@ -165,6 +165,7 @@
     <ClInclude Include="Core\Graphics\VertexStructs.h" />
     <ClInclude Include="Core\Light.h" />
     <ClInclude Include="Core\LightManager.h" />
+    <ClInclude Include="Core\SaveSystem.h" />
     <ClInclude Include="Core\Shader\ShaderInclude.h" />
     <ClInclude Include="Core\Shader\ShaderLoader.h" />
     <ClInclude Include="Core\Shader\ShaderManager.h" />
@@ -173,6 +174,7 @@
     <ClInclude Include="Core\TextureMgr.h" />
     <ClInclude Include="Core\TextureUploadQueue.h" />
     <ClInclude Include="Core\Timer.h" />
+    <ClInclude Include="Effects\DecalRenderer.h" />
     <ClInclude Include="Effects\EffectSystem.h" />
     <ClInclude Include="Effects\IEffectRenderer.h" />
     <ClInclude Include="Effects\MarchingCubes\MarchingCubesSurfaceMesh.h" />
@@ -182,10 +184,14 @@
     <ClInclude Include="Effects\MarchingCubes\OptimizedMarchingCubesMesher.h" />
     <ClInclude Include="Effects\ParticleEffectRendererBase.h" />
     <ClInclude Include="Effects\ParticleStructs.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ArcLengthPathFollower.h" />
+    <ClInclude Include="Effects\ProjectilePreview\ProjectileFollowerManager.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h" />
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h" />
+    <ClInclude Include="Effects\SpecialEffects\LakeSurfaceRenderer.h" />
+    <ClInclude Include="Effects\SpecialEffects\LaserRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\SmokeEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\SwordTrail.h" />
     <ClInclude Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.h" />
@@ -202,6 +208,8 @@
     <ClInclude Include="Model\ModelCacheLoader.h" />
     <ClInclude Include="Model\OBJLoader.h" />
     <ClInclude Include="Model\SkinnedMeshModel.h" />
+    <ClInclude Include="Scene\Character\Boss.h" />
+    <ClInclude Include="Scene\Character\Enemy_NPC.h" />
     <ClInclude Include="Scene\Character\GBMonster.h" />
     <ClInclude Include="Scene\Character\Hilichurl.h" />
     <ClInclude Include="Scene\Character\Lumine.h" />
@@ -218,10 +226,9 @@
     <ClInclude Include="Scene\Item\Item.h" />
     <ClInclude Include="Scene\Item\ItemManager.h" />
     <ClInclude Include="Scene\Player.h" />
-    <ClInclude Include="Scene\PlayerEnterExitBehavior.h" />
+    <ClInclude Include="Scene\EnterExitBehavior.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
-    <ClInclude Include="Scene\Weapon\Bullet.h" />
     <ClInclude Include="Scene\Weapon\Projectile.h" />
     <ClInclude Include="Scene\Weapon\ProjectileManager.h" />
     <ClInclude Include="UI\Base\ISpriteUI.h" />
@@ -237,6 +244,7 @@
     <ClInclude Include="UI\Base\UISpriteRenderer.h" />
     <ClInclude Include="UI\GameMenuModal.h" />
     <ClInclude Include="UI\PauseModal.h" />
+    <ClInclude Include="UI\SaveCompleteModal.h" />
     <ClInclude Include="UI\UIGameClear.h" />
     <ClInclude Include="UI\UIGameOver.h" />
     <ClInclude Include="UI\UILoadingScene.h" />
@@ -279,12 +287,14 @@
     <ClCompile Include="Core\Graphics\ShadowMapRenderer.cpp" />
     <ClCompile Include="Core\Light.cpp" />
     <ClCompile Include="Core\LightManager.cpp" />
+    <ClCompile Include="Core\SaveSystem.cpp" />
     <ClCompile Include="Core\Shader\ShaderLoader.cpp" />
     <ClCompile Include="Core\Shader\ShaderManager.cpp" />
     <ClCompile Include="Core\Shader\ShaderReloader.cpp" />
     <ClCompile Include="Core\Shader\ShaderResourceBinder.cpp" />
     <ClCompile Include="Core\TextureMgr.cpp" />
     <ClCompile Include="Core\TextureUploadQueue.cpp" />
+    <ClCompile Include="Effects\DecalRenderer.cpp" />
     <ClCompile Include="Effects\EffectSystem.cpp" />
     <ClCompile Include="Effects\MarchingCubes\MarchingCubesSurfaceMesh.cpp" />
     <ClCompile Include="Effects\MarchingCubes\MarchingCubesSurfaceMeshGPU.cpp" />
@@ -296,6 +306,8 @@
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp" />
+    <ClCompile Include="Effects\SpecialEffects\LakeSurfaceRenderer.cpp" />
+    <ClCompile Include="Effects\SpecialEffects\LaserRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\SmokeEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\SwordTrail.cpp" />
     <ClCompile Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.cpp" />
@@ -312,6 +324,8 @@
     <ClCompile Include="Model\ModelCacheLoader.cpp" />
     <ClCompile Include="Model\OBJLoader.cpp" />
     <ClCompile Include="Model\SkinnedMeshModel.cpp" />
+    <ClCompile Include="Scene\Character\Boss.cpp" />
+    <ClCompile Include="Scene\Character\Enemy_NPC.cpp" />
     <ClCompile Include="Scene\Character\GBMonster.cpp" />
     <ClCompile Include="Scene\Character\Hilichurl.cpp" />
     <ClCompile Include="Scene\Character\Lumine.cpp" />
@@ -327,10 +341,9 @@
     <ClCompile Include="Scene\Item\Item.cpp" />
     <ClCompile Include="Scene\Item\ItemManager.cpp" />
     <ClCompile Include="Scene\Player.cpp" />
-    <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp" />
+    <ClCompile Include="Scene\EnterExitBehavior.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
-    <ClCompile Include="Scene\Weapon\Bullet.cpp" />
     <ClCompile Include="Scene\Weapon\Projectile.cpp" />
     <ClCompile Include="Scene\Weapon\ProjectileManager.cpp" />
     <ClCompile Include="UI\Base\ScreenFader.cpp" />

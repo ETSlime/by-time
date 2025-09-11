@@ -5,8 +5,8 @@
 //
 //=============================================================================
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
-#include "Core/TextureMgr.h"
 #include "Effects/EffectSystem.h"
+#include "Core/TextureMgr.h"
 
 //*****************************************************************************
 // É}ÉNÉçíËã`

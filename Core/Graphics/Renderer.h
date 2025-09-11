@@ -48,7 +48,7 @@ enum CULL_MODE
 enum class DepthMode
 {
 	Enable,			// 深度テストON + 書き込みON（通常のモデル用）
-	Particle,		// 深度テストON + 書き込みOFF（パーティクル用）
+	Effect,		// 深度テストON + 書き込みOFF（パーティクル用）
 	Disable			// 深度テストOFF（UIなどに使用）
 };
 

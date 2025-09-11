@@ -7,6 +7,7 @@
 #include "Scene/Character/GBMonster.h"
 #include "Utility/InputManager.h"
 #include "Scene/Player.h"
+#include "Scene/Item/ItemManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -142,7 +143,7 @@ void GBMonster::Update(void)
 	if (state != STATE(EnemyState::ATTACK))
 		m_attackCollider.collider.enable = false;
 
-	float animSpeed = m_playAnimSpeed * timer.GetScaledDeltaTime();
+	float animSpeed = m_playAnimSpeed * m_timer.GetScaledDeltaTime();
 	switch (m_stateMachine->GetCurrentState())
 	{
 	case STATE(EnemyState::IDLE):

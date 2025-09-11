@@ -28,6 +28,7 @@ enum class EffectType
     WaterFluid,
     Particle_End,
 
+    LakeSurface,
     SoftBody,
 };
 

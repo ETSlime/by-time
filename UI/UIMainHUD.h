@@ -19,6 +19,8 @@ public:
     void Draw(void) override;
 
 private:
+    void DrawNumers(int number, float posX, float posY);
+
 	Player* m_player = nullptr;
     UISprite* m_hpBarBack = nullptr;
     UISprite* m_hpBarFill = nullptr;
@@ -27,6 +29,14 @@ private:
     UISprite* m_weaponIcon = nullptr;
     UISprite* m_gunIcon = nullptr;
     UISprite* m_seedIcon = nullptr;
+	UISprite* m_bulletIcon = nullptr;
+    UISprite* m_sunBulletIcon = nullptr;
+	UISprite* m_itemCount = nullptr;
+	UISprite* m_itemCountSign = nullptr;
+	UISprite* m_numInfinity = nullptr;
+
+	UISprite* m_bossHPGauge = nullptr;
+	UISprite* m_bossHPGaugeCover = nullptr;
 
     UISprite* m_crosshair = nullptr;
 

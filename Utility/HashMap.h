@@ -68,6 +68,31 @@ struct EqualUInt32
     }
 };
 
+struct Triangle; // 前方宣言
+// const Triangle* 専用ハッシュ関数
+struct TrianglePtrHash
+{
+    unsigned int operator()(const Triangle* ptr) const
+    {
+        if (ptr == nullptr)
+            return 0xFFFFFFFFu; // 特殊値
+
+        uintptr_t addr = reinterpret_cast<uintptr_t>(ptr);
+
+        // Knuth multiplicative hash
+        return static_cast<unsigned int>((addr >> 4) ^ (addr * 2654435761u));
+    }
+};
+
+// const Triangle* 専用等価比較関数
+struct TrianglePtrEquals
+{
+    bool operator()(const Triangle* a, const Triangle* b) const
+    {
+        return a == b; // ポインタアドレスが同じなら等しい
+    }
+};
+
 template<typename Key, typename Value, typename HashFunc, typename EqualsFunc>
 class HashMap
 {

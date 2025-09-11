@@ -10,10 +10,14 @@
 #include "Utility/InputManager.h"
 #include "Utility/Debug/Debugproc.h"
 #include "Scene/Enemy.h"
+#include "Scene/Character/GBMonster.h"
+#include "Scene/Character/Boss.h"
+#include "Scene/Weapon/Projectile.h"
 #include "Core/Camera.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Player.h"
 #include "AI/BehaviorTree.h"
+
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
@@ -42,33 +46,7 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	m_behaviorTree = nullptr;
 	m_player = nullptr;
 
-	instance.attributes.spd = 0.0f;
-
-	switch (m_enemyAttr.enemyType)
-	{
-	case EnemyType::Hilichurl:
-		m_enemyAttr.maxHP = HILI_MAX_HP;
-		m_enemyAttr.HP = HILI_MAX_HP;
-		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
-		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
-		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
-		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
-		m_behaviorTree = new BehaviorTree(this);
-		break;
-	case EnemyType::GBMonster:
-		m_enemyAttr.maxHP = HILI_MAX_HP;
-		m_enemyAttr.HP = HILI_MAX_HP;
-		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
-		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
-		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
-		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
-		m_behaviorTree = new BehaviorTree(this);
-		break;
-	default:
-		break;
-	}
+	Initialize();
 
 	m_enemyAttr.initTrans.pos = trans.pos;
 	m_enemyAttr.initTrans.rot = trans.rot;
@@ -76,6 +54,9 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 
 	m_HPGaugeTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_PATH);
 	m_HPGaugeCoverTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_COVER_PATH);
+
+	instance.collider.AddCollisionCallback(OnPlayerHitCallback, this, CollisionCallbackID::PlayerAttackHit);
+	instance.collider.AddCollisionCallback(OnItemHitCallback, this, CollisionCallbackID::Item);
 
 	instance.use = true;		// true:生きてる
 
@@ -132,22 +113,23 @@ void Enemy::Update(void)
 		m_HPGauge.pos = instance.transform.pos;
 		m_HPGauge.pos.y += height * m_enemyAttr.initTrans.scl.y;
 
-		m_enemyAttr.timer += timer.GetScaledDeltaTime();
+		m_enemyAttr.timer += m_timer.GetScaledDeltaTime();
 
-		if (instance.attributes.isGrounded == false)
+		if (instance.attributes.isGrounded == false && m_enemyAttr.disableGravity == false)
 		{
-			instance.transform.pos.y -= FALLING_SPEED * timer.GetScaledDeltaTime();
+			instance.transform.pos.y -= FALLING_SPEED * m_timer.GetScaledDeltaTime();
 		}
 
 		if (!CheckAvailableToMove())
 			return;
 
-		m_behaviorTree->RunBehaviorTree();
+		if (m_enemyAttr.turnOnBehaviorTree)
+			m_behaviorTree->RunBehaviorTree();
 
 		float deltaDir = instance.attributes.targetDir - instance.attributes.dir;
 		if (deltaDir > XM_PI) deltaDir -= XM_2PI;
 		if (deltaDir < -XM_PI) deltaDir += XM_2PI;
-		instance.attributes.dir += deltaDir * ROTATION_SPEED * timer.GetScaledDeltaTime();
+		instance.attributes.dir += deltaDir * ROTATION_SPEED * m_timer.GetScaledDeltaTime();
 		instance.transform.rot.y = instance.attributes.dir;
 
 		if (instance.attributes.isMoveBlocked)
@@ -175,24 +157,24 @@ void Enemy::Update(void)
 			float dx = XMVectorGetX(dxVec);
 			float dz = XMVectorGetX(dzVec);
 
-			instance.transform.pos.x += dx * timer.GetScaledDeltaTime();
-			instance.transform.pos.z += dz * timer.GetScaledDeltaTime();
+			instance.transform.pos.x += dx * m_timer.GetScaledDeltaTime();
+			instance.transform.pos.z += dz * m_timer.GetScaledDeltaTime();
 
 		}
 		else
 		{
-			instance.transform.pos.x += sinf(instance.transform.rot.y) * instance.attributes.spd * timer.GetScaledDeltaTime();
-			instance.transform.pos.z += cosf(instance.transform.rot.y) * instance.attributes.spd * timer.GetScaledDeltaTime();
+			instance.transform.pos.x += sinf(instance.transform.rot.y) * instance.attributes.spd * m_timer.GetScaledDeltaTime();
+			instance.transform.pos.z += cosf(instance.transform.rot.y) * instance.attributes.spd * m_timer.GetScaledDeltaTime();
 		}
 
 
-		instance.attributes.spd *= pow(SPD_DECAY_RATE, timer.GetScaledDeltaTime());
+		instance.attributes.spd *= pow(SPD_DECAY_RATE, m_timer.GetScaledDeltaTime());
 	}
 
 	// 攻撃中の処理
 	if (instance.attributes.isAttacking)
 	{
-		m_enemyAttr.attackTimer += timer.GetScaledDeltaTime();
+		m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
 
 		bool inHitWindow =
 			(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
@@ -219,9 +201,9 @@ void Enemy::Update(void)
 
 bool Enemy::UpdateAliveState(void)
 {
-	if (m_enemyAttr.isDead == true)
+	if (m_enemyAttr.isDead == true && m_enemyAttr.respawn)
 	{
-		m_enemyAttr.respawnTimer -= timer.GetScaledDeltaTime();
+		m_enemyAttr.respawnTimer -= m_timer.GetScaledDeltaTime();
 		if (m_enemyAttr.respawnTimer <= 0.0f)
 		{
 			m_enemyAttr.respawnTimer = 0.0f;
@@ -234,7 +216,7 @@ bool Enemy::UpdateAliveState(void)
 	if (instance.renderProgress.progress < 1.0f && !m_enemyAttr.startFadeOut)
 	{
 		instance.renderProgress.isRandomFade = true;
-		instance.renderProgress.progress += 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress += 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress > 1.0f)
 		{
 			instance.renderProgress.isRandomFade = false;
@@ -244,7 +226,7 @@ bool Enemy::UpdateAliveState(void)
 	else if (m_enemyAttr.startFadeOut == true)
 	{
 		instance.renderProgress.isRandomFade = true;
-		instance.renderProgress.progress -= 0.01f * timer.GetScaledDeltaTime();
+		instance.renderProgress.progress -= 0.01f * m_timer.GetScaledDeltaTime();
 		if (instance.renderProgress.progress <= 0.0f)
 		{
 			instance.renderProgress.isRandomFade = false;
@@ -252,6 +234,18 @@ bool Enemy::UpdateAliveState(void)
 			m_enemyAttr.isDead = true;
 			instance.collider.enable = false; // 当たり判定を無効化
 			instance.castShadow = false; // 影を落とさない
+			if (m_enemyAttr.enemyType == EnemyType::GBMonster)
+			{
+				Transform trans = instance.transform;
+				trans.pos.y += 10.0f;
+				ItemManager::get_instance().SpawnItem(ItemType::Bullet, trans, true);
+			}
+			else if (m_enemyAttr.enemyType == EnemyType::Boss)
+			{
+				Transform trans = instance.transform;
+				trans.pos.y += 10.0f;
+				ItemManager::get_instance().SpawnItem(ItemType::Key, trans, true);
+			}
 		}
 		return false;
 	}
@@ -276,6 +270,10 @@ void Enemy::Draw(void)
 
 void Enemy::DrawUI(EnemyUIType type)
 {
+	// ボスにはHPゲージを表示しない
+	if (m_enemyAttr.enemyType == EnemyType::Boss)
+		return;
+
 	switch (type)
 	{
 	case EnemyUIType::HPGauge:
@@ -289,6 +287,14 @@ void Enemy::DrawUI(EnemyUIType type)
 	default:
 		break;
 	}
+}
+
+void Enemy::ReduceHP(float amount)
+{
+	m_enemyAttr.HP -= amount; 
+	
+	if (m_enemyAttr.HP < 0.0f)
+		m_enemyAttr.HP = 0.0f;
 }
 
 void Enemy::DrawHPGauge(void)
@@ -365,6 +371,25 @@ void Enemy::DrawHPGaugeCover(void)
 	Renderer::get_instance().GetDeviceContext()->Draw(4, 0);
 }
 
+float Enemy::DistanceToPlayer(void) const
+{
+	// 距離^2 を再利用して sqrt を取る
+	return sqrtf(DistanceToPlayerSq());
+}
+
+float Enemy::DistanceToPlayerSq(void) const
+{
+	// 敵とプレイヤーの位置ベクトルをロード
+	XMVECTOR enemyPosVec = XMLoadFloat3(&instance.transform.pos);
+	XMVECTOR playerPosVec = XMLoadFloat3(&m_player->GetTransform().pos);
+
+	// 敵→プレイヤーのベクトル
+	XMVECTOR toPlayerVec = XMVectorSubtract(playerPosVec, enemyPosVec);
+
+	// 長さ^2 を計算
+	return XMVectorGetX(XMVector3LengthSq(toPlayerVec));
+}
+
 void Enemy::InitHPGauge(void)
 {
 	BOUNDING_BOX aabb = instance.pModel->GetBoundingBox();
@@ -397,19 +422,63 @@ void Enemy::Initialize(void)
 {
 	m_enemyAttr.Initialize();
 
-	instance.transform.pos = m_enemyAttr.initTrans.pos;
-	instance.transform.rot = m_enemyAttr.initTrans.rot;
-	instance.transform.scl = m_enemyAttr.initTrans.scl;
+	if (m_enemyAttr.initialMove)
+		SetRandomMove(true);
+	else
+		SetRandomMove(false);
+
+	instance.attributes.spd = 0.0f;
 
 	switch (m_enemyAttr.enemyType)
 	{
 	case EnemyType::Hilichurl:
 		m_enemyAttr.maxHP = HILI_MAX_HP;
 		m_enemyAttr.HP = HILI_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::GBMonster:
+		m_enemyAttr.maxHP = GBMONSTER_MAX_HP;
+		m_enemyAttr.HP = GBMONSTER_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::Boss:
+		m_enemyAttr.maxHP = BOSS_MAX_HP;
+		m_enemyAttr.HP = BOSS_MAX_HP;
+		m_enemyAttr.viewAngle = HILI_VIEW_ANGLE;
+		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
+		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
+		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
+
+		m_behaviorTree = new BehaviorTree(this);
+		break;
+	case EnemyType::NPC_Fish:
+		m_enemyAttr.maxHP = 1.0f;
+		m_enemyAttr.HP = 1.0f;
+		m_enemyAttr.viewAngle = 0.0f;
+		m_enemyAttr.viewDistance = 0.0f;
+		m_enemyAttr.chaseRange = 0.0f;
+		m_enemyAttr.attackRange = 0.0f;
+		m_enemyAttr.disableGravity = true;
+
+		m_behaviorTree = new BehaviorTree(this);
 		break;
 	default:
 		break;
 	}
+
+	instance.transform.pos = m_enemyAttr.initTrans.pos;
+	instance.transform.rot = m_enemyAttr.initTrans.rot;
+	instance.transform.scl = m_enemyAttr.initTrans.scl;
 
 	instance.renderProgress.isRandomFade = true;
 	instance.renderProgress.progress = 0.0f;
@@ -493,6 +562,84 @@ bool Enemy::CheckAvailableToMove(void)
 		return true;
 }
 
+void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
+{
+	Enemy* self = static_cast<Enemy*>(context);
+
+
+	if (event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE || event.colliderB->tag == ColliderTag::PLAYER_PROJECTILE)
+	{
+		const Collider* projectileCol = event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE ? event.colliderA : event.colliderB;
+		auto projectileColOwner = static_cast<Projectile*>(projectileCol->owner);
+
+		projectileColOwner->SetActive(FALSE);
+
+		if (projectileColOwner->GetProjectileAttributes().projectileType == ProjectileType::SunBullet)
+		{
+			projectileColOwner->PlayEffect(HitColliderType::Enemy, XMFLOAT3());
+		}
+
+		// 無敵状態ならダメージを受けない
+		if (self->m_enemyAttr.isInvincible)
+			return;
+
+		self->ReduceHP(10.0f);
+	}
+	else if (self->GetAttributesConst().hitTimer <= 0)
+	{
+		// 無敵状態ならダメージを受けない
+		if (self->m_enemyAttr.isInvincible)
+			return;
+
+		self->SetHitTimer(ENEMY_HIT_WINDOW);
+		if (!self->GetIsHit())
+		{
+			self->ReduceHP(10.0f);
+			self->SetIsHit(true);
+			self->SetIsHit2(false);
+		}
+		else if (!self->GetIsHit2())
+		{
+			self->ReduceHP(10.0f);
+			self->SetIsHit2(true);
+			self->SetIsHit(false);
+		}
+	}
+
+	self->SetChasePlayer(true);
+}
+
+void Enemy::OnItemHitCallback(const CollisionEvent& event, void* context)
+{
+	Enemy* self = static_cast<Enemy*>(context);
+
+	// 無敵状態ならダメージを受けない
+	if (self->m_enemyAttr.isInvincible)
+		return;
+
+	if (!self->GetIsHit())
+	{
+		self->ReduceHP(200.0f);
+		self->SetIsHit(true);
+		self->SetIsHit2(false);
+	}
+	else if (!self->GetIsHit2())
+	{
+		self->ReduceHP(200.0f);
+		self->SetIsHit2(true);
+		self->SetIsHit(false);
+	}
+
+	self->SetChasePlayer(true);
+
+	Boss* boss = dynamic_cast<Boss*>(self);
+	if (boss && boss->GetStateMachine()->GetCurrentState() == STATE(EnemyState::BOSS_FIGHT_CAST_ICE))
+	{
+		boss->SetInterruptedIceCast(true);
+	}
+
+}
+
 void Enemy::InitializeBoneHitCollider(EnemyBoneHitCollider& hitCollider, const XMFLOAT3& scale, const XMFLOAT3& pos, ColliderTag tag)
 {
 	hitCollider.collider.tag = tag;
@@ -573,6 +720,32 @@ void Enemy::ChasePlayer(void)
 {
 	if (m_player == nullptr) return;
 
+	Transform playerTransform = m_player->GetTransform();
+
+	// 敵からプレイヤーへの方向ベクトル
+	XMVECTOR enemyPosVec = XMLoadFloat3(&instance.transform.pos);
+	XMVECTOR playerPosVec = XMLoadFloat3(&playerTransform.pos);
+
+	// プレイヤーまでの距離
+	XMVECTOR diff = XMVectorSubtract(playerPosVec, enemyPosVec);
+	float distSq = XMVectorGetX(XMVector3LengthSq(diff));
+	m_enemyAttr.distPlayerSq = distSq;
+
+	// 目標方向を計算
+	float dx = instance.transform.pos.x - playerTransform.pos.x;
+	float dz = instance.transform.pos.z - playerTransform.pos.z;
+
+	instance.attributes.targetDir = -atan2(dz, dx) - XM_PI * 0.5f;
+
+	// プレイヤー方向に移動
+	instance.attributes.isMoving = true;
+	instance.attributes.spd = VALUE_MOVE;
+}
+
+void Enemy::ChaseAndAttackPlayer(void)
+{
+	if (m_player == nullptr) return;
+
 	if (m_enemyAttr.isChasingPlayer == false) return;
 
 	Transform playerTransform = m_player->GetTransform();
@@ -640,7 +813,7 @@ void Enemy::Patrol(void)
 	else
 	{
 		// 移動処理
-		m_enemyAttr.moveTimer += timer.GetScaledDeltaTime();
+		m_enemyAttr.moveTimer += m_timer.GetScaledDeltaTime();
 
 		// 目標時間に達した場合、待機モードに入る
 		if (m_enemyAttr.moveTimer >= m_enemyAttr.moveDuration)

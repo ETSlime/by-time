@@ -28,28 +28,7 @@ struct PlayerAction
 	float		liveTime;
 };
 
-struct PlayerAttributes
-{
-	UINT			actionQueueClearTime;
-	PlayerAction	actionQueue[ACTION_QUEUE_SIZE];
-	UINT			actionQueueStart;
-	UINT			actionQueueEnd;
-
-	int				seedCount;
-	int				keyCount;
-
-	bool			isMeleeMode;
-	bool			allowControl;
-	bool			aimMode = false;	// エイムモード
-	bool			throwMode = false;
-	bool			confirmThrow = false;
-	bool			climbMode = false; // クライムモード
-	bool			climbUp = false; // クライムモードで上に移動中かどうか
-	bool 			climbDown = false; // クライムモードで下に移動中かどうか
-	bool			enableClimbUp = false; // クライムモードで上に移動できるかどうか
-	bool			enableClimbDown = false; // クライムモードで下に移動できるかどうか
-	
-};
+struct PlayerAttributes;
 
 class Lumine : public GameObject<SkinnedMeshModelInstance>, public ISkinnedMeshModelChar
 {
@@ -76,6 +55,8 @@ public:
 	AnimStateMachine* GetStateMachine(void) override;
 
 	void PlayGeneralAnim(AnimClipName clipName, float speed = 1.0f);
+
+	PlayerState GetCurrentState(void) const { return static_cast<PlayerState>(m_stateMachine->GetCurrentState()); }
 
 	virtual bool ExecuteAction(ActionEnum action) override;
 
@@ -125,6 +106,7 @@ public:
 	void ForwardEnemyAttackHit(const CollisionEvent& event);
 
 private:
+	// コリジョンイベントコールバック関数
 	static void OnItemPickupCallback(const CollisionEvent& event, void* context);
 	static void OnHitCallback(const CollisionEvent& event, void* context);
 
@@ -150,12 +132,7 @@ private:
 
 	AnimStateMachine* m_stateMachine;
 	float m_playAnimSpeed;
-	float weaponOnBackTimer;
-	float weaponOnHandTimer;
 	float m_gunPosX, m_gunPosY, m_gunPosZ, m_gunRotX, m_gunRotY, m_gunRotZ;
-	bool weaponOnBack;
-	bool storeWeaponOnBack;
-	bool storeWeapon;
 
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 	InputManager& m_inputManager = InputManager::get_instance();

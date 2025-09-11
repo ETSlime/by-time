@@ -9,17 +9,22 @@
 #include "Core/Camera.h"
 #include "Core/CursorManager.h"
 #include "Core/Graphics/Renderer.h"
+#include "Core/GameSystem.h"
+#include "Core/SaveSystem.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
-#include "Scene/PlayerEnterExitBehavior.h"
+#include "Scene/EnterExitBehavior.h"
 #include "Core/GameSystem.h"
+
 
 //*****************************************************************************
 // マクロ定義
 //*****************************************************************************
 #define ROTATION_SPEED				(0.18f)
-#define FALLING_SPEED				(12.50f)
+#define MAX_FALL_SPEED 				(25.0f)
+#define GRAVITY						(300.0f)
 #define SPD_DECAY_RATE				(0.93f)
+#define THROW_SPEED					(45.0f)
 
 //=============================================================================
 // 初期化処理
@@ -48,17 +53,20 @@ Player::Player()
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
+	transform.scl = XMFLOAT3(1.2f, 1.2f, 1.2f);
+	m_playerAttr.initPos = PLAYER_INIT_POS;
 	lumine->SetTransform(transform);
 	lumine->SetPlayerAttributes(&m_playerAttr);
 	m_playerGO = lumine;
 	m_playerGO->SetDrawWorldAABB(m_drawBoundingBox);
+	m_playerGO->SetPosition(m_playerAttr.initPos);
 
 	m_light = new DirectionalLight();
 	m_light->SetEnable(true);
 	m_light->BindToTransform(m_playerGO->GetTransformP());
 	m_lightMgr.AddLight(m_light);
 
-	m_previewRenderer = new ProjectilePreviewRenderer();
+	m_previewRenderer.Initialize();
 	m_predictor.SetCollisionVoxelGrid(CollisionManager::get_instance().GetVoxelGrid()); // 地形ボクセルをセット
 
 }
@@ -72,7 +80,7 @@ void Player::Update(void)
 {
 	// 無敵時間のカウントダウン
 	if (m_invincibleTimer > 0.0f) {
-		m_invincibleTimer -= m_playerGO->timer.GetScaledDeltaTime();
+		m_invincibleTimer -= m_playerGO->m_timer.GetScaledDeltaTime();
 	}
 
 	if (!m_playerGO->GetInstance()->load)
@@ -85,14 +93,18 @@ void Player::Update(void)
 	{
 		m_currentModelLoadCnt++;
 	}
-
 	
 	m_attributes = m_playerGO->GetAttributes();
 	m_transform = m_playerGO->GetTransform();
 
-	if (m_inputManager.GetKeyboardTrigger(KEY_SWITCH_WEAPON))
+	if (m_inputManager.GetKeyboardTrigger(KEY_SWITCH_WEAPON) 
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_1)
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_2)
+		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_3))
 	{
 		m_playerAttr.isMeleeMode = !m_playerAttr.isMeleeMode;
+		if (!m_playerAttr.isMeleeMode && !m_playerAttr.finishStoreWeapon && !m_playerAttr.weaponOnBack)
+			m_playerAttr.storeWeaponOnBack = true;
 	}
 
 	if (m_playerAttr.climbMode)
@@ -106,24 +118,7 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
-	////テストでHPを自動で減少させてみた
-	//	if (m_autoHPDrain)
-	//	{
-	//		float deltaTime = 1.0f / 60.0f;
-	//			m_hpDrainTimer += deltaTime;
-	//
-	//		if (m_hpDrainTimer >= 1.0f)
-	//		{
-	//			TakeDamage(1);
-	//			m_hpDrainTimer = 0.0f;
-	//		}
-	//	}
-
-	////テストでHPを全回復させてみた
-	//	if (m_inputManager.GetKeyboardPress(DIK_L))
-	//	{
-	//		m_currentHP = 100.0f;
-	//	}
+	m_projectileFollowerManager.UpdateAll();
 
 
 #ifdef _DEBUG
@@ -141,6 +136,11 @@ void Player::Draw(void)
 void Player::DrawEffect(void)
 {
 	m_playerGO->DrawEffect();
+
+	if (m_playerAttr.throwMode)
+	{
+		m_previewRenderer.Draw();
+	}
 }
 
 void Player::HandlePlayerMove(Transform& transform)
@@ -148,7 +148,7 @@ void Player::HandlePlayerMove(Transform& transform)
 	float deltaDir = m_attributes->targetDir - m_attributes->dir;
 	if (deltaDir > XM_PI) deltaDir -= XM_2PI;
 	if (deltaDir < -XM_PI) deltaDir += XM_2PI;
-	m_attributes->dir += deltaDir * ROTATION_SPEED * m_playerGO->timer.GetScaledDeltaTime();
+	m_attributes->dir += deltaDir * ROTATION_SPEED * m_playerGO->m_timer.GetScaledDeltaTime();
 
 	transform.rot.y = m_attributes->dir;
 
@@ -209,8 +209,8 @@ void Player::HandlePlayerMove(Transform& transform)
 #ifdef _DEBUG
 	if (m_inputManager.GetKeyboardPress(DIK_TAB))
 	{
-		transform.pos.x += sinf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->timer.GetScaledDeltaTime();
-		transform.pos.z += cosf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->timer.GetScaledDeltaTime();
+		transform.pos.x += sinf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->m_timer.GetScaledDeltaTime();
+		transform.pos.z += cosf(transform.rot.y) * m_attributes->spd * 5 * m_playerGO->m_timer.GetScaledDeltaTime();
 	}
 #endif // DEBUG
 
@@ -222,7 +222,7 @@ void Player::AlignPlayerYawToCamera(void)
 	float targetYaw = m_camera.GetRotation().y;
 	// 補間速度（値を上げると追従が速い）
 	float lerpSpeed = 10.0f;
-	float t = min(1.0f, m_playerGO->timer.GetDeltaTime() * lerpSpeed);
+	float t = min(1.0f, m_playerGO->m_timer.GetDeltaTime() * lerpSpeed);
 
 	// 線形補間で滑らかに回転を追従
 	m_attributes->dir = SmoothAngleLerp(m_attributes->dir, targetYaw, t);
@@ -240,7 +240,7 @@ void Player::InitializePlayerStatus(void)
 {
 	if (lumine)
 	{
-		Transform transform;
+		Transform transform = lumine->GetTransform();
 		transform.pos = PLAYER_INIT_POS;
 		lumine->SetTransform(transform);
 		lumine->InitializeStatus();
@@ -253,19 +253,18 @@ void Player::InitializePlayerStatus(void)
 	Update();
 }
 
-void Player::PickItem(Item* obj)
+void Player::LoadSaveData(const SaveData& saveData)
 {
-	// TODO ちゃんと色々なアイテムが手に入れるように、直す
-	// 現在、下のコードがダメだ　動かない　直せ
-	if(obj->GetItemAttributes().itemType == ItemType::Weapon)
-		m_hasWeapon = true;
-
-	obj->Use();
-
+	SetPosition(saveData.pos);
+	m_playerAttr.seedCount = saveData.seedCount;
+	m_playerAttr.bulletCount = saveData.bulletCount;
+	m_playerAttr.hasBullet = saveData.hasBullet;
 }
 
 void Player::SetClimbMode(PlayerState climbState)
 {
+	m_playerAttr.drawGun = false;
+
 	if (climbState == PlayerState::START_CLIMBING_UP ||
 		climbState == PlayerState::START_CLIMBING_DOWN)
 	{
@@ -326,6 +325,8 @@ void Player::SetClimbMode(PlayerState climbState)
 
 void Player::PlaceItem(ItemType type)
 {
+	m_playerAttr.drawGun = false;
+
 	Item* item = m_itemManager.GetItem(type);
 	if (item == nullptr || item->GetUsed())
 		return;
@@ -381,6 +382,63 @@ void Player::UpdateNormalMode(void)
 
 		// 入力の処理
 		HandleInput();
+
+		if (m_playerAttr.throwMode)
+		{
+			Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+			if (item)
+			{
+				XMMATRIX M_hand_world = m_playerGO->GetSkinnedMeshModel()->GetBodyTransformMtx(BodyTransformIndex::RightHand);
+				XMMATRIX M_local_pos = XMMatrixTranslation(-38.6f, 84.6f, 1.8f);
+				XMMATRIX M_local_rot = XMMatrixRotationRollPitchYaw(m_transform.rot.x, m_transform.rot.y, m_transform.rot.z);
+				XMMATRIX M_local = M_local_rot * M_local_pos;
+
+				XMMATRIX M_item_world = XMMatrixMultiply(M_local, M_hand_world);
+				M_item_world = XMMatrixMultiply(M_item_world, m_playerGO->GetInstance()->transform.mtxWorld);
+
+				XMVECTOR S, R, T;
+				XMMatrixDecompose(&S, &R, &T, M_item_world);
+
+				XMFLOAT3 startPos;
+				XMStoreFloat3(&startPos, T);
+
+				XMFLOAT3 rotEuler;
+				{
+					XMFLOAT4 q;
+					XMStoreFloat4(&q, R);
+
+					XMVECTOR quat = XMLoadFloat4(&q);
+					XMFLOAT3 angles;
+					XMStoreFloat3(&angles, XMQuaternionRotationMatrix(XMMatrixRotationQuaternion(quat)));
+
+					XMFLOAT4X4 rotMtx;
+					XMStoreFloat4x4(&rotMtx, XMMatrixRotationQuaternion(quat));
+
+					rotEuler.y = atan2f(rotMtx._13, rotMtx._33);                        // Yaw
+					rotEuler.x = asinf(-rotMtx._23);                                    // Pitch
+					rotEuler.z = atan2f(rotMtx._21, rotMtx._22);                        // Roll
+				}
+
+				item->SetPosition(startPos);
+				XMFLOAT3 itemScale = XMFLOAT3(SEED_SIZE * 0.5f, SEED_SIZE * 0.5f, SEED_SIZE * 0.5f);
+				item->SetScale(itemScale);
+				item->SetRotation(XMFLOAT3(m_transform.rot.x - 2.0f, m_transform.rot.y + 0.2f, m_transform.rot.z + 0.3f));
+				item->GetAttributes()->use = true;
+
+				XMFLOAT3 hitPos{}, hitNormal{};
+				m_predictor.ComputeTrajectory(
+					startPos,
+					m_camera.GetThrowModeDirection(),
+					THROW_SPEED,
+					75.0f,		// 最大予測時間
+					0.15f,		// サンプリング間隔
+					&hitPos,	// ヒット位置
+					&hitNormal	// ヒット法線
+				);
+
+				m_previewRenderer.Update(m_predictor.GetTrajectoryPoints(), hitPos, hitNormal);
+			}
+		}
 	}
 
 	// プレイヤーの状態を更新
@@ -484,7 +542,7 @@ void Player::UpdateActionQueue(void)
 	m_playerAttr.actionQueueClearTime++;
 	for (UINT i = m_playerAttr.actionQueueStart; i < m_playerAttr.actionQueueEnd; i++)
 	{
-		m_playerAttr.actionQueue[i].liveTime += m_playerGO->timer.GetScaledDeltaTime();
+		m_playerAttr.actionQueue[i].liveTime += m_playerGO->m_timer.GetScaledDeltaTime();
 		if (m_playerAttr.actionQueue[i].liveTime >= ACTION_QUEUE_CLEAR_WAIT)
 		{
 			m_playerAttr.actionQueueStart++;
@@ -508,19 +566,34 @@ void Player::UpdateActionQueue(void)
 
 void Player::UpdatePlayerStatus(void)
 {
+	if (m_playerAttr.cancelThrowFlag)
+	{
+		CancelThrow();
+		m_playerAttr.cancelThrowFlag = false;
+	}
+
 	// 地面にいるかどうか
 	if (!m_attributes->isGrounded)
 	{
 		// 滑空時間を更新
-		m_attributes->glideDuration += m_playerGO->timer.GetDeltaTime();
+		m_attributes->glideDuration += m_playerGO->m_timer.GetDeltaTime();
+
 		// 落下処理
-		m_transform.pos.y -= FALLING_SPEED;
+		m_attributes->fallSpeed += GRAVITY * m_playerGO->m_timer.GetDeltaTime();
+		// 最大落下速度を制限
+		if (m_attributes->fallSpeed < MAX_FALL_SPEED)
+		{
+			m_attributes->fallSpeed = MAX_FALL_SPEED;
+		}
+
+		// 位置を更新
+		m_transform.pos.y -= m_attributes->fallSpeed * m_playerGO->m_timer.GetDeltaTime();
 	}
 
 	// ヒット中かどうか
 	if (m_attributes->isHit1 || m_attributes->hitTimer > 0)
 	{
-		m_attributes->hitTimer -= m_playerGO->timer.GetScaledDeltaTime();
+		m_attributes->hitTimer -= m_playerGO->m_timer.GetScaledDeltaTime();
 		if (m_attributes->hitTimer < 0)
 		{
 			m_attributes->isHit1 = false;
@@ -529,11 +602,14 @@ void Player::UpdatePlayerStatus(void)
 
 	if (m_attributes->lastFireTimeCountDown > 0)
 	{
-		m_attributes->lastFireTimeCountDown -= m_playerGO->timer.GetDeltaTime();
+		m_attributes->lastFireTimeCountDown -= m_playerGO->m_timer.GetDeltaTime();
 	}
 
 	if (m_playerAttr.throwMode)
 		AlignPlayerYawToCamera();
+
+	if (m_playerAttr.fireCooldownSec > 0.0f)
+		m_playerAttr.fireCooldownSec -= m_playerGO->m_timer.GetDeltaTime();
 }
 
 void Player::UpdatePlayerMove(void)
@@ -590,9 +666,10 @@ void Player::UpdatePlayerMove(void)
 		}
 	}
 
-	if (m_inputManager.GetKeyboardTrigger(DIK_SPACE))
+	if (m_inputManager.GetKeyboardTrigger(DIK_SPACE) && !m_attributes->isJumping && m_attributes->isGrounded)
 	{
 		m_attributes->isJumping = true;
+		m_playerAttr.groundY = m_transform.pos.y;
 	}
 }
 
@@ -601,22 +678,6 @@ void Player::UpdatePlayerAttack(void)
 	// 発射
 	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
 	{
-
-		if (m_attributes->hasWeapon) {
-
-			Transform trans;
-			trans.pos = m_playerGO->GetTransform().pos;
-			trans.pos.y += 70;
-			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-			trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
-
-			XMFLOAT3 bulletDir;
-			bulletDir.x = sinf(m_transform.rot.y) * 5;
-			bulletDir.z = cosf(m_transform.rot.y) * 5;
-			bulletDir.y = 0;
-
-			ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, bulletDir, 5);
-		}
 
 		if (m_playerAttr.throwMode)
 			ConfirmThrow();
@@ -631,25 +692,25 @@ void Player::UpdatePlayerAttack(void)
 
 
 	// 攻撃
-	//if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
-	//{
-	//	if (m_attributes->hasWeapon)
-	//	{
+	if (m_inputManager.IsMouseLeftTriggered() && !CursorManager::get_instance().IsMouseFreeMode())
+	{
+		if (m_playerAttr.isMeleeMode)
+		{
+			PlayerAction action;
+			action.actionType = ActionEnum::ATTACK;
+			action.liveTime = 0;
+			m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
+			m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+			m_playerAttr.finishStoreWeapon = false;
 
-	//		PlayerAction action;
-	//		action.actionType = ActionEnum::ATTACK;
-	//		action.liveTime = 0;
-	//		m_playerAttr.actionQueue[m_playerAttr.actionQueueEnd] = action;
-	//		m_playerAttr.actionQueueEnd = (m_playerAttr.actionQueueEnd + 1) % ACTION_QUEUE_SIZE;
+			// キューのオーバーフローを防止
+			if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
+			{
+				m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
+			}
 
-	//		// キューのオーバーフローを防止
-	//		if (m_playerAttr.actionQueueEnd == m_playerAttr.actionQueueStart)
-	//		{
-	//			m_playerAttr.actionQueueStart = (m_playerAttr.actionQueueStart + 1) % ACTION_QUEUE_SIZE; // 最も古いアクションを破棄
-	//		}
-
-	//	}
-	//}
+		}
+	}
 }
 
 void Player::UpdateSwitchCharacter(void)
@@ -688,11 +749,12 @@ void Player::HandleInput(void)
 		&& !m_inputManager.GetKeyboardPress(DIK_D))
 		m_attributes->isMoving = false;
 
-	if (m_inputManager.IsMouseRightPressed())
+	if (m_inputManager.IsMouseRightPressed() && !m_playerAttr.isMeleeMode)
 	{
-		if (!m_playerAttr.throwMode)
+		if (!m_playerAttr.throwMode && !m_playerAttr.climbMode && m_playerAttr.currentState != PlayerState::GLIDE)
 		{
 			m_playerAttr.aimMode = true;
+			m_playerAttr.drawGun = true;
 			m_camera.SetAimMode(CameraMode::Aiming, true);
 
 			AlignPlayerYawToCamera();
@@ -706,9 +768,10 @@ void Player::HandleInput(void)
 
 	if (m_inputManager.GetKeyboardRelease(KEY_ENTER_THROW_MODE) && !m_playerAttr.throwMode)
 	{
-		if (!m_playerAttr.aimMode)
+		if (!m_playerAttr.aimMode && m_itemManager.GetPickedItem(ItemType::Seed))
 		{
 			m_playerAttr.throwMode = true;
+			m_playerAttr.drawGun = false;
 			m_camera.SetAimMode(CameraMode::ProjectileAiming, true);
 		}
 	}
@@ -729,6 +792,11 @@ void Player::HandleInput(void)
 	{
 		m_attributes->isRunning = false;
 	}
+
+	if (m_inputManager.GetKeyboardRelease(KEY_SWITCH_BULLET))
+	{
+		m_playerAttr.currentProjectile = m_playerAttr.currentProjectile == ProjectileType::Bullet ? ProjectileType::SunBullet : ProjectileType::Bullet;
+	}
 }
 
 void Player::LinkInteractable(Interactable* interactable)
@@ -741,7 +809,17 @@ void Player::ConfirmThrow(void)
 	m_playerAttr.throwMode = false;
 	m_playerAttr.confirmThrow = true;
 	m_playerAttr.allowControl = false;
+	m_playerAttr.seedCount--;
 	m_camera.SetAimMode(CameraMode::ProjectileAiming, false);
+
+	Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+	if (item)
+	{
+		item->SetColliderEnable(true);
+		item->Use();
+		item->SetIsThrew(true);
+		m_projectileFollowerManager.Spawn(m_predictor.GetTrajectoryPoints(), THROW_SPEED, item);
+	}
 }
 
 void Player::CancelThrow(void)
@@ -749,6 +827,12 @@ void Player::CancelThrow(void)
 	m_playerAttr.throwMode = false;
 	m_playerAttr.confirmThrow = false;
 	m_camera.SetAimMode(CameraMode::ProjectileAiming, false);
+
+	Item* item = m_itemManager.GetPickedItem(ItemType::Seed);
+	if (item)
+	{
+		item->GetAttributes()->use = false;
+	}
 }
 
 void Player::RenderImGui(void)

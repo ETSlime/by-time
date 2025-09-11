@@ -5,6 +5,7 @@
 //
 //=============================================================================
 #include "Core/GameSystem.h"
+#include "Core/SaveSystem.h"
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
@@ -214,7 +215,7 @@ void GameSystem::PauseGame(void)
     // カーソル位置を復元し、その後UI専用状態に切り替える
     m_cursorManager.RestoreCursorAndEnterUIExclusive(); 
     m_UIManager.PushModal<PauseModal>(); // ポーズモーダルを表示
-    m_UIManager.PushModal<GameMenuModal>(this); // ゲームメニューを表示
+    m_UIManager.PushModal<GameMenuModal>(this, m_ground.GetCurrentSceneID()); // ゲームメニューを表示
     m_pauseFlag = false; // フラグをクリア
 }
 
@@ -224,6 +225,19 @@ void GameSystem::ResumeGame(void)
     m_cursorManager.EnterUIHidden(); // UI非表示モードに入る
     m_cursorManager.RememberCursorPosition(); // カーソル位置を保存
     m_inputManager.SetMouseRecentered(true); // カメラ用：次のフレームでマウス位置リセットを要求
+}
+
+bool GameSystem::AllowSaveAndSwitch(void) const
+{
+	Boss* boss = m_enemyManager.GetBoss();
+	if (boss && boss->GetBossFightStarted())
+		return false; // ボス戦中はセーブとシーン切り替えを禁止
+
+    bool allow = true;
+
+	allow &= !m_player->GetPlayerAttributes().climbMode; // 登攀中はセーブとシーン切り替えを禁止
+
+    return allow;
 }
 
 
@@ -245,16 +259,40 @@ void GameSystem::StartAsyncResourceLoading(void)
 
         m_projectileManager.Init();
 
+		m_decalRenderer.Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext());
+
         m_currLoadCtx.startInitialLoad = false;
     }
     else
     {
-        m_ground.LoadScene(SceneID::SCENE_1);
         m_player->InitializePlayerStatus();
         m_enemyManager.InitializeEnemyStatus();
         CollisionManager::get_instance().PrepareVoxelMappingAfterSceneChange(); // ボクセルマッピングの準備
         m_itemManager.InitializeItemStatus();
         m_projectileManager.InitializeObjectsStatus();
+
+		if (m_loadGame)
+		{
+			SaveData saveData;
+            // セーブデータから読み込み
+            if (SaveSystem::get_instance().LoadGame(saveData))
+            {
+                m_ground.LoadScene(saveData.currentSceneID);
+				m_player->LoadSaveData(saveData);
+				m_itemManager.LoadSaveData(saveData);
+            }
+            else
+            {
+                m_ground.LoadScene(SceneID::Spring_Day);
+            }
+
+			m_loadGame = false;
+		}
+        else
+        {
+            m_ground.LoadScene(SceneID::Spring_Day);
+        }
+
     }
 
     if (!m_currLoadCtx.finishInitialLoad)
@@ -272,82 +310,82 @@ void GameSystem::HandleInput(void)
 {
     HandlePauseInput();
 
-    if (m_mode == GameMode::GAME)
-    {
-        auto& fader = UIManager::get_instance().GetFader();
+    //if (m_mode == GameMode::GAME)
+    //{
+    //    auto& fader = UIManager::get_instance().GetFader();
 
-        if (InputManager::get_instance().GetKeyboardTrigger(DIK_RETURN))
-        {
-            if (!fader.IsFading())
-            {
-                struct ReturnToTitleContext
-                {
-                    GameSystem* gameSystem;
-                };
+    //    if (InputManager::get_instance().GetKeyboardTrigger(DIK_RETURN))
+    //    {
+    //        if (!fader.IsFading())
+    //        {
+    //            struct ReturnToTitleContext
+    //            {
+    //                GameSystem* gameSystem;
+    //            };
 
-                fader.StartFadeOut(); // 画面を黒くフェードイン
+    //            fader.StartFadeOut(); // 画面を黒くフェードイン
 
-                DeferredTaskOptions options{};
-                options.async = false; // 同期で実行
-                options.debugName = "Switch_Scene"; // デバッグ用の名前
-                auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
+    //            DeferredTaskOptions options{};
+    //            options.async = false; // 同期で実行
+    //            options.debugName = "Switch_Scene"; // デバッグ用の名前
+    //            auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
 
-                RawDeferredTask::Add(
-                    ctx, // コンテキストを渡す
-                    [](void* ptr)
-                    {
-                        GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        if (self->m_ground.GetCurrentScene() == SceneID::SCENE_1)
-                            self->m_ground.LoadScene(SceneID::SCENE_2);
-                        else
-                            self->m_ground.LoadScene(SceneID::SCENE_1);
-                        UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
-                    },
-                    [](void* ptr)
-                    {
-                        return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
-                    },
-                    options
-                );
-            }
-        }
+    //            RawDeferredTask::Add(
+    //                ctx, // コンテキストを渡す
+    //                [](void* ptr)
+    //                {
+    //                    GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
+    //                    if (self->m_ground.GetCurrentScene() == SceneID::SCENE_1)
+    //                        self->m_ground.LoadScene(SceneID::SCENE_2);
+    //                    else
+    //                        self->m_ground.LoadScene(SceneID::SCENE_1);
+    //                    UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+    //                },
+    //                [](void* ptr)
+    //                {
+    //                    return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+    //                },
+    //                options
+    //            );
+    //        }
+    //    }
 
-        if (InputManager::get_instance().GetKeyboardTrigger(DIK_BACK))
-        {
-            if (!fader.IsFading())
-            {
-                struct ReturnToTitleContext
-                {
-                    GameSystem* gameSystem;
-                };
+    //    if (InputManager::get_instance().GetKeyboardTrigger(DIK_BACK))
+    //    {
+    //        if (!fader.IsFading())
+    //        {
+    //            struct ReturnToTitleContext
+    //            {
+    //                GameSystem* gameSystem;
+    //            };
 
-                fader.StartFadeOut(); // 画面を黒くフェードイン
+    //            fader.StartFadeOut(); // 画面を黒くフェードイン
 
-                DeferredTaskOptions options{};
-                options.async = false; // 同期で実行
-                options.debugName = "Return_To_Title"; // デバッグ用の名前
-                auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
+    //            DeferredTaskOptions options{};
+    //            options.async = false; // 同期で実行
+    //            options.debugName = "Return_To_Title"; // デバッグ用の名前
+    //            auto* ctx = new ReturnToTitleContext{ this }; // コンテキストを作成して渡す
 
-                RawDeferredTask::Add(
-                    ctx, // コンテキストを渡す
-                    [](void* ptr)
-                    {
-                        GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
-                        self->m_ground.UnloadCurrentScene();
-                        self->Update();
-                        self->ChangeMode(GameMode::TITLE);
-                        UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
-                    },
-                    [](void* ptr)
-                    {
-                        return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
-                    },
-                    options
-                );
-            }
-        }
+    //            RawDeferredTask::Add(
+    //                ctx, // コンテキストを渡す
+    //                [](void* ptr)
+    //                {
+    //                    GameSystem* self = static_cast<ReturnToTitleContext*>(ptr)->gameSystem;
+    //                    self->m_ground.UnloadCurrentScene();
+    //                    self->Update();
+    //                    self->ChangeMode(GameMode::TITLE);
+    //                    UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
+    //                },
+    //                [](void* ptr)
+    //                {
+    //                    return UIManager::get_instance().GetFader().IsFullyHidden(); // 完全に暗くなったら実行する♪
+    //                },
+    //                options
+    //            );
+    //        }
+    //    }
 
-    }
+    //}
 
 }
 
@@ -427,8 +465,9 @@ void GameSystem::UpdateGame(void)
     m_player->Update(); // プレイヤーの更新処理
     m_skybox.Update(); // Skyboxの更新処理
     m_enemyManager.Update(); // エネミーの更新処理
-    m_itemManager.Update();
-    m_projectileManager.Update();
+	m_itemManager.Update(); // アイテムの更新処理
+	m_projectileManager.Update(); // 弾の更新処理
+	m_decalRenderer.Update(); // デカールの更新処理
     m_effectSystem.Update(); // エフェクトの更新処理
 
 #ifdef _DEBUG
@@ -457,7 +496,11 @@ void GameSystem::UpdateLoading(void)
         if (IsAllResourceReady())
         {
             if (!m_currLoadCtx.finishInitialLoad)
+            {
                 m_currLoadCtx.finishInitialLoad = true;
+				//m_player->ResetPlayerPosition(); // プレイヤーの位置をリセット
+            }
+
             m_loadingScene->NotifyResourceLoadComplete();
         }
 
@@ -517,22 +560,16 @@ void GameSystem::DrawGame(void)
     m_renderer.SetRenderInstance(); // インスタンスの描画を設定
     m_ground.Draw(); // 地面の描画
 
+
+    m_renderer.SetDepthMode(DepthMode::Effect); // パーティクルの深度設定
     m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
     m_renderer.SetRenderVFX(); // VFXの描画を設定
     m_player->DrawEffect(); // プレイヤーのエフェクト描画
-
-    m_renderer.SetDepthMode(DepthMode::Particle); // パーティクルの深度設定
     m_effectSystem.Draw(); // エフェクトの描画
+    m_decalRenderer.Draw(); // デカールの描画
+	if (m_enemyManager.GetBoss())
+        m_enemyManager.GetBoss()->DrawEffect(); // ボスのエフェクト描画
     m_renderer.SetBlendState(BLEND_MODE_ALPHABLEND); // ブレンドステートを設定
-
-    //m_renderer.SetCullingMode(CULL_MODE_BACK);
-
-    //SetOffScreenRender();
-//DrawScene();
-
-//SetLightEnable(FALSE);
-//DrawOffScreenRender();
-//SetLightEnable(FALSE);
 }
 
 void GameSystem::DrawResult(void)

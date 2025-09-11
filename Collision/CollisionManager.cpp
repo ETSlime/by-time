@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Collision/CollisionManager.h"
 #include "Collision/VoxelBufferUploader.h"
+#include "Core/GameSystem.h"
 #include "Scene/GameObject.h"
 #include "Scene/Enemy.h"
 #include "Scene/Player.h"
@@ -19,9 +20,10 @@
 //*****************************************************************************
 #define DRAW_BOUNDING_BOX               1
 #define MAX_TRIGGER_EVENT_NUM           256
+#define MAX_RAYCAST_DISTANCE            10000.0f
 
 constexpr float HEIGHT_EPSILON = 5.0f;
-constexpr float SMOOTHING_FACTOR = 0.2f;
+constexpr float SMOOTHING_FACTOR = 0.5f;
 // 最大許容斜面角度（ラジアン、例：45度）
 const float MAX_SLOPE_ANGLE = 0.785398f; // 約45度
 // 階段として許容する最大高さ差（ステップオフセット）
@@ -92,6 +94,7 @@ void CollisionManager::InitVoxelGrid(const SimpleArray<Triangle*>& triangles, fl
 void CollisionManager::Update()
 {
     if (!m_initialized) return; // 初期化されていない場合は何もしない
+	if (!GameSystem::get_instance().GetFinishLoading()) return; // ロード中は何もしない
 
 #ifdef _DEBUG
     if (m_voxelGrid)
@@ -104,14 +107,16 @@ void CollisionManager::Update()
 	m_debugTriangles.clear();
 #endif // _DEBUG
 
-    UINT numColliders = dynamicColliders.getSize();
+    UINT numColliders = m_dynamicColliders.getSize();
     
     for (UINT i = 0; i < numColliders; i++)
     {
-        const Collider* dynamicCol = dynamicColliders[i];
+        const Collider* dynamicCol = m_dynamicColliders[i];
 
         if (dynamicCol->tag == ColliderTag::WALL ||
             dynamicCol->tag == ColliderTag::STATIC_OBJECT ||
+            dynamicCol->tag == ColliderTag::AIR_WALL ||
+            dynamicCol->tag == ColliderTag::TRANSPARENT_WALL ||
             dynamicCol->enable == false) continue;
 
         // 動的オブジェクトと静的オブジェクト（地面）の衝突検出
@@ -129,13 +134,19 @@ void CollisionManager::Update()
 	TriggerOnExit();
 }
 
-bool CollisionManager::OctreeInsertTriangle(const Triangle* tri)
+bool CollisionManager::OctreeInsertTriangle(const Triangle* tri, bool insertWithHandle)
 {
     if (!m_initialized) return false;
 
 	bool success = false;
     if (m_staticOctree)
-        success = m_staticOctree->Insert(tri);
+    {
+        if (insertWithHandle)
+			success = m_staticOctree->InsertWithHandle(tri);
+        else
+            success = m_staticOctree->Insert(tri);
+    }
+
     return success;
 }
 
@@ -177,10 +188,10 @@ void CollisionManager::UnregisterDynamicCollider(const Collider* collider)
 {
     if (!m_initialized) return; // 初期化されていない場合は何もしない
 
-    int index = dynamicColliders.find_index(collider);
+    int index = m_dynamicColliders.find_index(collider);
     if (index >= 0)
     {
-        dynamicColliders.erase(index);
+        m_dynamicColliders.erase(index);
     }
 }
 
@@ -194,6 +205,69 @@ void CollisionManager::UnregisterEventCollider(Collider* collider)
         m_triggerEventColliders.erase(index);
     }
 
+}
+
+bool CollisionManager::RaycastForTargetPoint(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, XMFLOAT3* targetHitPosOut) const
+{
+    float closestDistSq = MAX_RAYCAST_DISTANCE * MAX_RAYCAST_DISTANCE;
+    bool hit = false;
+    XMFLOAT3 closestHitPos;
+
+    for (const auto& col : m_dynamicColliders)
+    {
+		// プレイヤー関連、トリガー、エアウォール、アイテムは無視
+		if (col->tag == ColliderTag::PLAYER 
+            || col->tag == ColliderTag::PLAYER_PROJECTILE
+            || col->tag == ColliderTag::PLAYER_ATTACK
+            || col->tag == ColliderTag::ENEMY_ATTACK
+            || col->tag == ColliderTag::TRIGGER
+            || col->tag == ColliderTag::AIR_WALL
+            || col->tag == ColliderTag::ITEM)
+            continue;
+
+        float dist;
+        XMFLOAT3 hitPos;
+        if (col->aabb.IntersectRay(rayOrigin, rayDir, &dist, &hitPos))
+        {
+            if (dist < closestDistSq)
+            {
+                closestDistSq = dist;
+                closestHitPos = hitPos;
+                hit = true;
+            }
+        }
+    }
+
+	// 静的オブジェクト（地面）との衝突判定
+    if (m_voxelGrid)
+    {
+        XMFLOAT3 voxelHitPos;
+        float voxelHitDistSq;
+		XMFLOAT3 endPoint = {
+			rayOrigin.x + rayDir.x * MAX_RAYCAST_DISTANCE,
+			rayOrigin.y + rayDir.y * MAX_RAYCAST_DISTANCE,
+			rayOrigin.z + rayDir.z * MAX_RAYCAST_DISTANCE
+		};
+
+        bool voxelHit = m_voxelGrid->Raycast(rayOrigin, endPoint, &voxelHitPos, nullptr);
+        voxelHitDistSq = (voxelHitPos.x - rayOrigin.x) * (voxelHitPos.x - rayOrigin.x) +
+			(voxelHitPos.y - rayOrigin.y) * (voxelHitPos.y - rayOrigin.y) +
+			(voxelHitPos.z - rayOrigin.z) * (voxelHitPos.z - rayOrigin.z);
+
+        if (voxelHit && voxelHitDistSq < closestDistSq)
+        {
+            closestDistSq = voxelHitDistSq;
+            closestHitPos = voxelHitPos;
+            hit = true;
+        }
+    }
+
+    if (hit && targetHitPosOut)
+    {
+        *targetHitPosOut = closestHitPos;
+    }
+
+    return hit;
 }
 
 void CollisionManager::PrepareVoxelMappingAfterSceneChange(void)
@@ -219,6 +293,108 @@ void CollisionManager::PrepareVoxelMappingAfterSceneChange(void)
         },
         options
     );
+}
+
+void CollisionManager::BlockColliderMovement(const Collider* collider, const Collider* collider2)
+{
+    auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(collider->owner);
+
+    if (!colliderOwner) return;
+
+    bool isObstacle = true;
+
+    Transform transform = colliderOwner->GetTransform();
+
+    // 障害物の AABB 情報
+    const BOUNDING_BOX& obstacleAABB = collider2->aabb;  // 衝突した障害物の AABB
+
+    // 各面との距離を計算
+    float distLeft = fabs(transform.pos.x - obstacleAABB.minPoint.x);
+    float distRight = fabs(transform.pos.x - obstacleAABB.maxPoint.x);
+    float distFront = fabs(transform.pos.z - obstacleAABB.minPoint.z);
+    float distBack = fabs(transform.pos.z - obstacleAABB.maxPoint.z);
+
+    // 最も近い面を特定し、推定法線を決定
+    XMFLOAT3 estimatedNormal = { 0, 0, 0 };
+
+    float minDist = distLeft;
+    estimatedNormal.x = 1.0f; // 法線向プレイヤー方向（プレイヤーが minX より左なら → 法線は右）
+
+    // 左右の面の距離が近い場合は、X 軸方向の成分を優先
+    if (distRight < minDist)
+    {
+        minDist = distRight;
+        estimatedNormal.x = -1.0f; // プレイヤーが maxX より右 → 法線は左
+        estimatedNormal.z = 0.0f;
+    }
+
+    // 後ろの面の距離が近い場合は、Z 軸方向の成分を優先
+    if (distFront < minDist)
+    {
+        minDist = distFront;
+        estimatedNormal.x = 0.0f;
+        estimatedNormal.z = 1.0f; // プレイヤーが minZ より前 → 法線は奥
+    }
+    if (distBack < minDist)
+    {
+        minDist = distBack;
+        estimatedNormal.x = 0.0f;
+        estimatedNormal.z = -1.0f; // プレイヤーが maxZ より後ろ → 法線は手前
+    }
+
+    // 推定された法線を XMVECTOR に変換
+    XMVECTOR estimatedObstacleNormal = XMVectorSet(estimatedNormal.x, 0, estimatedNormal.z, 0);
+    estimatedObstacleNormal = XMVector3Normalize(estimatedObstacleNormal);
+
+    // 意図する移動ベクトルを計算（スカラー速度と回転角を使用）
+    Attributes attributes = colliderOwner->GetAttributesConst();
+    float intendedMoveX = sinf(transform.rot.y) * attributes.spd;
+    float intendedMoveZ = cosf(transform.rot.y) * attributes.spd;
+
+    // XMVECTOR に変換（Y 成分は 0）
+    XMVECTOR intendedMove = XMVectorSet(intendedMoveX, 0, intendedMoveZ, 0);
+    intendedMove = XMVector3Normalize(intendedMove);
+
+    // 内積を計算
+    float dot = XMVectorGetX(XMVector3Dot(intendedMove, estimatedObstacleNormal));
+
+    if (dot > 0.0f)
+    {
+        // 障害物方向の成分を除去
+        XMVECTOR projection = XMVectorScale(estimatedObstacleNormal, dot);
+        XMVECTOR allowedMove = XMVectorSubtract(intendedMove, projection);
+        allowedMove = XMVector3Normalize(allowedMove);
+
+        // 修正後の移動ベクトルに速度スカラーをかける
+        float spd = attributes.spd;
+        XMVECTOR finalMove = XMVectorScale(allowedMove, spd);
+
+        // 最終的な移動量を取得してプレイヤーの位置を更新
+        XMFLOAT3 moveDelta;
+        XMStoreFloat3(&moveDelta, finalMove);
+        transform.pos.x += moveDelta.x;
+        transform.pos.z += moveDelta.z;
+
+    }
+    else
+    {
+        // 障害物の方向ではないので、そのまま移動
+        transform.pos.x += intendedMoveX;
+        transform.pos.z += intendedMoveZ;
+    }
+
+    colliderOwner->SetTransform(transform);
+
+    // isMoveBlockedの更新を行う
+    bool isMoveBlocked = colliderOwner->GetAttributesConst().isMoveBlocked;
+    if (isObstacle && !isMoveBlocked)
+    {
+        colliderOwner->SetMoveBlock(true);
+    }
+    else if (!isObstacle && isMoveBlocked)
+    {
+        colliderOwner->SetMoveBlock(false);
+    }
 }
 
 void CollisionManager::HandleStaticCollision(const Collider* dynamicCol)
@@ -357,6 +533,14 @@ void CollisionManager::HandleStaticCollision(const Collider* dynamicCol)
                         m_debugTriangles.push_back(*tri); // デバッグ用に三角形を保存
                     }
 #endif // _DEBUG
+
+                }
+                else if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE
+                    || dynamicCol->tag == ColliderTag::ENEMY_PROJECTILE)
+                {
+                    CollisionEvent event;
+                    event.additionalData = &tri->normal;
+					dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::ProjectileHit);
                 }
 
                 CollisionEvent collisionEvent;
@@ -469,18 +653,22 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
 {
     if (dynamicCol->enableDynamicCollision)
     {
-        UINT numColliders = dynamicColliders.getSize();
+        UINT numColliders = m_dynamicColliders.getSize();
+
         for (UINT j = startIdx + 1; j < numColliders; j++)
         {
-            const Collider* dynamicCol2 = dynamicColliders[j];
+            const Collider* dynamicCol2 = m_dynamicColliders[j];
 
             if (!dynamicCol2->enable || !dynamicCol2->enableDynamicCollision)
                 continue; // 動的衝突が無効な場合はスキップ
-
             else if (IsSelfCollision(dynamicCol, dynamicCol2)) continue;
 
+            if ((dynamicCol->tag == ColliderTag::AIR_WALL && dynamicCol2->tag == ColliderTag::NPC)
+                || (dynamicCol2->tag == ColliderTag::NPC && dynamicCol->tag == ColliderTag::AIR_WALL))
+                continue;
+
             bool isObstacle = false;
-            if (dynamicColliders[startIdx]->aabb.intersects(dynamicColliders[j]->aabb))
+            if (m_dynamicColliders[startIdx]->aabb.intersects(m_dynamicColliders[j]->aabb))
             {
                 CollisionEvent event{ dynamicCol, dynamicCol2 };
 
@@ -491,34 +679,9 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     )
                 {
                     const Collider* enemyCol = dynamicCol->tag == ColliderTag::ENEMY ? dynamicCol : dynamicCol2;
-                    auto colliderOwner = static_cast<Enemy*>(enemyCol->owner);
 
+                    enemyCol->CallCollisionCallbacks(event, CollisionCallbackID::PlayerAttackHit);
 
-                    if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE || dynamicCol2->tag == ColliderTag::PLAYER_PROJECTILE) {
-
-                        const Collider* projectileCol = dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE ? dynamicCol : dynamicCol2;
-                        auto itemColOwner = static_cast<Projectile*>(projectileCol->owner);
-
-                        itemColOwner->SetActive(FALSE);
-
-                    }
-
-                    if (colliderOwner->GetAttributesConst().hitTimer <= 0)
-                    {
-                        colliderOwner->SetHitTimer(ENEMY_HIT_WINDOW);
-                        if (!colliderOwner->GetIsHit())
-                        {
-                            colliderOwner->ReduceHP(10.0f);
-                            colliderOwner->SetIsHit(true);
-                            colliderOwner->SetIsHit2(false);
-                        }
-                        else if (!colliderOwner->GetIsHit2())
-                        {
-                            colliderOwner->ReduceHP(10.0f);
-                            colliderOwner->SetIsHit2(true);
-                            colliderOwner->SetIsHit(false);
-                        }
-                    }
                 }
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ENEMY_ATTACK)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_ATTACK))
@@ -529,11 +692,30 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::EnemyAttackHit);
                 }
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ITEM)
-                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM))
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ITEM)
+                    || (dynamicCol->tag == ColliderTag::ENEMY && dynamicCol2->tag == ColliderTag::ITEM)
+                    || (dynamicCol2->tag == ColliderTag::ENEMY && dynamicCol->tag == ColliderTag::ITEM))
                 {
                     // コールバックを持っていれば呼ぶ
-                    dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
-                    dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
+                    dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::Item);
+                    dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::Item);
+
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE && dynamicCol2->tag == ColliderTag::BOSS_ICE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER_PROJECTILE && dynamicCol->tag == ColliderTag::BOSS_ICE))
+                {
+                    const Collider* iceCol = dynamicCol->tag == ColliderTag::BOSS_ICE ? dynamicCol : dynamicCol2;
+
+                    // コールバックを持っていれば呼ぶ
+                    iceCol->CallCollisionCallbacks(event, CollisionCallbackID::PlayerAttackHit);
+
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ENEMY_PROJECTILE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_PROJECTILE))
+                {
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
+
+                    playerCol->CallCollisionCallbacks(event, CollisionCallbackID::EnemyAttackHit);
 
                 }
                 //プレイヤーのHPとの関係性あり
@@ -552,108 +734,13 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                 }
                 else
                 {
-                    isObstacle = true;
-
-                    auto colliderOwner = static_cast<GameObject<SkinnedMeshModelInstance>*>(dynamicCol->owner);
-                    if (!colliderOwner) return;
-
-                    Transform transform = colliderOwner->GetTransform();
-
-                    // 障害物の AABB 情報
-                    const BOUNDING_BOX& obstacleAABB = dynamicCol2->aabb;  // 衝突した障害物の AABB
-
-                    // 各面との距離を計算
-                    float distLeft = fabs(transform.pos.x - obstacleAABB.minPoint.x);
-                    float distRight = fabs(transform.pos.x - obstacleAABB.maxPoint.x);
-                    float distFront = fabs(transform.pos.z - obstacleAABB.minPoint.z);
-                    float distBack = fabs(transform.pos.z - obstacleAABB.maxPoint.z);
-
-                    // 最も近い面を特定し、推定法線を決定
-                    XMFLOAT3 estimatedNormal = { 0, 0, 0 };
-
-                    float minDist = distLeft;
-                    estimatedNormal.x = 1.0f; // 法線向プレイヤー方向（プレイヤーが minX より左なら → 法線は右）
-
-                    // 左右の面の距離が近い場合は、X 軸方向の成分を優先
-                    if (distRight < minDist)
-                    {
-                        minDist = distRight;
-                        estimatedNormal.x = -1.0f; // プレイヤーが maxX より右 → 法線は左
-                        estimatedNormal.z = 0.0f;
-                    }
-
-                    // 後ろの面の距離が近い場合は、Z 軸方向の成分を優先
-                    if (distFront < minDist)
-                    {
-                        minDist = distFront;
-                        estimatedNormal.x = 0.0f;
-                        estimatedNormal.z = 1.0f; // プレイヤーが minZ より前 → 法線は奥
-                    }
-                    if (distBack < minDist)
-                    {
-                        minDist = distBack;
-                        estimatedNormal.x = 0.0f;
-                        estimatedNormal.z = -1.0f; // プレイヤーが maxZ より後ろ → 法線は手前
-                    }
-
-                    // 推定された法線を XMVECTOR に変換
-                    XMVECTOR estimatedObstacleNormal = XMVectorSet(estimatedNormal.x, 0, estimatedNormal.z, 0);
-                    estimatedObstacleNormal = XMVector3Normalize(estimatedObstacleNormal);
-
-                    // 意図する移動ベクトルを計算（スカラー速度と回転角を使用）
-                    Attributes attributes = colliderOwner->GetAttributesConst();
-                    float intendedMoveX = sinf(transform.rot.y) * attributes.spd;
-                    float intendedMoveZ = cosf(transform.rot.y) * attributes.spd;
-
-                    // XMVECTOR に変換（Y 成分は 0）
-                    XMVECTOR intendedMove = XMVectorSet(intendedMoveX, 0, intendedMoveZ, 0);
-                    intendedMove = XMVector3Normalize(intendedMove);
-
-                    // 内積を計算
-                    float dot = XMVectorGetX(XMVector3Dot(intendedMove, estimatedObstacleNormal));
-
-                    if (dot > 0.0f)
-                    {
-                        // 障害物方向の成分を除去
-                        XMVECTOR projection = XMVectorScale(estimatedObstacleNormal, dot);
-                        XMVECTOR allowedMove = XMVectorSubtract(intendedMove, projection);
-                        allowedMove = XMVector3Normalize(allowedMove);
-
-                        // 修正後の移動ベクトルに速度スカラーをかける
-                        float spd = attributes.spd;
-                        XMVECTOR finalMove = XMVectorScale(allowedMove, spd);
-
-                        // 最終的な移動量を取得してプレイヤーの位置を更新
-                        XMFLOAT3 moveDelta;
-                        XMStoreFloat3(&moveDelta, finalMove);
-                        transform.pos.x += moveDelta.x;
-                        transform.pos.z += moveDelta.z;
-
-                    }
-                    else
-                    {
-                        // 障害物の方向ではないので、そのまま移動
-                        transform.pos.x += intendedMoveX;
-                        transform.pos.z += intendedMoveZ;
-                    }
-
-                    colliderOwner->SetTransform(transform);
-
-                    // isMoveBlockedの更新を行う
-                    bool isMoveBlocked = colliderOwner->GetAttributesConst().isMoveBlocked;
-                    if (isObstacle && !isMoveBlocked)
-                    {
-                        colliderOwner->SetMoveBlock(true);
-                    }
-                    else if (!isObstacle && isMoveBlocked)
-                    {
-                        colliderOwner->SetMoveBlock(false);
-                    }
+					BlockColliderMovement(dynamicCol, dynamicCol2);
+					BlockColliderMovement(dynamicCol2, dynamicCol);
                 }
 
                 CollisionEvent collisionEvent;
-                collisionEvent.colliderA = dynamicColliders[startIdx];
-                collisionEvent.colliderB = dynamicColliders[j];
+                collisionEvent.colliderA = m_dynamicColliders[startIdx];
+                collisionEvent.colliderB = m_dynamicColliders[j];
                 eventBus.publishCollision(collisionEvent);
             }
         }
@@ -689,7 +776,9 @@ bool CollisionManager::IsSelfCollision(const Collider* col1, const Collider* col
         (col1->tag == ColliderTag::PLAYER && col2->tag == ColliderTag::PLAYER_PROJECTILE) ||
         (col2->tag == ColliderTag::PLAYER && col1->tag == ColliderTag::PLAYER_PROJECTILE) ||
         (col1->tag == ColliderTag::ENEMY && col2->tag == ColliderTag::ENEMY_ATTACK) ||
-        (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK);
+        (col2->tag == ColliderTag::ENEMY && col1->tag == ColliderTag::ENEMY_ATTACK) ||
+        (col1->tag == ColliderTag::AIR_WALL && col2->tag == ColliderTag::AIR_WALL) ||
+        (col2->tag == ColliderTag::AIR_WALL && col1->tag == ColliderTag::AIR_WALL);
 }
 
 void CollisionManager::CheckEventCollision(const Collider* dynamicCol, Collider* triggerCol)

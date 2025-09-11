@@ -11,7 +11,19 @@
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"
 
-class ItemManager: public SingletonBase<ItemManager>, public IDebugUI {
+//*****************************************************************************
+// マクロ定義
+//*****************************************************************************
+#define KEY_SIZE			(15.0f)
+#define KEY_POS				XMFLOAT3(-5371.0f, -4670.0f, -1295.0f);
+
+#define SEED_SIZE			(0.16f)
+
+// 前方宣言
+struct SaveData;
+
+class ItemManager: public SingletonBase<ItemManager>, public IDebugUI 
+{
 
 public:
 	void Init(void);
@@ -21,8 +33,11 @@ public:
 
 	Item* SpawnItem(Item* pItem);
 	Item* GetItem(ItemType itemType) const;
+	Item* GetPickedItem(ItemType itemType) const;
 	int GetTotalItemLoadCnt(void) const { return m_totalItemLoadCnt; }
 	int GetItemLoadedCnt(void) const { return m_currentItemLoadCnt; }
+
+	void LoadSaveData(const SaveData& saveData);
 
 private:
 

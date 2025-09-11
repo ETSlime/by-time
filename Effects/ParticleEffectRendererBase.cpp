@@ -127,6 +127,23 @@ void ParticleEffectRendererBase::Update(void)
 
     // リソースの解除（次のパイプラインステージに備える）
     UnbindComputeUAVs();
+
+	// パーティクルの寿命を更新
+    if (m_duration != -1.0f)
+    {
+		m_duration -= m_timer.GetDeltaTime();
+		if (m_duration <= m_lifeMax)
+		{
+            // 新規パーティクルの発生を停止
+            m_spawnRateMax = 0; 
+            m_spawnRateMin = 0;
+
+		}
+        if (m_duration <= 0.0f)
+        {
+            m_shutdown = true; // パーティクルの寿命が尽きたらシャットダウン
+        }
+    }
 }
 
 void ParticleEffectRendererBase::Draw(void)
@@ -537,6 +554,8 @@ void ParticleEffectRendererBase::ClearInternalUAVs(void)
 
 void ParticleEffectRendererBase::ConfigureEffect(const ParticleEffectParams& params)
 {
+	// パーティクルエフェクトのパラメータを設定
+    m_duration = params.duration;
     m_scale = params.scale;
     m_position = params.position;
     m_acceleration = params.acceleration;

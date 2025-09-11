@@ -7,6 +7,13 @@
 #include "Scene/EnemyManager.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Character/GBMonster.h"
+#include "Scene/Character/Boss.h"
+#include "Scene/Character/Enemy_NPC.h"
+
+//*****************************************************************************
+// É}ÉNÉçíËã`
+//*****************************************************************************
+#define BOSS_INIT_POS				XMFLOAT3(9354.0f, 6420.0f, 2096.0f)
 
 EnemyManager::EnemyManager()
 {
@@ -39,30 +46,74 @@ void EnemyManager::Init(const Player* player)
 
 	trans.pos = XMFLOAT3(4024.0f, 6270.0f, 3453.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	trans.pos = XMFLOAT3(3024.0f, 6270.0f, 4453.0f);
+	trans.pos = XMFLOAT3(3224.0f, 6270.0f, 3553.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::DANCE);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	//trans.pos = XMFLOAT3(12404.5f, -2110.0f, -19177.56f);
-	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);
+	trans.pos = XMFLOAT3(4424.0f, 6270.0f, 3653.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	//trans.pos = XMFLOAT3(12227.0f, -2384.0f, -19485.0f);
-	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);
+	trans.pos = XMFLOAT3(4624.0f, 6270.0f, 2453.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	//trans.pos = XMFLOAT3(12404.5f, -2384.0f, -19792.43f);
-	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);
+	trans.pos = XMFLOAT3(4824.0f, 6270.0f, 4153.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	//trans.pos = XMFLOAT3(12759.5f, -2384.0f, -19792.43f);
-	//SpawnEnemy(EnemyType::Hilichurl, trans, EnemyState::HILI_DANCE);
+	trans.pos = XMFLOAT3(3524.0f, 6270.0f, 6753.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = XMFLOAT3(1724.0f, 6270.0f, 7253.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = XMFLOAT3(724.0f, 6270.0f, 4553.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = XMFLOAT3(-724.0f, 6270.0f, 1253.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = BOSS_INIT_POS;
+	trans.scl = BOSS_SIZE;
+	m_boss = static_cast<Boss*>(SpawnEnemy(EnemyType::Boss, trans, EnemyState::BOSS_STAND_UP, false));
+	m_boss->SetInvincible(true);
+	m_boss->SetRespawn(false);
+	m_boss->SetColliderEnable(false);
+
+
+	trans.pos = XMFLOAT3(6846.0f, 5919.0f, 4453.0f);
+	trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	trans.rot = XMFLOAT3(0.0f, -0.8f, 0.0f);
+	SpawnEnemy(EnemyType::NPC_Fish, trans, EnemyState::IDLE);
+
+	trans.pos = XMFLOAT3(7900.0f, 5881.0f, 4453.0f);
+	trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	trans.rot = XMFLOAT3(0.0f, 1.0f, 0.0f);
+	SpawnEnemy(EnemyType::NPC_Fish, trans, EnemyState::IDLE);
+
+	trans.pos = XMFLOAT3(7222.0f, 5956.0f, 2916.0f);
+	trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	trans.rot = XMFLOAT3(0.0f, 2.2f, 0.0f);
+	SpawnEnemy(EnemyType::NPC_Fish, trans, EnemyState::IDLE);
+
+	trans.pos = XMFLOAT3(7673.0f, 5956.0f, 1527.0f);
+	trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	trans.rot = XMFLOAT3(0.0f, 2.2f, 0.0f);
+	SpawnEnemy(EnemyType::NPC_Fish, trans, EnemyState::IDLE);
 }
 
 
 
-void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState initState)
+Enemy* EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState initState, bool initialMove)
 {
-	Enemy* enemy;
+	Enemy* enemy = nullptr;
 	switch (enemyType)
 	{
 	case EnemyType::Hilichurl:
@@ -71,9 +122,17 @@ void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState i
 	case EnemyType::GBMonster:
 		enemy = new GBMonster(trans, initState);
 		break;
+	case EnemyType::Boss:
+		enemy = new Boss(trans, initState);
+		break;
+	case EnemyType::NPC_Fish:
+		enemy = new Enemy_NPC(trans, EnemyType::NPC_Fish, initState);
+		break;
 	default:
-		return;
+		return nullptr;
 	}
+
+	enemy->GetEnemyAttribute().initialMove = initialMove;
 
 	if (!enemyLoadMap.contains(TO_UINT64(enemyType)))
 	{
@@ -81,14 +140,11 @@ void EnemyManager::SpawnEnemy(EnemyType enemyType, Transform trans, EnemyState i
 		m_totalEnemyLoadCnt++;
 	}
 
-	if (initState == EnemyState::IDLE)
-		enemy->SetRandomMove(true);
-	else
-		enemy->SetRandomMove(false);
-
 	enemy->SetPlayer(m_player);
 	enemy->SetDrawWorldAABB(m_drawBoundingBox);
 	m_enemyList.push_back(enemy);
+
+	return enemy;
 }
 
 void EnemyManager::InitializeEnemyStatus(void)
@@ -185,6 +241,16 @@ void EnemyManager::Update(void)
 		else
 			cur = cur->next;
 	}
+
+#if _DEBUG
+	if (debugEnemy)
+	{
+		debugEnemy->SetPosition(XMFLOAT3(debugEnemyPosX, debugEnemyPosY, debugEnemyPosZ));
+		debugEnemy->SetScale(XMFLOAT3(debugEnemyScaleX, debugEnemyScaleY, debugEnemyScaleZ));
+		debugEnemy->SetRotation(XMFLOAT3(0.0f, debugEnemyRotY, 0.0f));
+	}
+#endif // _DEBUG
+
 }
 
 void EnemyManager::RenderImGui(void)
@@ -197,5 +263,16 @@ void EnemyManager::RenderImGui(void)
 			cur->data->SetDrawWorldAABB(m_drawBoundingBox);
 			cur = cur->next;
 		}
+	}
+
+	if (ImGui::CollapsingHeader("Debug Enemy"))
+	{
+		ImGui::SliderFloat("PosX: ", &debugEnemyPosX, 1133.67f, 11111.67f, "%.1f");
+		ImGui::SliderFloat("PosY: ", &debugEnemyPosY, 1131.0f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("PosZ: ", &debugEnemyPosZ, 1418.0f, 11111.0f, "%.1f");
+		ImGui::SliderFloat("ScaleX: ", &debugEnemyScaleX, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("ScaleY: ", &debugEnemyScaleY, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("ScaleZ: ", &debugEnemyScaleZ, 0.1f, 5.0f, "%.1f");
+		ImGui::SliderFloat("RotY: ", &debugEnemyRotY, -3, 3, "%.1f");
 	}
 }

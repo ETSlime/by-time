@@ -490,6 +490,22 @@ float Lerp(float a, float b, float t)
 	return a + (b - a) * t;
 }
 
+XMFLOAT3 Lerp3(const XMFLOAT3& a, const XMFLOAT3& b, float t)
+{
+	return XMFLOAT3(
+		a.x + (b.x - a.x) * t,
+		a.y + (b.y - a.y) * t,
+		a.z + (b.z - a.z) * t
+	);
+}
+
+float Length3(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	XMVECTOR A = XMLoadFloat3(&a);
+	XMVECTOR B = XMLoadFloat3(&b);
+	return XMVectorGetX(XMVector3Length(B - A));
+}
+
 float SmoothAngleLerp(float current, float target, float t)
 {
 	// 差分を[-π, π]に正規化
@@ -507,10 +523,70 @@ float SmoothAngleLerp(float current, float target, float t)
 	return current;
 }
 
+XMFLOAT3 DirNorm(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	XMVECTOR A = XMLoadFloat3(&a);
+	XMVECTOR B = XMLoadFloat3(&b);
+	XMVECTOR D = XMVector3Normalize(B - A);
+	XMFLOAT3 out; XMStoreFloat3(&out, D);
+	return out;
+}
+
 void ExitGame(void)
 {
 	g_ExitApp = true; // アプリケーション終了フラグを立てる
 }
+
+XMFLOAT3 Add(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	return { a.x + b.x, a.y + b.y, a.z + b.z };
+}
+
+XMFLOAT3 Sub(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	return { a.x - b.x,a.y - b.y,a.z - b.z };
+}
+
+XMFLOAT3 Scale(const XMFLOAT3& v, float s)
+{
+	return { v.x * s, v.y * s, v.z * s };
+}
+
+float ScalarSaturate(float x)
+{
+	return (x < 0.0f) ? 0.0f : (x > 1.0f ? 1.0f : x);
+}
+
+float DegToRad(float d)
+{
+	return d * (XM_PI / 180.0f);
+}
+
+XMFLOAT3 NormalizeSafe(const XMFLOAT3& v)
+{
+	float len = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+	if (len < 1e-6f) return XMFLOAT3(0, 1, 0);
+	float inv = 1.0f / len;
+	return XMFLOAT3(v.x * inv, v.y * inv, v.z * inv);
+}
+
+float Dot(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+float Dist(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	const float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+	return sqrtf(dx * dx + dy * dy + dz * dz);
+}
+
+float DistSq(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+	const float dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+	return (dx * dx + dy * dy + dz * dz);
+}
+
 
 void EnableDPIAwareness(void)
 {

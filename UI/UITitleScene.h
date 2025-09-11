@@ -9,6 +9,7 @@
 #include "UI/Base/UIAnimatedSprite.h"
 #include "UI/Base/UIButton.h"
 #include "Core/TextureMgr.h"
+#include "Core/SaveSystem.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -83,6 +84,7 @@ public:
             static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X), 
             static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) 
             });
+		m_btnLoadGame->SetOnClick(OnClick_LoadGame, this); // ロードゲームボタンのコールバック設定
 
 		// ゲーム終了ボタンの初期化
 		m_btnExitGame = new UIButton();
@@ -120,8 +122,13 @@ public:
         if (m_btnNewGame)
             m_btnNewGame->Update();
 
-		if (m_btnLoadGame)
-			m_btnLoadGame->Update();
+        if (m_btnLoadGame)
+        {
+			// ロードセーブデータが存在しない場合、ロードゲームボタンを無効化
+			bool saveExists = SaveSystem::get_instance().CheckSaveDataExists();
+			m_btnLoadGame->SetEnabled(saveExists);
+            m_btnLoadGame->Update();
+        }
 
 		if (m_btnExitGame)
 			m_btnExitGame->Update();
@@ -172,6 +179,16 @@ public:
         scene->RequestStartFadeOut();
         scene->LockClick(); // ロック！
     }
+
+	static void OnClick_LoadGame(void* userData)
+	{
+        UITitleScene* scene = static_cast<UITitleScene*>(userData);
+
+        if (scene->IsClickLocked()) return; // 二重クリック防止
+		GameSystem::get_instance().SetLoadGame(true); // ロードフラグを立てる
+		scene->RequestStartFadeOut();
+        scene->LockClick(); // ロック！
+	}
 
     static void OnClickExitGame(void* userData)
     {

@@ -90,7 +90,7 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
     
     //clip(finalColor.a - 0.1);
 
-    return  float4(1, 0, 0, 1);//finalColor;
+    return float4(1, 1, 0, 0.3); //finalColor;
 }
 
 

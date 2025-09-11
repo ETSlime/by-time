@@ -37,8 +37,8 @@ public:
 
 	inline float GetHeightClamped(int gx, int gz) const
 	{
-		int clampedX = Clamp(gx, 0, m_gridX - 1);
-		int clampedZ = Clamp(gz, 0, m_gridZ - 1);
+		int clampedX = Clamp<int>(gx, 0, m_gridX - 1);
+		int clampedZ = Clamp<int>(gz, 0, m_gridZ - 1);
 		float h = GetHeight(clampedX, clampedZ);
 		return isnan(h) ? 0.0f : h;
 	}

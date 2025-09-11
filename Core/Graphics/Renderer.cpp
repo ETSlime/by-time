@@ -67,7 +67,7 @@ void Renderer::SetDepthMode(DepthMode mode)
 		depthView = m_SceneDepthStencilView;
 		break;
 
-	case DepthMode::Particle:
+	case DepthMode::Effect:
 		// 深度テストは有効、書き込みは無効（パーティクル描画用）
 		depthState = m_DepthStateParticle;
 		depthView = m_SceneDepthStencilView;
@@ -707,6 +707,7 @@ HRESULT Renderer::Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	m_D3DDevice->CreateSamplerState( &samplerDesc, &m_SamplerState);
+	m_ShaderResourceBinder.BindSampler(ShaderStage::VS, SLOT_SAMPLER_DEFAULT, m_SamplerState);
 	m_ShaderResourceBinder.BindSampler(ShaderStage::PS, SLOT_SAMPLER_DEFAULT, m_SamplerState);
 
 	ZeroMemory(&samplerDesc, sizeof(samplerDesc));

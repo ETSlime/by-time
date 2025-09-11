@@ -5,7 +5,7 @@ void AutumnDoor::Interact()
 {
 	if (!m_opened) {
 
-		if (Ground::get_instance().GetCurrentScene() == SceneID::SCENE_6) {
+		if (Ground::get_instance().GetCurrentSceneID() == SceneID::Autumn_Night) {
 
 			m_opened = true;
 
@@ -28,6 +28,6 @@ void AutumnDoor::Interact()
 
 char* AutumnDoor::GetPromptTextureLocation()
 {
-	return Ground::get_instance().GetCurrentScene() == SceneID::SCENE_6 ? nullptr : "data/TEXTURE/UI/interactUI-puzzle2.png";
+	return Ground::get_instance().GetCurrentSceneID() == SceneID::Autumn_Night ? nullptr : "data/TEXTURE/UI/interactUI-puzzle2.png";
 }
 

@@ -16,6 +16,16 @@
 #include "Utility/Debug/DebugTriangleRenderer.h"
 
 //*****************************************************************************
+// マクロ定義
+//*****************************************************************************
+enum class HitColliderType
+{
+    None,
+    Enemy,
+    Environment,
+};
+
+//*****************************************************************************
 // 構造体定義
 //*****************************************************************************
 // コライダーのペア構造体（常に小さいアドレスが first）
@@ -69,7 +79,7 @@ public:
 	// 静的オブジェクトの八分木を初期化する
     void InitOctree(const BOUNDING_BOX& boundingBox);
     bool IsInitializedOctree(void) const { return m_staticOctree != nullptr; }
-    bool OctreeInsertTriangle(const Triangle* tri);
+    bool OctreeInsertTriangle(const Triangle* tri, bool insertWithHandle = false);
 
     // 静的オブジェクトのボクセルグリッドを初期化する
     void InitVoxelGrid(const SimpleArray<Triangle*>& triangles, float voxelSize = 1.0f);
@@ -78,16 +88,22 @@ public:
     void VoxelGridInsertTriangles(const SimpleArray<Triangle*>& triangles);
 
     // 動的衝突体の登録&解除
-    void RegisterDynamicCollider(const Collider* collider) { dynamicColliders.push_back(collider); }
+    void RegisterDynamicCollider(const Collider* collider) { m_dynamicColliders.push_back(collider); }
     void UnregisterDynamicCollider(const Collider* collider);
     // 衝突イベントを発行するためのコライダーを登録&解除
 	void RegisterEventCollider(Collider* collider) { m_triggerEventColliders.push_back(collider); }
 	void UnregisterEventCollider(Collider* collider);
 
     // 動的衝突体リストのクリア
-    void ClearDynamicColliders(void) { dynamicColliders.clear(); }
+    void ClearDynamicColliders(void) { m_dynamicColliders.clear(); }
 	// 衝突イベントコライダーリストのクリア
 	void ClearEventColliders(void) { m_triggerEventColliders.clear(); }
+
+    void RemoveTriangleFromStaticOctree(const Triangle* tri) { m_staticOctree->RemoveTriangle(tri); }
+    void RemoveTriangleFromVoxelGrid(const Triangle* tri) { m_voxelGrid->RemoveTriangleIncremental(tri); }
+
+	// レイキャスト関数（rayOrigin から rayDir 方向に伸びるレイと静的オブジェクトの交差判定）
+    bool RaycastForTargetPoint(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, XMFLOAT3* targetHitPosOut) const;
 
     // シーン切り替え時に呼び出すVoxelMapping登録関数
     void PrepareVoxelMappingAfterSceneChange(void);
@@ -95,6 +111,7 @@ public:
     const VoxelGrid* GetVoxelGrid(void) { return m_voxelGrid; }
 
 private:
+	void BlockColliderMovement(const Collider* collider, const Collider* collider2);
     void HandleStaticCollision(const Collider* dynamicCol);
     void HandleDynamicCollision(const Collider* dynamicCol, UINT startIdx);
     void HandleEventTriggerCollision(const Collider* dynamicCol);
@@ -127,7 +144,7 @@ private:
     VoxelGrid* m_voxelGrid = nullptr;
 
     // 動的オブジェクト（プレイヤー、敵、その他）の衝突体リスト
-    SimpleArray<const Collider*> dynamicColliders;
+    SimpleArray<const Collider*> m_dynamicColliders;
 
 	// 衝突イベントを発行するためのコライダーリスト
     SimpleArray<Collider*> m_triggerEventColliders;
