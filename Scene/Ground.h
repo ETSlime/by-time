@@ -74,8 +74,10 @@ public:
 	bool IsTerrainReady(void) const { return m_currentTerrainModelLoadCnt >= m_totalTerrainModelLoadCnt; }
 
 	int GetSceneBGM() const { return m_pendingBGM; }
-private:
 
+	int GetSeasonBGM() const;
+
+private:
 	int m_pendingBGM = -1;
 
 	void InitTerrain(void);

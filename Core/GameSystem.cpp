@@ -196,6 +196,13 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
         break;
     case GameMode::GAME:
         InitGame();
+        {
+            int newBGM = m_ground.GetSeasonBGM();
+            if (newBGM >= 0 && newBGM != g_CurrentBGM) {
+                StopSound(g_CurrentBGM);
+                PlaySound(newBGM);
+            }
+        }
         break;
     case GameMode::RESULT:
         InitResult();

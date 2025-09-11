@@ -155,6 +155,7 @@ void Ground::Initialize(void)
 	m_scenesADoorR = ItemManager::get_instance().SpawnItem(rightDoor);
 
 	m_initialized = true;
+
 }
 
 //=============================================================================
@@ -639,10 +640,7 @@ void Ground::LoadScene2(void)//春の夜
 
 	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
 
-	// BGM切替
-	StopSound(); // 他のBGMを止める
-	PlaySound(SOUND_LABEL_BGM_spring);
-	SetBGMVolume(0.5f); // デフォルト音量
+	m_pendingBGM = SOUND_LABEL_BGM_spring;
 }
 
 void Ground::LoadScene3(void)//夏の朝
@@ -653,10 +651,7 @@ void Ground::LoadScene3(void)//夏の朝
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(DAY_TIME);
 
-	// BGM切替
-	StopSound(); // 他のBGMを止める
-	PlaySound(SOUND_LABEL_BGM_summer);
-	SetBGMVolume(0.5f); // デフォルト音量
+	m_pendingBGM = SOUND_LABEL_BGM_summer;
 }
 
 void Ground::LoadScene4(void)//夏の夜
@@ -667,10 +662,7 @@ void Ground::LoadScene4(void)//夏の夜
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 
-	// BGM切替
-	StopSound(); // 他のBGMを止める
-	PlaySound(SOUND_LABEL_BGM_summer);
-	SetBGMVolume(0.5f); // デフォルト音量
+	m_pendingBGM = SOUND_LABEL_BGM_summer;
 }
 
 void Ground::LoadScene5(void)//秋の朝
@@ -681,10 +673,7 @@ void Ground::LoadScene5(void)//秋の朝
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(DAY_TIME);
 
-	// BGM切替
-	StopSound(); // 他のBGMを止める
-	PlaySound(SOUND_LABEL_BGM_autumn);
-	SetBGMVolume(0.5f); // デフォルト音量
+	m_pendingBGM = SOUND_LABEL_BGM_autumn;
 }
 
 void Ground::LoadScene6(void)//秋の夜
@@ -707,10 +696,15 @@ void Ground::LoadScene6(void)//秋の夜
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 
-	// BGM切替
-	StopSound(); // 他のBGMを止める
-	PlaySound(SOUND_LABEL_BGM_autumn);
-	SetBGMVolume(0.5f); // デフォルト音量
+	m_pendingBGM = SOUND_LABEL_BGM_autumn;
+}
+
+//=============================================================================
+// 季節ごとのBGMラベルを返す
+//=============================================================================
+int Ground::GetSeasonBGM() const
+{
+	return m_pendingBGM; // 各 LoadSceneX() で季節ごとにセットされた BGM ラベルを返す
 }
 
 void Ground::GenerateEnvironmentObj(void*)
