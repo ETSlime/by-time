@@ -238,13 +238,15 @@ bool Enemy::UpdateAliveState(void)
 			{
 				Transform trans = instance.transform;
 				trans.pos.y += 10.0f;
-				ItemManager::get_instance().SpawnItem(ItemType::Bullet, trans, true);
+				Item* bullet = ItemManager::get_instance().SpawnItem(new Item(ItemType::Bullet, trans));
+				bullet->Initialize(true);
 			}
 			else if (m_enemyAttr.enemyType == EnemyType::Boss)
 			{
 				Transform trans = instance.transform;
 				trans.pos.y += 10.0f;
-				ItemManager::get_instance().SpawnItem(ItemType::Key, trans, true);
+				Item* key = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
+				key->Initialize(true);
 			}
 		}
 		return false;
