@@ -173,7 +173,7 @@ void Enemy::Update(void)
 	// UŒ‚’†‚Ìˆ—
 	if (instance.attributes.isAttacking)
 	{
-		m_enemyAttr.attackTimer += timer.GetScaledDeltaTime();
+		m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
 
 		bool inHitWindow =
 			(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&

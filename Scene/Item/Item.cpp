@@ -164,11 +164,6 @@ void Item::PlayEffect(HitColliderType type, const XMFLOAT3& hitNormal)
 
 }
 
-void Item::Use(void)
-{
-	m_itemAttributes.used = true;
-}
-
 void Item::Pickup(void)
 {
 	SetActive(false);

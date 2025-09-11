@@ -80,7 +80,7 @@ void Player::Update(void)
 {
 	// 無敵時間のカウントダウン
 	if (m_invincibleTimer > 0.0f) {
-		m_invincibleTimer -= m_playerGO->timer.GetScaledDeltaTime();
+		m_invincibleTimer -= m_playerGO->m_timer.GetScaledDeltaTime();
 	}
 
 	if (!m_playerGO->GetInstance()->load)

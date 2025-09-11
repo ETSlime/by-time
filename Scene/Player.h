@@ -38,6 +38,7 @@ struct PlayerAttributes
 	UINT			actionQueueEnd;
 
 	int				seedCount = 0;
+	int				keyCount = 0;
 	int				bulletCount = 0;
 
 	bool			isMeleeMode = true;

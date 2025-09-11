@@ -186,55 +186,7 @@ void GameMenuModal::OnExitClicked(void* userData)
 	);
 }
 
-void GameMenuModal::SwitchToScene1(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_1)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_1);
-}
-
-void GameMenuModal::SwitchToScene2(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_2)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_2);
-}
-
-void GameMenuModal::SwitchToScene3(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_3)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_3);
-}
-
-void GameMenuModal::SwitchToScene4(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_4)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_4);
-}
-
-void GameMenuModal::SwitchToScene5(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_5)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_5);
-}
-
-void GameMenuModal::SwitchToScene6(void* userData)
-{
-	Ground& ground = Ground::get_instance();
-
-	if (ground.GetCurrentScene() != SceneID::SCENE_6)
-		OnSceneSwitchClicked(userData, SceneID::SCENE_6);
-}
-
-void GameMenuModal::OnSceneSwitchClicked(void* userData, SceneID sceneToLoad)
+void GameMenuModal::OnSceneSwitchClicked(void* userData)
 {
 	SceneSwitchClickedContext* ctx = static_cast<SceneSwitchClickedContext*>(userData);
 
@@ -252,8 +204,6 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData, SceneID sceneToLoad)
 			ctx, // コンテキストを渡す
 			[](void* ptr)
 			{
-
-				SceneID sceneID = static_cast<ReturnToTitleContext*>(ptr)->sceneID;
 
 				Ground& ground = Ground::get_instance();
 				auto* ctx = static_cast<SceneSwitchClickedContext*>(ptr);

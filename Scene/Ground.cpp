@@ -200,7 +200,7 @@ void Ground::Update(void)
 		}
 	
 	}*/
-
+#ifdef _DEBUG
 	if (debugGO)
 	{
 		debugGO->SetPosition(XMFLOAT3(debugGOPosX, debugGOPosY, debugGOPosZ));
@@ -607,9 +607,6 @@ void Ground::LoadSceneSpringDay(void)
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
 		m_sceneSeed = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
-
-		trans.pos = XMFLOAT3(5136.0f, 6414.0f, 6734.0f);
-		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
 
 	}
 	else if (!m_sceneSeed->GetPickedUp())
