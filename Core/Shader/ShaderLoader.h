@@ -26,10 +26,12 @@ enum class ShaderSetID : uint64_t
     SkinnedModel,
     Instanced_Grass,
     Instanced_Tree,
+    Decal,
     Skybox,
     VFX,
     WATER,
     SOFT_BODY,
+    LakeSurface,
     FireEffect,
     FireBallEffect,
     SmokeEffect,
@@ -91,8 +93,10 @@ enum class VertexLayoutID : uint64_t
     Instanced,
     Skybox,
     VFX,
+    ProjectilePreview,
     FluidSurface,
     UI,
+    Decal,
     Debug,
 
     //VertexIDOnly

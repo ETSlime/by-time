@@ -25,7 +25,7 @@ public:
 	void DrawUI(EnemyUIType type);
 
 	// “GƒLƒƒƒ‰‚Ì¶¬
-	void SpawnEnemy(EnemyType enemType, Transform trans, EnemyState initState); 
+	Enemy* SpawnEnemy(EnemyType enemType, Transform trans, EnemyState initState, bool initialMove = false);
 	void InitializeEnemyStatus(void);
 
 	int GetTotalEnemyLoadCnt(void) const { return m_totalEnemyLoadCnt; }
@@ -45,6 +45,15 @@ private:
 	Renderer& m_renderer = Renderer::get_instance();
 	const Player* m_player;
 	bool m_drawBoundingBox = true;
+
+	Enemy* debugEnemy = nullptr;
+	float debugEnemyPosX = 0.0f;
+	float debugEnemyPosY = 0.0f;
+	float debugEnemyPosZ = 0.0f;
+	float debugEnemyScaleX = 1.0f;
+	float debugEnemyScaleY = 1.0f;
+	float debugEnemyScaleZ = 1.0f;
+	float debugEnemyRotY = 0.0f;
 
 	HashMap<uint64_t, int, HashUInt64, EqualUInt64> enemyLoadMap =
 		HashMap<uint64_t, int, HashUInt64, EqualUInt64>(

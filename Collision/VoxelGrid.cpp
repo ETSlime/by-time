@@ -6,7 +6,16 @@
 // 高速なクエリ（衝突判定・視界探索・地形サンプリングなど）を可能にする
 //
 //=============================================================================
-#include "VoxelGrid.h"
+#include "Collision/VoxelGrid.h"
+
+// 全ノード共通の静的レジストリ
+HashMap<const Triangle*, VoxelHandle*, TrianglePtrHash, TrianglePtrEquals> VoxelGrid::s_registry =
+HashMap<const Triangle*, VoxelHandle*, TrianglePtrHash, TrianglePtrEquals>(
+    MAX_VOXEL_NUM, // 初期バケット数
+    TrianglePtrHash(), // ハッシュ関数
+    TrianglePtrEquals() // 等価比較関数
+);
+SpinLock VoxelGrid::s_registryLock;
 
 VoxelGrid::~VoxelGrid()
 {
@@ -40,9 +49,19 @@ void VoxelGrid::BuildTriangles(const SimpleArray<Triangle*>& triangles)
 
 void VoxelGrid::InsertTriangle(const Triangle* tri)
 {
+    // 既にボクセルマップが構築済みなら、全体再構築せずに増分経路へ委譲
+    if (m_isReady)
+    {
+        // 増分挿入は内部で必要なロックを取得する実装前提
+        // （範囲外などで失敗する可能性がある場合は戻り値を見てログ等を出す）
+        InsertTriangleIncremental(tri);
+        return;
+    }
+
+    // まだ未構築: 三角形リストに蓄積し、ボクセル境界のみ更新
     if (m_threadSafe)
     {
-        ScopedSpinLock guard(m_lock); // スピンロックで排他制御
+        SpinLockGuard guard(m_lock); // スピンロックで排他制御
         m_triangles.push_back(tri); // 三角形を追加
 
 		// ボクセルの境界を更新
@@ -59,7 +78,7 @@ void VoxelGrid::InsertTriangle(const Triangle* tri)
 
 void VoxelGrid::BuildVoxelMapByTriangles(void)
 {
-	if (m_isReady) return; // すでにビルド済みなら何もしない
+	if (m_isReady) return; // すでにビルド済みなら何もしない（初期ビルドは1回想定）
 
     // グリッドの原点を決定（負数を避けて切り下げ）
     m_origin.x = floor(m_voxelBounds.minPoint.x / m_voxelSize) * m_voxelSize;
@@ -130,7 +149,7 @@ void VoxelGrid::Query(const XMFLOAT3& center, float radius, SimpleArray<const Tr
 	}
 }
 
-bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hitPos) const
+bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hitPos, XMFLOAT3* hitNormal) const
 {
     // レイ始点・終点をロード
     XMVECTOR p0 = XMLoadFloat3(&start);
@@ -150,6 +169,18 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
     // 始点・終点のボクセル座標
     VoxelKey voxel = GetVoxelKey(start);
     VoxelKey target = GetVoxelKey(end);
+
+    // ボクセル座標の範囲チェック
+    auto IsValidVoxel = [&](const VoxelKey& vk) -> bool {
+        return (vk.x >= 0 && vk.x < 1024 &&
+            vk.y >= 0 && vk.y < 1024 &&
+            vk.z >= 0 && vk.z < 1024);
+        };
+
+    // ボクセル座標の範囲チェック
+    if (!IsValidVoxel(voxel))
+		return false; // ボクセルキーが範囲外なら終了
+
 
     // DDA用の軸方向ステップ (+1 or -1)
     int stepX = (dir.x > 0) ? 1 : -1;
@@ -177,11 +208,14 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
 
     float traveled = 0.0f;
     float closestT = FLT_MAX;
-    XMFLOAT3 closestHit{};
+    XMFLOAT3 closestHit{}, closestHitNormal{};
 
     // DDAループ: レイが通過するボクセルを順次チェック
     while (traveled <= length) 
     {
+        if (!IsValidVoxel(voxel))
+			return false; // ボクセルキーが範囲外なら終了
+
         auto entryIt = m_voxelMap.find(voxel);
         if (entryIt != m_voxelMap.end()) 
         {
@@ -190,12 +224,14 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
             for (const Triangle* tri : entry.triangles) 
             {
                 float t;
-                XMFLOAT3 hit;
-                if (RayIntersectsTriangle(start, dir, tri, &t, &hit)) 
+                XMFLOAT3 hit, hitNormal;
+                if (RayIntersectsTriangle(start, dir, tri, &t, &hit, &hitNormal))
                 {
-                    if (t < closestT && t >= 0.0f && t <= length) {
+                    if (t < closestT && t >= 0.0f && t <= length) 
+                    {
                         closestT = t;
                         closestHit = hit;
+						closestHitNormal = hitNormal;
                     }
                 }
             }
@@ -203,6 +239,7 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
             if (closestT < FLT_MAX) 
             {
                 if (hitPos) *hitPos = closestHit;
+				if (hitNormal) *hitNormal = closestHitNormal;
                 return true;
             }
         }
@@ -216,7 +253,8 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
                 traveled = tMaxX;
                 tMaxX += tDeltaX;
             }
-            else {
+            else 
+            {
                 voxel.z += stepZ;
                 traveled = tMaxZ;
                 tMaxZ += tDeltaZ;
@@ -240,6 +278,66 @@ bool VoxelGrid::Raycast(const XMFLOAT3& start, const XMFLOAT3& end, XMFLOAT3* hi
     }
 
     return false;
+}
+
+bool VoxelGrid::RemoveTriangleIncremental(const Triangle* tri)
+{
+    if (!tri) return false;
+
+    VoxelHandle* h = nullptr;
+    {
+        SpinLockGuard rg(s_registryLock);
+        auto it = s_registry.find(tri);
+        if (it == s_registry.end()) return false;
+        h = it->value;
+    }
+    if (!h) return false;
+
+    // 参照スナップショット（ハンドル側の RemoveRef と干渉させない）
+    SimpleArray<VoxelRef> refs = h->refs;
+    bool removedAny = false;
+
+    for (int i = 0; i < refs.getSize(); ++i)
+    {
+        const VoxelKey key = refs[i].key;
+        const int idx = refs[i].indexInCell;
+
+        // 体素から tri を O(1) で削除（グリッド単一ロック）
+        const Triangle* moved = nullptr;
+        int newIdx = -1;
+        if (!RemoveTriFromCell(key, idx, moved, newIdx))
+            continue;
+
+        removedAny = true;
+
+        // moved が存在するなら、そのハンドルの当該セル内 index を回写
+        if (moved != nullptr)
+        {
+            VoxelHandle* movedH = nullptr;
+            {
+                SpinLockGuard rg(s_registryLock);
+                auto it = s_registry.find(moved);
+                movedH = (it != s_registry.end()) ? it->value : nullptr;
+            }
+            if (movedH)
+                movedH->UpdateIndex(key, newIdx);
+        }
+
+        // ハンドルからもこのセル参照を削除
+        h->RemoveRef(key);
+    }
+
+    // tri → handle をレジストリから消し、ハンドルを破棄
+    {
+        SpinLockGuard rg(s_registryLock);
+		auto it = s_registry.find(tri);
+        if (it == s_registry.end()) return false;
+        s_registry.erase(it);
+    }
+    h->Clear();
+    SAFE_DELETE(h);
+
+    return removedAny;
 }
 
 VoxelKey VoxelGrid::GetVoxelKey(const XMFLOAT3& pos) const
@@ -302,7 +400,7 @@ void VoxelGrid::print_debug_stats(void) const
 }
 
 bool VoxelGrid::RayIntersectsTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT3& rayDir, const Triangle* tri, 
-    float* outT, XMFLOAT3* outHit) const
+    float* outT, XMFLOAT3* outHit, XMFLOAT3* outHitNormal) const
 {
     // 頂点座標をロード
     XMVECTOR v0 = XMLoadFloat3(&tri->v0);
@@ -356,9 +454,121 @@ bool VoxelGrid::RayIntersectsTriangle(const XMFLOAT3& rayOrigin, const XMFLOAT3&
     if (outT) *outT = t;
 
     // 交差点座標を計算
-    if (outHit) {
+    if (outHit) 
+    {
         XMVECTOR hitPos = XMVectorAdd(orig, XMVectorScale(dir, t));
         XMStoreFloat3(outHit, hitPos);
     }
+
+    // 面法線（正規化）を計算
+    if (outHitNormal)
+    {
+        XMVECTOR normal = XMVector3Normalize(XMVector3Cross(edge1, edge2));
+
+        // 法線をレイの方向に合わせて反転（もし内向きなら反転）
+        // dot(dir, normal) > 0 の場合、normalはレイの進行方向と同じ向き → 反転
+        if (XMVectorGetX(XMVector3Dot(dir, normal)) > 0.0f)
+        {
+            normal = XMVectorNegate(normal);
+        }
+
+        XMStoreFloat3(outHitNormal, normal);
+    }
+
+    return true;
+}
+
+bool VoxelGrid::InsertTriangleIncremental(const Triangle* tri)
+{
+    if (!tri) return false;
+
+    // すでに登録済みかチェック（全体レジストリ）
+    {
+        SpinLockGuard reg(s_registryLock);
+        if (s_registry.find(tri) != s_registry.end())
+            return false; // 二重挿入は拒否
+    }
+
+    // 範囲外の扱い：ここでは簡易に拒否（必要なら Expand を別途実装）
+    const BOUNDING_BOX& triBox = tri->aabb;
+	if (!m_voxelBounds.intersects(triBox))
+        return false;
+
+    // 新規ハンドル確保（堆 or プール）
+    VoxelHandle* handle = new VoxelHandle();
+
+    // キー範囲の算出
+    VoxelKey minKey = GetVoxelKey(triBox.minPoint);
+    VoxelKey maxKey = GetVoxelKey(triBox.maxPoint);
+
+#ifdef _DEBUG
+    assert(minKey.x >= 0 && minKey.y >= 0 && minKey.z >= 0);
+#endif
+
+    bool any = false;
+
+    // 対象ボクセルへ追加（AddTriToCell_ 内で各種ロックを最小限に取得）
+    for (int x = minKey.x; x <= maxKey.x; ++x)
+        for (int y = minKey.y; y <= maxKey.y; ++y)
+            for (int z = minKey.z; z <= maxKey.z; ++z)
+            {
+                VoxelKey key{ x, y, z };
+                if (AddTriToCell(tri, key, handle))
+                    any = true;
+            }
+
+    if (!any)
+    {
+        delete handle;
+        return false;
+    }
+
+    // tri→handle をレジストリに登録
+    {
+        SpinLockGuard reg(s_registryLock);
+        s_registry[tri] = handle;
+    }
+
+    // 任意：m_triangles にも保持したい場合はここで push_back
+    // m_triangles.push_back(tri);
+
+    return true;
+}
+
+bool VoxelGrid::AddTriToCell(const Triangle* tri, const VoxelKey& key, VoxelHandle* handle)
+{
+    if (!tri || !handle) return false;
+
+    int idx = -1;
+    {
+        SpinLockGuard g(m_lock);               // グリッド全体の自旋ロック
+
+        VoxelEntry& entry = m_voxelMap[key];   // 新規 or 既存（unordered_map 構造変更もこのロック内）
+        idx = entry.triangles.getSize();       // ボクセル内インデックスを決定
+        entry.triangles.push_back(tri);        // 追加
+        handle->AddRef(key, idx);              // ハンドルに参照を記録（swap-pop のために必要）
+    }
+    return true;
+}
+
+bool VoxelGrid::RemoveTriFromCell(const VoxelKey& key, int indexInCell, const Triangle*& outMoved, int& outNewIdx)
+{
+    outMoved = nullptr;
+    outNewIdx = -1;
+
+    SpinLockGuard g(m_lock);
+
+    auto it = m_voxelMap.find(key);
+    if (it == m_voxelMap.end()) return false;
+
+    VoxelEntry& entry = it->value;
+    int last = entry.triangles.getSize() - 1;
+    if (indexInCell < 0 || indexInCell > last) return false;
+
+    outMoved = entry.triangles[last];
+    entry.triangles[indexInCell] = outMoved;   // 最後尾をスワップ
+    entry.triangles.pop_back();
+    outNewIdx = indexInCell;                   // moved の新しい位置
+
     return true;
 }

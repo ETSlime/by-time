@@ -20,6 +20,7 @@ void EffectSystem::Init(void)
 	m_billboardFlipbookEffects.reserve(MAX_BILLBOARD_FLIPBOOK_NUM);
 	m_waterFluidEffects.reserve(MAX_WATER_FLUID_NUM);
 	m_softBodyEffects.reserve(MAX_SOFTBODY_EFFECT_NUM);
+	m_otherEffects.reserve(MAX_OTHER_EFFECT_NUM);
 
 	m_initialized = true; // 初期化フラグを立てる
 }
@@ -28,8 +29,11 @@ void EffectSystem::Shutdown(void)
 {
 	for (auto& effect : m_allEffects)
 	{
-		effect->Shutdown();
-		SAFE_DELETE(effect);
+		if (effect)
+		{
+			effect->Shutdown();
+			SAFE_DELETE(effect);
+		}
 	}
 }
 
@@ -67,6 +71,7 @@ void EffectSystem::Draw(void)
 	m_billboardFlipbookEffects.clear();
 	m_softBodyEffects.clear();
 	m_waterFluidEffects.clear();
+	m_otherEffects.clear();
 
 	// 分類処理
 	for (auto effect : m_allEffects)
@@ -101,6 +106,7 @@ void EffectSystem::Draw(void)
 				m_softBodyEffects.push_back(effect);
 				break;
 			default:
+				m_otherEffects.push_back(effect);
 				break;
 			}
 		}
@@ -164,6 +170,19 @@ void EffectSystem::Draw(void)
 		lastType = EffectType::SoftBody;
 	}	
 
+	// その他のエフェクト描画
+	if (!m_otherEffects.empty())
+	{
+		// パイプライン状態をリセット
+		m_context->GSSetShader(nullptr, nullptr, 0);
+
+		for (auto other : m_otherEffects)
+		{
+			other->SetupPipeline();
+			other->Draw();
+		}
+	}
+
 	// 最後にパイプライン状態をリセット
 	ClearAllEffectBindings();
 }
@@ -213,6 +232,20 @@ ParticleEffectRendererBase* EffectSystem::SpawnParticleEffect(ParticleEffectPara
 	{
 		SAFE_DELETE(effect);
 		return nullptr;
+	}
+}
+
+void EffectSystem::AddEffect(IEffectRenderer* effect)
+{
+	if (!m_initialized)
+	{
+		Init(); // 初期化されていない場合は初期化
+	}
+	if (m_allEffects.getSize() >= MAX_EFFECT_NUM)
+		return; // 最大数に達している場合は追加しない
+	if (effect)
+	{
+		m_allEffects.push_back(effect);
 	}
 }
 

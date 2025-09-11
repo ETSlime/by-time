@@ -26,6 +26,7 @@
 #include "Scene/HPBarUI.h"
 #include "Effects/Skybox.h"
 #include "Effects/EffectSystem.h"
+#include "Effects/DecalRenderer.h"
 #include "Utility/SingletonBase.h"
 #include "Utility/InputManager.h"
 
@@ -75,8 +76,11 @@ public:
     void Shutdown(void);
     void Update(void);
     void Draw(void);
-
+	bool GetFinishLoading(void) const { return m_currLoadCtx.finishInitialLoad; }
     void RenderShadowPass(void);
+
+    // 読み込みがすべて完了したかを判定する関数
+    bool IsAllResourceReady(void) const;
 
     // ゲームの一時停止/再開
     void PauseGame(void);
@@ -96,6 +100,8 @@ public:
     void SetPauseFlag(void) { m_pauseFlag = true; }
     void ClearPauseFlag(void) { m_pauseFlag = false; }
     void SetAllowPause(bool allow) { m_allowPause = allow; }
+
+	void SetLoadGame(bool load) { m_loadGame = load; }
 
 	// ボタンのクリック状態を設定
     void SetResumeBtnClick(bool clicked) { m_resumeBtnClick = clicked; }
@@ -126,9 +132,10 @@ protected:
         , m_asyncModelLoader(AsyncModelLoader::get_instance())
         , m_deferredTaskSystem(DeferredTaskSystem::get_instance())
         , m_textureUploadQueue(TextureUploadQueue::get_instance())
-        , m_ground(Ground::get_instance()) 
+        , m_ground(Ground::get_instance())
         , m_skybox(Skybox::get_instance())
-        , m_tweenManager(TweenManager::get_instance()) {}
+        , m_tweenManager(TweenManager::get_instance())
+        , m_decalRenderer(DecalRenderer::get_instance()) {}
 
     // この行が絶対に必要！！
     // SingletonBase<GameSystem> が GameSystem の protected コンストラクタにアクセスできるようにするための特別な許可
@@ -162,8 +169,6 @@ private:
 
     // 非同期読み込み進行度を0.0～1.0で返す関数
     float CalculateCurrentLoadingProgress(void);
-    // 読み込みがすべて完了したかを判定する関数
-    bool IsAllResourceReady(void) const;
 
     // 内部状態
     bool m_isPaused = false;
@@ -174,6 +179,7 @@ private:
     bool m_showMiniMap = true;
     bool m_isAltDown = false; // Altキーが押されているかどうか
     bool m_skipLoadingFadeIn = false;
+	bool m_loadGame = false; // セーブデータからの読込かどうか
 
     GameMode m_mode = GameMode::TITLE;
 
@@ -203,4 +209,5 @@ private:
 	DeferredTaskSystem& m_deferredTaskSystem;
     TextureUploadQueue& m_textureUploadQueue;
     TweenManager& m_tweenManager;
+    DecalRenderer& m_decalRenderer;
 };

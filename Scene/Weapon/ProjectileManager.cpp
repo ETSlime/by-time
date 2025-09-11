@@ -30,6 +30,12 @@ void ProjectileManager::Draw(void)
 	Node<Projectile*>* cur = m_projectileList.getHead();
 	while (cur != nullptr)
 	{
+		//if (cur->data->GetProjectileAttributes().draw == FALSE)
+		//{
+		//	cur = cur->next;
+		//	continue;
+		//}
+
 		// ƒ‚ƒfƒ‹•`‰æ
 		if (cur->data->GetInstance()->renderProgress.progress < 1.0f)
 			m_renderer.SetRenderProgress(cur->data->GetInstance()->renderProgress);

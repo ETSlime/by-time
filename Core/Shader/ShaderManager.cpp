@@ -39,6 +39,8 @@ ShaderManager::~ShaderManager()
 
 void ShaderManager::Init(ID3D11Device* device)
 {
+    m_shaderReloadEntries.reserve(64);
+
     // シェーダーとシャドウシェーダーのソースをまとめて登録する
     RegisterShaderSourcePaths();
     CreateInputLayouts(device);
@@ -62,12 +64,19 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/Tree.hlsl", "VS",
         "Shaders/Tree.hlsl", "PS", 
         nullptr, nullptr, false);
+    RegisterShaderSource(ShaderSetID::Decal, VertexLayoutID::Decal,
+        "Shaders/Decal.hlsl", "VS",
+        "Shaders/Decal.hlsl", "PS",
+        nullptr, nullptr, false);
     RegisterShaderSource(ShaderSetID::Skybox, VertexLayoutID::Skybox,
         "Shaders/Skybox.hlsl", "VS",
         "Shaders/Skybox.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::VFX, VertexLayoutID::VFX,
         "Shaders/VFX.hlsl", "VS",
         "Shaders/VFX.hlsl", "PS");
+    RegisterShaderSource(ShaderSetID::ProjectilePreview, VertexLayoutID::ProjectilePreview,
+        "Shaders/ProjectilePreview.hlsl", "VS",
+        "Shaders/ProjectilePreview.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::FireEffect, VertexLayoutID::FireEffect,
         "Shaders/FireEffect.hlsl", "VS",
         "Shaders/FireEffect.hlsl", "PS",
@@ -96,6 +105,9 @@ void ShaderManager::RegisterShaderSourcePaths(void)
     RegisterShaderSource(ShaderSetID::UI, VertexLayoutID::UI,
         "Shaders/UI.hlsl", "VS",
         "Shaders/UI.hlsl", "PS");
+    RegisterShaderSource(ShaderSetID::LakeSurface, VertexLayoutID::FluidSurface,
+        "Shaders/LakeSurface.hlsl", "VS",
+        "Shaders/LakeSurface.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::Debug, VertexLayoutID::Debug,
         "Shaders/DebugBox.hlsl", "VS",
         "Shaders/DebugBox.hlsl", "PS");
@@ -521,7 +533,7 @@ void ShaderManager::CollectAndReloadShaders(ID3D11Device* device)
         const char* path = reloadEntry.path;
 
         // このフレームでまだこの path をチェックしていなければ
-        if (changedPaths.count(path) == 0 && m_reloader.HasFileChanged(path))
+        if (path && changedPaths.count(path) == 0 && m_reloader.HasFileChanged(path))
         {
             // 変更があった path を記録しておく
             // 同じ path を使う PS/VS/GS すべてにこの結果が使える！
@@ -534,7 +546,7 @@ void ShaderManager::CollectAndReloadShaders(ID3D11Device* device)
     for (const auto& reloadEntry : m_shaderReloadEntries)
     {
         // ファイル自体に変更なし → スキップ
-        if (changedPaths.count(reloadEntry.path) == 0)
+        if (!reloadEntry.path || changedPaths.count(reloadEntry.path) == 0)
             continue;
 
         const char* path = reloadEntry.path;
@@ -613,28 +625,60 @@ ID3D11InputLayout* ShaderManager::GetInputLayout(VertexLayoutID id) const
 
 void ShaderManager::CreateInstancedInputLayout(ID3D11Device* device)
 {
-    D3D11_INPUT_ELEMENT_DESC layout[] = {
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT,       0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // Weight
-    { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    {
+        D3D11_INPUT_ELEMENT_DESC layout[] = 
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32_FLOAT,       0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 }, // Weight
+            { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
 
-    // インスタンスデータ
-    { "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // OffsetPosition
-    { "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Rotation (Quaternion)
-    { "TEXCOORD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 28, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // initialBillboardRot (初期ビルボード回転)
-    { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT,          1, 44, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Scale
-    { "TEXCOORD", 5, DXGI_FORMAT_R32_FLOAT,          1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 } // Type
-    };
+            // インスタンスデータ
+            { "POSITION", 1, DXGI_FORMAT_R32G32B32_FLOAT,    1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // OffsetPosition
+            { "TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Rotation (Quaternion)
+            { "TEXCOORD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 28, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // initialBillboardRot (初期ビルボード回転)
+            { "TEXCOORD", 4, DXGI_FORMAT_R32_FLOAT,          1, 44, D3D11_INPUT_PER_INSTANCE_DATA, 1 }, // Scale
+            { "TEXCOORD", 5, DXGI_FORMAT_R32_FLOAT,          1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 } // Type
+        };
 
-    ID3DBlob* vsBlob = nullptr;
-    ShaderLoader::CompileShaderFromFile("Shaders/Tree.hlsl", "VS", SHADER_MODEL_VS, &vsBlob);
-    ID3D11InputLayout* inputLayout = nullptr;
-    device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &inputLayout);
-    vsBlob->Release();
+        ID3DBlob* vsBlob = nullptr;
+        ShaderLoader::CompileShaderFromFile("Shaders/Tree.hlsl", "VS", SHADER_MODEL_VS, &vsBlob);
+        ID3D11InputLayout* inputLayout = nullptr;
+        device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &inputLayout);
+        vsBlob->Release();
 
-    m_inputLayouts[TO_UINT64(VertexLayoutID::Instanced)] = inputLayout;
+        m_inputLayouts[TO_UINT64(VertexLayoutID::Instanced)] = inputLayout;
+    }
+
+    {
+        D3D11_INPUT_ELEMENT_DESC layout[] =
+        {
+            // 頂点位置（平面の4頂点用）
+            { "POSITION",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+
+            // インスタンスデータ（Slot 1）
+            { "INSTANCEPOS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "SCALE",       0, DXGI_FORMAT_R32_FLOAT,       1, 12, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "NORMAL",      0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "LIFETIME",    0, DXGI_FORMAT_R32_FLOAT,       1, 28, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "UVOFFSET",    0, DXGI_FORMAT_R32G32_FLOAT,    1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "ELAPSED",     0, DXGI_FORMAT_R32_FLOAT,       1, 40, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "ROTATION",    0, DXGI_FORMAT_R32_FLOAT,       1, 44, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			{ "ALPHA",       0, DXGI_FORMAT_R32_FLOAT,       1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			{ "PADDING",     0, DXGI_FORMAT_R32_UINT,        1, 52, D3D11_INPUT_PER_INSTANCE_DATA, 1 }
+        };
+
+
+        ID3DBlob* vsBlob = nullptr;
+        ShaderLoader::CompileShaderFromFile("Shaders/Decal.hlsl", "VS", SHADER_MODEL_VS, &vsBlob);
+        ID3D11InputLayout* inputLayout = nullptr;
+        device->CreateInputLayout(layout, ARRAYSIZE(layout), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &inputLayout);
+        vsBlob->Release();
+
+        m_inputLayouts[TO_UINT64(VertexLayoutID::Decal)] = inputLayout;
+    }
+
 }
 
 void ShaderManager::CreateSkinnedInputLayout(ID3D11Device* device)

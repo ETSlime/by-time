@@ -1,4 +1,5 @@
-#include "Projectile.h"
+#include "Scene/Weapon/Projectile.h"
+#include "Effects/DecalRenderer.h"
 
 Projectile::Projectile(ProjectileType projectileType, Transform transform, XMFLOAT3 dir, float speed)
 {
@@ -27,12 +28,15 @@ void Projectile::Initialize(void)
 	instance.transform.rot = m_projectileAttributes.initTrans.rot;
 	instance.transform.scl = m_projectileAttributes.initTrans.scl;
 
-	instance.castShadow = false; // 影を落とす
+	instance.castShadow = true; // 影を落とす
+
+	instance.collider.AddCollisionCallback(OnHitGroundCallback, this, CollisionCallbackID::ProjectileHit);
 }
 
 void Projectile::SetActive(bool enable)
 {
 	instance.collider.enable = enable;
+	instance.castShadow = enable;
 	instance.attributes.use = enable;
 }
 
@@ -48,16 +52,10 @@ void Projectile::Update(void)
 		return;
 	}
 
-	if (instance.use == true)		// このエネミーが使われている？
+	if (instance.use == true)
 	{
+		float speed = m_projectileAttributes.speed * m_timer.GetScaledDeltaTime();
 
-		//instance.transform.pos += m_projectileAttributes.dir; //* m_projectileAttributes.speed;
-
-		float speed = m_projectileAttributes.speed * timer.GetScaledDeltaTime();
-
-		//instance.transform.pos.x += (cos(m_projectileAttributes.dir.x) * cos(m_projectileAttributes.dir.y) * speed);
-		//instance.transform.pos.z += (sin(m_projectileAttributes.dir.x) * cos(m_projectileAttributes.dir.y) * speed);
-		//instance.transform.pos.y += (sin(m_projectileAttributes.dir.y) * speed);
 		instance.transform.pos.x += m_projectileAttributes.dir.x * speed;
 		instance.transform.pos.y += m_projectileAttributes.dir.y * speed;
 		instance.transform.pos.z += m_projectileAttributes.dir.z * speed;
@@ -65,11 +63,10 @@ void Projectile::Update(void)
 
 		GameObject::Update();
 
-		m_projectileAttributes.duration -= timer.GetDeltaTime();
+		m_projectileAttributes.duration -= m_timer.GetDeltaTime();
 
 		if (m_projectileAttributes.duration < 0) {
 			SetActive(false);
-			//SetUse(false);
 		}
 		
 
@@ -81,6 +78,21 @@ void Projectile::Update(void)
 void Projectile::Draw(void)
 {
 	GameObject::Draw();
+}
+
+void Projectile::OnHitGroundCallback(const CollisionEvent& event, void* context)
+{
+	Projectile* self = static_cast<Projectile*>(context);
+	if (self == nullptr || !self->instance.use || !self->instance.load)
+		return;
+
+	self->SetActive(false);
+	if (!event.additionalData) return;
+
+	// 衝突した面の法線
+	XMFLOAT3 hitNormal = *static_cast<const XMFLOAT3*>(event.additionalData);
+
+	DecalRenderer::get_instance().AddDecal(self->m_projectileAttributes.potentialHitPos, hitNormal, 35.0f, 25.0f, 0.1f);
 }
 
 

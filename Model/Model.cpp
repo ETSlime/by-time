@@ -508,8 +508,10 @@ void Model::BuildMeshTriangles(const XMMATRIX& worldMatrix, bool alwaysFaceUp)
 	m_buildTriangles = true;
 }
 
-bool Model::BuildOctree(void)
+bool Model::BuildOctree(bool trackTriangles)
 {
+	m_trackTriangles = trackTriangles;
+
 	if (!m_modelData->triangles.getSize())
 		return false;
 
@@ -519,7 +521,7 @@ bool Model::BuildOctree(void)
 	int numTriangles = m_modelData->triangles.getSize();
 	for (int i = 0; i < numTriangles; i++)
 	{
-		if (!CollisionManager::get_instance().OctreeInsertTriangle(m_modelData->triangles[i]))
+		if (!CollisionManager::get_instance().OctreeInsertTriangle(m_modelData->triangles[i], trackTriangles))
 			return false;
 	}
 
@@ -564,13 +566,13 @@ const SimpleArray<StaticMeshPart>& Model::GetMeshParts(void) const
 	return m_meshParts;
 }
 
-bool Model::Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox)
+bool Model::Deferred_BuildBoundingBoxTriangles(const BOUNDING_BOX& box, bool drawBoundingBox, bool trackTriangles)
 {
 	SetDrawBoundingBox(drawBoundingBox);
 
 	bool success = false;
 	BuildBoundingBoxTriangles(box);
-	success = BuildOctree();
+	success = BuildOctree(trackTriangles);
 
 	return success;
 }

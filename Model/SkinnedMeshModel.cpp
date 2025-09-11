@@ -124,8 +124,6 @@ void SkinnedMeshModel::DrawModel()
             for (int i = 0; i < size; i++)
             {
                 boneMatrices[i] = XMMatrixTranspose(XMLoadFloat4x4(&m_modelData.boneTransformData.mBoneFinalTransforms[i]));
-                //XMMATRIX dbg = boneMatrices[i];
-                //dbg = boneMatrices[i];
             }
             Renderer::get_instance().SetBoneMatrix(boneMatrices);
         }

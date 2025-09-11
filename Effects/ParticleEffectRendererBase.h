@@ -198,6 +198,7 @@ protected:
     BLEND_MODE m_blendMode = BLEND_MODE_NONE;
 
     UINT m_maxParticles = MAX_PARTICLES; // パーティクル最大数
+	float m_duration = -1.0f; // パーティクルの持続時間
     float m_scale = 1.0f; // パーティクルスケール
     float m_lifeMin = 0.0f; // 最小寿命
     float m_lifeMax = 0.0f; // 最大寿命

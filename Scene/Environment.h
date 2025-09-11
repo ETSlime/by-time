@@ -16,8 +16,8 @@
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
 //*****************************************************************************
-#define GRASS_1_MODEL_PATH          "data/MODEL/Environment/Grass_1.obj"
-#define GRASS_1_TEX_PATH            "data/MODEL/Environment/Grass_1.png"
+#define GRASS_1_MODEL_PATH          "data/MODEL/Environment/Grass.obj"
+#define GRASS_1_TEX_PATH            "data/MODEL/Environment/Grass.png"
 #define GRASS_2_MODEL_PATH          "data/MODEL/Environment/Grass_2.obj"
 #define GRASS_2_TEX_PATH            "data/MODEL/Environment/Grass_2.png"
 #define CLOVER_1_MODEL_PATH         "data/MODEL/Environment/Clover_1.obj"
@@ -152,6 +152,7 @@ struct InstanceTransformInfo
     float posZ;
     float rotY;
     float scl;
+    float offsetY;
 
     InstanceTransformInfo()
     {
@@ -159,14 +160,16 @@ struct InstanceTransformInfo
         posZ = 0.0f;
         rotY = 0.0f;
         scl = 1.0f;
+        offsetY = 0.0f;
     }
 
-    InstanceTransformInfo(float posX, float posZ, float rotY, float scl)
+    InstanceTransformInfo(float posX, float posZ, float rotY, float scl, float offsetY = 0.0f)
     {
         this->posX = posX;
         this->posZ = posZ;
         this->scl = scl;
         this->rotY = rotY;
+        this->offsetY = offsetY;
     }
 };
 
@@ -228,10 +231,8 @@ private:
 
     SimpleArray<EnvironmentObject*> m_environmentObjects;
 
-    float m_time;
     ShaderSet m_grassShaderSet;
     ShaderSet m_treeShaderSet;
-    bool m_shaderHotReload = true;
 
     ID3D11Buffer* m_perFrameBuffer;
     ID3D11ShaderResourceView* noiseTextureSRV;
@@ -244,6 +245,8 @@ private:
     DebugBoundingBoxRenderer m_debugBoundingBoxRenderer;
     Camera& m_camera = Camera::get_instance();
     ShaderResourceBinder& m_shaderResourceBinder = ShaderResourceBinder::get_instance();
+	Timer& m_timer = Timer::get_instance();
+	Renderer& m_renderer = Renderer::get_instance();
 };
 
 

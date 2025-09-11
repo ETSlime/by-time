@@ -380,7 +380,7 @@
     <ClInclude Include="UI\UIMainHUD.h">
       <Filter>UI</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\PlayerEnterExitBehavior.h">
+    <ClInclude Include="Scene\EnterExitBehavior.h">
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="UI\Base\UIInteractPrompt.h">
@@ -430,6 +430,30 @@
     </ClInclude>
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
       <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ProjectileFollowerManager.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\ProjectilePreview\ArcLengthPathFollower.h">
+      <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\LakeSurfaceRenderer.h">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Character\Enemy_NPC.h">
+      <Filter>Scene\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\SaveSystem.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\DecalRenderer.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\SaveCompleteModal.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Character\Boss.h">
+      <Filter>Scene\Character</Filter>
     </ClInclude>
     <ClInclude Include="Scene\Item\Interactable\AutumnDoor.h">
       <Filter>Scene\Item\Interactable</Filter>
@@ -680,7 +704,7 @@
     <ClCompile Include="Scene\Item\ItemManager.cpp">
       <Filter>Scene\Item</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\PlayerEnterExitBehavior.cpp">
+    <ClCompile Include="Scene\EnterExitBehavior.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="UI\UIMainHUD.cpp">
@@ -721,6 +745,21 @@
     </ClCompile>
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp">
       <Filter>Effects\ProjectilePreview</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\LakeSurfaceRenderer.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Character\Enemy_NPC.cpp">
+      <Filter>Scene\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\SaveSystem.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\DecalRenderer.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Character\Boss.cpp">
+      <Filter>Scene\Character</Filter>
     </ClCompile>
     <ClCompile Include="Scene\Item\Interactable\AutumnDoor.cpp">
       <Filter>Scene\Item\Interactable</Filter>
