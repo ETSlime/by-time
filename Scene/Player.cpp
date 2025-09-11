@@ -50,6 +50,7 @@ Player::Player()
 	m_playerAttr.isMeleeMode = true; // ‰Šú‚Í‹ßÚƒ‚[ƒh
 	m_playerAttr.seedCount = 0; // ‰Šú‚Íí‚ğ‚Á‚Ä‚¢‚È‚¢
 	m_playerAttr.keyCount = 0;
+	m_playerAttr.plantedSeed = false;
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
@@ -500,14 +501,18 @@ void Player::UpdateNormalMode(void)
 		}
 
 		m_linkedInteractable = nullptr;
+
 	}
 	else {
-	
-		UIManager::get_instance().ClearActivePrompt();
 
-		delete m_InteractPrompt;
+		if (m_InteractPrompt != nullptr) {
 
-		m_InteractPrompt = nullptr;
+			UIManager::get_instance().ClearActivePrompt();
+
+			delete m_InteractPrompt;
+
+			m_InteractPrompt = nullptr;
+		}
 	
 	}
 

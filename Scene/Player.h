@@ -29,7 +29,7 @@
 #define VALUE_PLAYEER_RUN_FACTOR	(2.5f)
 #define	VALUE_PLAYER_ROTATE			(XM_PI * 0.02f)					// âÒì]ó 
 
-#define PLAYER_INIT_POS				XMFLOAT3(9354.0f, 6470.0f, 2096.0f)
+#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6270.0f, 4453.0f)//XMFLOAT3(9354.0f, 6470.0f, 2096.0f)
 
 #define BULLET_FIRE_INTERVAL		(0.1f)							// íeÇÃî≠éÀä‘äuÅiïbÅj
 #define SUN_BULLET_FIRE_INTERVAL	(0.5f)							// íeÇÃî≠éÀä‘äuÅiïbÅj
@@ -45,6 +45,7 @@ struct PlayerAttributes
 	int				keyCount = 0;
 	int				bulletCount = 0;
 	bool			hasBullet = false;
+	bool			plantedSeed = false;
 
 	bool			isMeleeMode = true;
 	bool			allowControl = true;

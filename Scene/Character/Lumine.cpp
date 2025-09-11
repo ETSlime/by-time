@@ -501,6 +501,7 @@ void Lumine::PlaceItem(ItemType type)
 			m_playerAttr->seedCount--;
 			m_playerAttr->allowControl = false;
 			m_stateMachine->SetCurrentState(STATE(PlayerState::PLANT_SEED));
+			m_playerAttr->plantedSeed = true;
 		}
 		return;
 	}

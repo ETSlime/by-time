@@ -17,6 +17,7 @@
 #include "Scene/Ground.h"
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Interactable/AutumnDoor.h"
+#include "Core/GameSystem.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -424,11 +425,11 @@ void Ground::InitTerrain(void)
 	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/cubes.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/door_l.obj";
+	/*terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/door_l.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
 	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/door_r.obj";
-	CreateTerrainGO(terrainBuildConfig);
+	CreateTerrainGO(terrainBuildConfig);*/
 
 	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/fence1.obj";
 	CreateTerrainGO(terrainBuildConfig);
@@ -659,6 +660,7 @@ void Ground::LoadSceneSpringDay(void)
 	}
 	else if (!m_sceneSeed->GetPickedUp())
 		m_sceneSeed->SetActive(true);
+
 	if (m_sceneSoil == nullptr)
 	{
 
@@ -720,7 +722,7 @@ void Ground::LoadSceneSpringNight(void)
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
-	if (m_scenePSeed != nullptr)
+	/*if (m_scenePSeed != nullptr)
 	{
 
 		if(m_sceneVines == nullptr){
@@ -737,7 +739,7 @@ void Ground::LoadSceneSpringNight(void)
 			m_sceneVines->SetActive(true);
 		
 
-	}
+	}*/
 
 	if (m_sceneSoil != nullptr)
 		m_sceneSoil->SetActive(false);
@@ -775,38 +777,48 @@ void Ground::LoadSceneSpringNight(void)
 	//IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
 	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
 
-	GameObjectConfig IvyConfig{};
-	IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";
-	IvyConfig.collisionType = ObjectCollisionType::NONE;
-	IvyConfig.colliderTag = ColliderTag::STATIC_OBJECT;
-	IvyConfig.scale = IVY_SCALE;
-	IvyConfig.position = IVY_POS;
-	IvyConfig.rotation = XMFLOAT3(0.0f, IVY_ROT_Y, 0.0f);
-	IvyConfig.drawWorldAABB = false;
-	IvyConfig.castShadow = true;
-	IvyConfig.loadAsync = false;
-	GameObject<ModelInstance>* ivyGO = new GameObject<ModelInstance>();
-	ivyGO->Instantiate(IvyConfig);
-	m_staticGOs.push_back(ivyGO);
-	m_sceneEntityMap[TO_UINT64(SceneID::Spring_Night)].push_back(ivyGO);
+	Player* player = GameSystem::get_instance().GetPlayer();
+	
 
-	if (!m_modelLoadMap.contains(IvyConfig.modelPath))
+	if (player->GetPlayerAttributes().plantedSeed)
 	{
-		m_modelLoadMap[IvyConfig.modelPath] = 0;
-		m_totalModelLoadCnt++;
+
+		//if (m_sceneVines == nullptr) {
+
+			GameObjectConfig IvyConfig{};
+			IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";
+			IvyConfig.collisionType = ObjectCollisionType::NONE;
+			IvyConfig.colliderTag = ColliderTag::STATIC_OBJECT;
+			IvyConfig.scale = IVY_SCALE;
+			IvyConfig.position = IVY_POS;
+			IvyConfig.rotation = XMFLOAT3(0.0f, IVY_ROT_Y, 0.0f);
+			IvyConfig.drawWorldAABB = false;
+			IvyConfig.castShadow = true;
+			IvyConfig.loadAsync = false;
+			GameObject<ModelInstance>* ivyGO = new GameObject<ModelInstance>();
+			ivyGO->Instantiate(IvyConfig);
+			m_staticGOs.push_back(ivyGO);
+			m_sceneEntityMap[TO_UINT64(SceneID::Spring_Night)].push_back(ivyGO);
+
+			if (!m_modelLoadMap.contains(IvyConfig.modelPath))
+			{
+				m_modelLoadMap[IvyConfig.modelPath] = 0;
+				m_totalModelLoadCnt++;
+			}
+
+
+			BOUNDING_BOX triggerBox;
+			triggerBox.minPoint = XMFLOAT3(8550.6f, 6367.0f, 7835.6f);
+			triggerBox.maxPoint = XMFLOAT3(8814.2f, 6404.0f, 8136.0f);
+
+			RegisterEventTrigger(triggerBox, EventCallbackAction::StartClimbUp, SceneID::Spring_Night);
+
+			triggerBox.minPoint = XMFLOAT3(8625.6f, 9717.0f, 7986.6f);
+			triggerBox.maxPoint = XMFLOAT3(8964.2f, 9830.0f, 8399.0f);
+
+			RegisterEventTrigger(triggerBox, EventCallbackAction::StopClimbUp, SceneID::Spring_Night);
+		//}
 	}
-
-
-	BOUNDING_BOX triggerBox;
-	triggerBox.minPoint = XMFLOAT3(8550.6f, 6367.0f, 7835.6f);
-	triggerBox.maxPoint = XMFLOAT3(8814.2f, 6404.0f, 8136.0f);
-
-	RegisterEventTrigger(triggerBox, EventCallbackAction::StartClimbUp, SceneID::Spring_Night);
-
-	triggerBox.minPoint = XMFLOAT3(8625.6f, 9717.0f, 7986.6f);
-	triggerBox.maxPoint = XMFLOAT3(8964.2f, 9830.0f, 8399.0f);
-
-	RegisterEventTrigger(triggerBox, EventCallbackAction::StopClimbUp, SceneID::Spring_Night);
 
 	LoadLakeAirWalls(SceneID::Spring_Night);
 
