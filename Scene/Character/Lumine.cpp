@@ -1272,6 +1272,25 @@ void Lumine::OnThrowAnimationEnd(void)
 	m_playerAttr->allowControl = true;
 }
 
+void Lumine::SetPlayerComponent(void* player)
+{
+	m_player = player;
+}
+
+void* Lumine::GetPlayerComponent(void)
+{
+	return m_player;
+}
+
+void Lumine::ForwardEnemyAttackHit(const CollisionEvent& event)
+{
+	if (m_player)
+	{
+		Player* player = static_cast<Player*>(m_player);
+		player->OnEnemyAttackHit(event);
+	}
+}
+
 void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 {
 	Lumine* self = static_cast<Lumine*>(context);
