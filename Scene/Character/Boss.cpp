@@ -188,7 +188,7 @@ void Boss::Update(void)
 	if (state != STATE(EnemyState::ATTACK))
 		m_attackCollider.collider.enable = false;
 
-	float animSpeed = m_playAnimSpeed * m_timer.GetScaledDeltaTime();
+	float animSpeed = m_playAnimSpeed * m_timer.GetScaledDeltaTime() * 1.2f;
 	if (!m_bossFightStarted)
 		animSpeed = 0.0f;
 	switch (m_stateMachine->GetCurrentState())
@@ -218,7 +218,7 @@ void Boss::Update(void)
 		PlayGeneralAnim(AnimClipName::ANIM_BOSS_STANDING_UP, animSpeed);
 		break;
 	case STATE(EnemyState::GET_UP):
-		PlayGeneralAnim(AnimClipName::ANIM_GETTING_UP, animSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_GETTING_UP, animSpeed * 1.5f);
 		break;
 	case STATE(EnemyState::FALL_DOWN):
 		PlayGeneralAnim(AnimClipName::ANIM_FALLING_DOWN, animSpeed);

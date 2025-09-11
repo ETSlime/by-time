@@ -3,7 +3,7 @@ illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
-map_Kd hana2.png
+map_Kd hana5.png
 Ni 1.00
 newmtl aiStandardSurface2SG
 illum 4
@@ -59,7 +59,7 @@ illum 4
 Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
-map_Kd CD.png
+map_Kd CD_new_t.png
 Ni 1.00
 newmtl aiStandardSurface15SG
 illum 4
@@ -74,6 +74,13 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 map_Kd winered.png
+Ni 1.00
+newmtl ground2:aiStandardSurface2SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd ground.png
 Ni 1.00
 newmtl initialShadingGroup
 illum 4
@@ -94,6 +101,20 @@ Kd 0.00 0.00 0.00
 Ka 0.00 0.00 0.00
 Tf 1.00 1.00 1.00
 map_Kd door.jpg
+Ni 1.00
+newmtl lambert17SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd tree_new_t.png
+Ni 1.00
+newmtl lambert18SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd fence_t.png
 Ni 1.00
 newmtl phong1SG
 illum 4

@@ -29,7 +29,7 @@ enum class LaserHitKind : uint8_t
 struct LaserParams
 {
     // レーザー挙動
-    float speed = 800.0f;   // 1秒あたり進行距離（直線）
+    float speed = 1600.0f;   // 1秒あたり進行距離（直線）
     float maxLength = 10000.0f;  // 最大射程
     float headJitter = 0.0f;    // 先端揺らぎ（任意）
 
