@@ -10,7 +10,6 @@
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Effects/EffectSystem.h"
 #include "UI/Base/UIManager.h"
-#include "Core/GameSystem.h"
 
 
 //*****************************************************************************
@@ -66,7 +65,8 @@ Lumine::Lumine()
 	SkinnedGameObjectConfig config;
 	config.modelPath = "data/MODEL/character/Lumine";
 	config.modelName = "Character_output.fbx";
-	config.modelType = SkinnedModelType::Lumine;
+	config.modelType = SkinnedModelType::Default;
+	//config.modelType = SkinnedModelType::Lumine;
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	config.colliderTag = ColliderTag::PLAYER;
 	Instantiate(config);
@@ -129,9 +129,9 @@ void Lumine::PostInit(void)
 			auto* ctx = static_cast<InitContext*>(ptr);
 			ctx->owner->InitializeAnimation();
 
-			ctx->owner->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
-			ctx->owner->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
-			ctx->owner->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
+			//ctx->owner->instance.pModel->SetBodyDiffuseTexture("data/MODEL/character/Lumine/texture_0.png");
+			//ctx->owner->instance.pModel->SetHairDiffuseTexture("data/MODEL/character/Lumine/hair.png");
+			//ctx->owner->instance.pModel->SetFaceDiffuseTexture("data/MODEL/character/Lumine/face.png");
 
 			ctx->owner->GameObject::PostInit();
 		},
@@ -158,7 +158,6 @@ void Lumine::InitializeAnimation(void)
 	AddAnimation("data/MODEL/character/Lumine/", "Run_Aiming.fbx", AnimClipName::ANIM_RUN_ANIMING);
 	AddAnimation("data/MODEL/character/Lumine/", "Idle_Aiming.fbx", AnimClipName::ANIM_IDLE_AIMING);
 	AddAnimation("data/MODEL/character/Lumine/", "Stand_Jump_Aiming.fbx", AnimClipName::ANIM_STAND_JUMP_AIMING, AnimPlayMode::ONCE);
-	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING, AnimPlayMode::ONCE);
 	AddAnimation("data/MODEL/character/Lumine/", "Run_Jump_Aiming.fbx", AnimClipName::ANIM_RUN_JUMP_AIMING, AnimPlayMode::ONCE);
 	AddAnimation("data/MODEL/character/Lumine/", "Throw.fbx", AnimClipName::ANIM_THROW, AnimPlayMode::ONCE);
 
@@ -1212,16 +1211,6 @@ void Lumine::OnJumpAnimationEnd(void)
 	instance.attributes.isJumping = false;
 }
 
-void Lumine::SetPlayerComponent(void* player)
-{
-	m_player = player;
-}
-
-void* Lumine::GetPlayerComponent(void)
-{
-	return m_player;
-}
-
 void Lumine::OnPlantSeedAnimationEnd(void)
 {
 	m_playerAttr->allowControl = true;
@@ -1308,7 +1297,6 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		Item* item = static_cast<Item*>(itemCol->owner);
 		if (item && item->GetItemType() == ItemType::Seed && !item->GetIsThrew())
 		{
-			//self->EnableSeed(true);
 			self->m_playerAttr->seedCount++;	
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
@@ -1322,47 +1310,9 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 			if (self->m_playerAttr->bulletCount > MAX_BULLET_COUNT)
 				self->m_playerAttr->bulletCount = MAX_BULLET_COUNT;
 		}
-			//self->EnableWeapon(true);
-			self->m_playerAttr->keyCount++;
-		
+
 	}
 
-}
-
-//void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
-//{
-//	Lumine* self = static_cast<Lumine*>(context);
-//
-//	if (self->instance.attributes.hitTimer <= 0)
-//	{
-//		self->SetHitTimer(PLAYER_HIT_WINDOW);
-//		if (!self->GetIsHit())
-//		{
-//			self->SetIsHit(true);
-//		}
-//	}
-//}
-
-//void Lumine::RenderImGui(void)
-//{
-//	if (ImGui::CollapsingHeader("Weapon Transform"))
-//	{
-//		ImGui::SliderFloat("Gun PosX: ", &m_gunPosX, -100.0f, 100.0f, "%.1f");
-//		ImGui::SliderFloat("Gun PosY: ", &m_gunPosY, -100.0f, 100.0f, "%.1f");
-//		ImGui::SliderFloat("Gun PosZ: ", &m_gunPosZ, -100.0f, 100.0f, "%.1f");
-//		ImGui::SliderFloat("Gun RotX: ", &m_gunRotX, -XM_PI, XM_PI, "%.1f");
-//		ImGui::SliderFloat("Gun RotY: ", &m_gunRotY, -XM_PI, XM_PI, "%.1f");
-//		ImGui::SliderFloat("Gun RotZ: ", &m_gunRotZ, -XM_PI, XM_PI, "%.1f");
-//	}
-//}
-
-void Lumine::ForwardEnemyAttackHit(const CollisionEvent& event)
-{
-	if (m_player)
-	{
-		Player* player = static_cast<Player*>(m_player);
-		player->OnEnemyAttackHit(event);
-	}
 }
 
 void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
