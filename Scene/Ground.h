@@ -44,6 +44,9 @@ enum class SceneID : uint64_t
 	SCENE_1,
 	SCENE_2,
 	SCENE_3,
+	SCENE_4,
+	SCENE_5,
+	SCENE_6
 };
 
 // 前方宣言
@@ -79,6 +82,10 @@ private:
 	// シーンロード関数
 	void LoadScene1(void);
 	void LoadScene2(void);
+	void LoadScene3(void);
+	void LoadScene4(void);
+	void LoadScene5(void);
+	void LoadScene6(void);
 
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
@@ -175,10 +182,15 @@ private:
 		);
 
 	Item* m_sceneKey = nullptr;
+	Item* m_sceneKey2 = nullptr;
 	Item* m_sceneSeed = nullptr;
 	Item* m_sceneSoil = nullptr;
 	Item* m_scenePSeed = nullptr;
 	Item* m_sceneVines = nullptr;
+	Item* m_scenesADoorL = nullptr;
+	Item* m_scenesADoorR = nullptr;
+	Item* m_scenesGate = nullptr;
+
 	Skybox& m_skybox = Skybox::get_instance();
 };
 

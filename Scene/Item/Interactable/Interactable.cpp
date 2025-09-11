@@ -63,10 +63,10 @@ void Interactable::Update(void)
 		XMVectorSet(localMax.x, localMin.y, localMin.z, 1.0f),
 		XMVectorSet(localMin.x, localMax.y, localMin.z, 1.0f),
 		XMVectorSet(localMax.x, localMax.y, localMin.z, 1.0f),
-		XMVectorSet(localMin.x, localMin.y, localMax.z+200, 1.0f),
-		XMVectorSet(localMax.x, localMin.y, localMax.z+200, 1.0f),
-		XMVectorSet(localMin.x, localMax.y, localMax.z+200, 1.0f),
-		XMVectorSet(localMax.x, localMax.y, localMax.z+200, 1.0f),
+		XMVectorSet(localMin.x, localMin.y, localMax.z+50, 1.0f),
+		XMVectorSet(localMax.x, localMin.y, localMax.z+50, 1.0f),
+		XMVectorSet(localMin.x, localMax.y, localMax.z+50, 1.0f),
+		XMVectorSet(localMax.x, localMax.y, localMax.z+50, 1.0f),
 	};
 
 	// ÉèÅ[ÉãÉhãÛä‘AABBÇÃèâä˙âª

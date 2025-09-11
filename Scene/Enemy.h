@@ -89,6 +89,14 @@ struct EnemyAttributes
 	bool				randomMove;
 	float				respawnTimer;
 
+	// 攻撃アニメーションの時間管理
+	float attackTimer = 0.0f;        // 経過時間
+	float attackHitDelay = 0.3f;     // 振りかぶりから当たり判定が出るまでの遅延
+	float attackHitWindow = 0.2f;    // 当たり判定が有効な時間
+	float attackTotal = 1.0f;        // 攻撃モーション全体の長さ（例: 1秒）
+	bool  attackHitboxEnabled = false; // 当たり判定が有効かどうか
+	bool hasDealtDamage = false; // この攻撃でダメージを与えたか？
+
 	void Initialize()
 	{
 		isWaiting = false;
@@ -204,6 +212,9 @@ private:
 	ID3D11Buffer*				m_HPGaugeVertexBuffer = nullptr;
 	ID3D11Buffer*				m_HPGaugeCoverVertexBuffer = nullptr;
 	EnemyUI						m_HPGauge;
+
+	Collider* m_attackCollider = nullptr;  // 攻撃用コライダー
+	void EnableEnemyAttackCollider(bool enable);
 
 	//void UpdateEditorSelect(int sx, int sy);
 };

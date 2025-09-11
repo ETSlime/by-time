@@ -11,7 +11,7 @@
 #include "Scene/Player.h"
 #include "Scene/Weapon/Projectile.h"
 #include "Scene/Ground.h"
-#include "Scene/Item/Interactable.h"
+#include "Scene/Item/Interactable/Interactable.h"
 #include "Utility/Debug/Debugproc.h"
 
 //*****************************************************************************
@@ -536,6 +536,7 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::PickUpItem);
 
                 }
+                //プレイヤーのHPとの関係性あり
                 else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::INTERACTABLE)
                     || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::INTERACTABLE))
                 {

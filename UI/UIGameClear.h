@@ -1,7 +1,8 @@
 #pragma once
-#include "UI/Base/UIManager.h"
-#include "UI/Base/UISprite.h"
+#include "Base/UIManager.h"
+#include "Base/UISprite.h"
 #include "Core/TextureMgr.h"
+#include "Core/GameSystem.h"
 #include "Utility/InputManager.h"
 
 #define GAMECLEAR_TEXTURE_PATH       "data/TEXTURE/gameclear.jpg" // 1枚テクスチャ
@@ -14,8 +15,8 @@ public:
     void Init(GameSystem* system)
     {
         m_fullSprite = new UISprite();
-        m_fullSprite->Init(TextureMgr::get_instance().CreateTexture(GAMECLEAR_TEXTURE_PATH),
-            UIManager::get_instance().GetSpriteVertexBuffer());
+        //m_fullSprite->Init(TextureMgr::get_instance().CreateTexture(GAMECLEAR_TEXTURE_PATH),
+            //UIManager::get_instance().GetSpriteVertexBuffer());
         m_fullSprite->SetPosition({ float(SCREEN_CENTER_X), float(SCREEN_CENTER_Y) });
         m_fullSprite->SetSize({ float(SCREEN_WIDTH), float(SCREEN_HEIGHT) });
 
@@ -34,11 +35,11 @@ public:
 
     void Update() override
     {
-        if (m_fullSprite) m_fullSprite->Update();
+        //if (m_fullSprite) m_fullSprite->Update();
 
         if (!m_clickLocked && !m_fadeOutStarted)
         {
-            if (m_inputManager->IsMouseLeftClicked())
+            if (m_inputManager->get_instance().IsMouseLeftTriggered())
             {
                 StartFadeOut();
             }

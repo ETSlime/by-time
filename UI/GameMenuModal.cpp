@@ -80,8 +80,15 @@ GameMenuModal::GameMenuModal(GameSystem* gameSystem) : m_gameSystem(gameSystem)
 		m_elements.push_back(m_btnTimeControl[i]);
 	}
 
-	m_btnTimeControl[0]->SetOnClick(OnSceneSwitchClicked, m_gameSystem); // 最初のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[0]->SetOnClick(SwitchToScene1, m_gameSystem); // 最初のボタンにシーン切り替えのコールバックを設定
 
+	m_btnTimeControl[1]->SetOnClick(SwitchToScene2, m_gameSystem); // 2番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[2]->SetOnClick(SwitchToScene3, m_gameSystem); // 3番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[3]->SetOnClick(SwitchToScene4, m_gameSystem); // 4番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[4]->SetOnClick(SwitchToScene5, m_gameSystem); // 5番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[5]->SetOnClick(SwitchToScene6, m_gameSystem); // 6番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[6]->SetOnClick(SwitchToScene6, m_gameSystem); // 7番目のボタンにシーン切り替えのコールバックを設定
+	m_btnTimeControl[7]->SetOnClick(SwitchToScene6, m_gameSystem); // 6番目のボタンにシーン切り替えのコールバックを設定
 
 	OnAppear();
 }
@@ -182,7 +189,55 @@ void GameMenuModal::OnExitClicked(void* userData)
 	);
 }
 
-void GameMenuModal::OnSceneSwitchClicked(void* userData)
+void GameMenuModal::SwitchToScene1(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_1)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_1);
+}
+
+void GameMenuModal::SwitchToScene2(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_2)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_2);
+}
+
+void GameMenuModal::SwitchToScene3(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_3)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_3);
+}
+
+void GameMenuModal::SwitchToScene4(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_4)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_4);
+}
+
+void GameMenuModal::SwitchToScene5(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_5)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_5);
+}
+
+void GameMenuModal::SwitchToScene6(void* userData)
+{
+	Ground& ground = Ground::get_instance();
+
+	if (ground.GetCurrentScene() != SceneID::SCENE_6)
+		OnSceneSwitchClicked(userData, SceneID::SCENE_6);
+}
+
+void GameMenuModal::OnSceneSwitchClicked(void* userData, SceneID sceneToLoad)
 {
 	GameSystem* self = static_cast<GameSystem*>(userData);
 
@@ -193,6 +248,7 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 		struct ReturnToTitleContext
 		{
 			GameSystem* gameSystem;
+			SceneID sceneID;
 		};
 
 		fader.StartFadeOut(); // 画面を黒くフェードイン
@@ -200,18 +256,19 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 		DeferredTaskOptions options{};
 		options.async = false; // 同期で実行
 		options.debugName = "Switch_Scene"; // デバッグ用の名前
-		auto* ctx = new ReturnToTitleContext{ self }; // コンテキストを作成して渡す
+		auto* ctx = new ReturnToTitleContext{ self, sceneToLoad }; // コンテキストを作成して渡す
 
 		RawDeferredTask::Add(
 			ctx, // コンテキストを渡す
 			[](void* ptr)
 			{
+
+				SceneID sceneID = static_cast<ReturnToTitleContext*>(ptr)->sceneID;
+
 				Ground& ground = Ground::get_instance();
 
-				if (ground.GetCurrentScene() == SceneID::SCENE_1)
-					ground.LoadScene(SceneID::SCENE_2);
-				else
-					ground.LoadScene(SceneID::SCENE_1);
+				ground.LoadScene(sceneID);
+
 				UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
 			},
 			[](void* ptr)

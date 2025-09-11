@@ -78,6 +78,25 @@ Enemy::Enemy(EnemyType enemyType, Transform trans)
 	m_HPGaugeCoverTex = TextureMgr::get_instance().CreateTexture(HPGAUGE_COVER_PATH);
 
 	instance.use = true;		// true:生きてる
+
+	// 攻撃用コライダーを登録しておく
+	m_attackCollider = new Collider();
+	m_attackCollider->owner = this;
+	m_attackCollider->tag = ColliderTag::ENEMY_ATTACK;
+
+	// 位置を取得
+	Transform enmeytrans = GetTransform();
+	XMFLOAT3 pos = trans.pos;
+
+	float r = 50.0f; // 半径
+	XMFLOAT3 minPoint = { pos.x - r, pos.y - r, pos.z - r };
+	XMFLOAT3 maxPoint = { pos.x + r, pos.y + r, pos.z + r };
+	m_attackCollider->aabb = BOUNDING_BOX(minPoint, maxPoint);
+
+	m_attackCollider->enable = false; // 初期は無効
+
+	CollisionManager::get_instance().RegisterDynamicCollider(m_attackCollider);
+
 }
 
 Enemy::~Enemy()
@@ -168,6 +187,33 @@ void Enemy::Update(void)
 
 
 		instance.attributes.spd *= pow(SPD_DECAY_RATE, timer.GetScaledDeltaTime());
+	}
+
+	// 攻撃中の処理
+	if (instance.attributes.isAttacking)
+	{
+		m_enemyAttr.attackTimer += timer.GetScaledDeltaTime();
+
+		bool inHitWindow =
+			(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
+			(m_enemyAttr.attackTimer < m_enemyAttr.attackHitDelay + m_enemyAttr.attackHitWindow);
+
+		// 攻撃開始 → 1フレームだけコライダーON
+		if (inHitWindow && !m_enemyAttr.hasDealtDamage)
+		{
+			EnableEnemyAttackCollider(true);
+			m_enemyAttr.hasDealtDamage = true;
+
+			// すぐOFFにして多重判定を防止
+			EnableEnemyAttackCollider(false);
+		}
+
+		if (m_enemyAttr.attackTimer >= m_enemyAttr.attackTotal)
+		{
+			instance.attributes.isAttacking = false;
+			EnableEnemyAttackCollider(false);
+			m_enemyAttr.hasDealtDamage = false; // 次回攻撃用にリセット
+		}
 	}
 }
 
@@ -569,9 +615,15 @@ void Enemy::ChasePlayer(void)
 	instance.attributes.spd = VALUE_MOVE;
 }
 
-void Enemy::AttackPlayer(void)
+void Enemy::AttackPlayer()
 {
 	instance.attributes.isAttacking = true;
+
+	// 攻撃タイマーをリセット
+	m_enemyAttr.attackTimer = 0.0f;
+	m_enemyAttr.attackHitboxEnabled = false;
+
+	// ここでアニメーション再生を開始するなどの処理を追加してもOK
 }
 
 void Enemy::Patrol(void)
@@ -681,4 +733,21 @@ HRESULT Enemy::MakeVertexHPGauge(float width, float height)
 	renderer.GetDeviceContext()->Unmap(m_HPGaugeVertexBuffer, 0);
 
 	return S_OK;
+}
+
+void Enemy::EnableEnemyAttackCollider(bool enable)
+{
+	if (m_attackCollider)
+	{
+		m_attackCollider->enable = enable;
+
+		// 位置更新（敵の現在位置に追従させる）
+		Transform enemytrans = GetTransform();
+		XMFLOAT3 pos = enemytrans.pos;
+
+		float r = 50.0f;
+		XMFLOAT3 minPoint = { pos.x - r, pos.y - r, pos.z - r };
+		XMFLOAT3 maxPoint = { pos.x + r, pos.y + r, pos.z + r };
+		m_attackCollider->aabb = BOUNDING_BOX(minPoint, maxPoint);
+	}
 }

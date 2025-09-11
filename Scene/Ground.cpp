@@ -15,6 +15,7 @@
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Scene/Item/ItemManager.h"
+#include "Scene/Item/Interactable/AutumnDoor.h"
 
 //*****************************************************************************
 // マクロ定義r
@@ -25,6 +26,7 @@
 #define KEY_SIZE			(5.0f)
 #define SEED_SIZE			(0.2f)
 #define SEEDSOIL_SIZE       (10)
+#define AUTUMNDOOR_SIZE       (13)
 #define SOIL_SIZE			(100.0f)
 #define FIELD_SIZE			(46850.0f)
 #define TERRAIN_SIZE		(12.0f)
@@ -117,7 +119,7 @@ void Ground::Initialize(void)
 	//	m_persistentModelLoadCnt++;
 	//}
 
-	
+
 	DeferredTaskOptions options{};
 	options.async = false; // 同期実行
 	options.debugName = "Ground_GenerateEnvironmentObj"; // デバッグ用の名前
@@ -129,6 +131,27 @@ void Ground::Initialize(void)
 		&Ground::DeferredIsFieldReady,
 		options
 	);
+
+
+
+	Transform trans;
+	trans.pos = XMFLOAT3(4850.0f, 9285.0f, 11200.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
+	trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	trans.scl = XMFLOAT3(AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE);
+
+	AutumnDoor* leftDoor = new AutumnDoor(DoorSide::Left, trans);
+
+	//trans.pos = XMFLOAT3(5436.0f, 4814.0f, 5034.0f);
+	trans.pos.x -= 63* AUTUMNDOOR_SIZE;
+
+	AutumnDoor* rightDoor = new AutumnDoor(DoorSide::Right, trans);
+
+	leftDoor->SetLinkedDoor(rightDoor);
+	rightDoor->SetLinkedDoor(leftDoor);
+
+	// いつでもある
+	m_scenesADoorL = ItemManager::get_instance().SpawnItem(leftDoor);
+	m_scenesADoorR = ItemManager::get_instance().SpawnItem(rightDoor);
 
 	m_initialized = true;
 }
@@ -371,12 +394,19 @@ void Ground::InitSceneLoadMap(void)
 {
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_1)] = &Ground::LoadScene1;
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_2)] = &Ground::LoadScene2;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_3)] = &Ground::LoadScene3;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_4)] = &Ground::LoadScene4;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_5)] = &Ground::LoadScene5;
+	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_6)] = &Ground::LoadScene6;
 }
 
 void Ground::LoadScene1(void)
 {
 	if(m_sceneKey != nullptr)
 		m_sceneKey->SetActive(false);
+
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->SetActive(false);
 
 	/// INTERACTABLE-IMPLEMENTATION
 	/*if (m_sceneVines != nullptr)
@@ -385,6 +415,7 @@ void Ground::LoadScene1(void)
 	if (m_skybox != nullptr)
 		m_skybox->SetCurrentTime(DAY_TIME);*/
 
+	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(DAY_TIME);
 
 	ParticleEffectParams params;
@@ -461,7 +492,7 @@ void Ground::LoadScene1(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
 
-		m_sceneSeed = ItemManager::get_instance().SpawnItem(ItemType::Seed, trans);
+		m_sceneSeed = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
 
 	}
 	else if (!m_sceneSeed->GetPickedUp())
@@ -475,7 +506,7 @@ void Ground::LoadScene1(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		trans.scl = XMFLOAT3(SEEDSOIL_SIZE, SEEDSOIL_SIZE, SEEDSOIL_SIZE);
 
-		m_sceneSoil = ItemManager::get_instance().SpawnItem(ItemType::IntSoil, trans);
+		m_sceneSoil = ItemManager::get_instance().SpawnItem(new Item(ItemType::IntSoil, trans));
 
 	}
 	else {
@@ -500,11 +531,14 @@ void Ground::LoadScene2(void)
 		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
 		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
 	
-		m_sceneKey = ItemManager::get_instance().SpawnItem(ItemType::Key, trans);
+		m_sceneKey = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
 
 	}
 	else if (!m_sceneKey->GetPickedUp())
 		m_sceneKey->SetActive(true);
+
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->SetActive(false);
 
 	if (m_scenePSeed != nullptr)
 	{
@@ -517,7 +551,7 @@ void Ground::LoadScene2(void)
 			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 			trans.scl = XMFLOAT3(120, 120, 120);
 
-			m_sceneVines = ItemManager::get_instance().SpawnItem(ItemType::IntVines, trans);
+			m_sceneVines = ItemManager::get_instance().SpawnItem(new Item(ItemType::IntVines, trans));
 		}
 		else if (!m_sceneVines->GetUsed())
 			m_sceneVines->SetActive(true);
@@ -534,6 +568,7 @@ void Ground::LoadScene2(void)
 	if (m_sceneSeed != nullptr)
 		m_sceneSeed->SetActive(false);
 
+	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
 
@@ -602,6 +637,54 @@ void Ground::LoadScene2(void)
 	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
 
 
+}
+
+void Ground::LoadScene3(void)
+{
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->SetActive(false);
+
+	m_skybox.SetSeason(SeasonID::SUMMER);
+	m_skybox.SetCurrentTime(DAY_TIME);
+}
+
+void Ground::LoadScene4(void)
+{
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->SetActive(false);
+
+	m_skybox.SetSeason(SeasonID::SUMMER);
+	m_skybox.SetCurrentTime(NIGHT_TIME);
+}
+
+void Ground::LoadScene5(void)
+{
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->SetActive(false);
+
+	m_skybox.SetSeason(SeasonID::AUTUMN);
+	m_skybox.SetCurrentTime(DAY_TIME);
+}
+
+void Ground::LoadScene6(void)
+{
+
+	if (m_sceneKey2 == nullptr)
+	{
+
+		Transform trans;
+		trans.pos = XMFLOAT3(4436.0f, 9414.0f, 11834.0f);
+		trans.rot = XMFLOAT3(0.0f, 0.0f, -1.0f);
+		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
+
+		m_sceneKey2 = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
+
+	}
+	else if (!m_sceneKey2->GetPickedUp())
+		m_sceneKey2->SetActive(true);
+
+	m_skybox.SetSeason(SeasonID::AUTUMN);
+	m_skybox.SetCurrentTime(NIGHT_TIME);
 }
 
 void Ground::GenerateEnvironmentObj(void*)

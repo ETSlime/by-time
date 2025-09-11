@@ -14,6 +14,9 @@ enum class ItemType
 	IntSoil,
 	IntPSeed,
 	IntVines,
+	IntAutumnDoorL,
+	IntAutumnDoorR,
+	IntGate,
 	Max
 };
 
@@ -41,7 +44,7 @@ public:
 	void Update(void) override;
 	void Draw(void) override;
 
-	void Use(void);
+	virtual void Use(void);
 	void Pickup(void);
 	bool GetUsed(void) { return m_itemAttributes.used; }
 	bool GetPickedUp(void) { return m_itemAttributes.pickedUp; }

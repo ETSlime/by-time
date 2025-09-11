@@ -68,6 +68,9 @@
     <Filter Include="Effects\ProjectilePreview">
       <UniqueIdentifier>{1f991843-b466-42ba-9406-61ecff2be659}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scene\Item\Interactable">
+      <UniqueIdentifier>{75a120dd-5160-4320-a50c-ad03e284b480}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AI\AnimStateMachine.h">
@@ -389,9 +392,6 @@
     <ClInclude Include="Scene\Item\ItemManager.h">
       <Filter>Scene\Item</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Item\Interactable.h">
-      <Filter>Scene\Item</Filter>
-    </ClInclude>
     <ClInclude Include="Utility\Debug\DebugBoundingBoxRenderer.h">
       <Filter>Utility\Debug</Filter>
     </ClInclude>
@@ -430,6 +430,24 @@
     </ClInclude>
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h">
       <Filter>Effects\ProjectilePreview</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\Interactable\AutumnDoor.h">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\Interactable\Interactable.h">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\Item\Interactable\Gate.h">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\HPBarUI.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIGameOver.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIGameClear.h">
+      <Filter>UI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -698,14 +716,23 @@
     <ClCompile Include="UI\GameMenuModal.cpp">
       <Filter>UI</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\Item\Interactable.cpp">
-      <Filter>Scene\Item</Filter>
-    </ClCompile>
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp">
       <Filter>Effects\ProjectilePreview</Filter>
     </ClCompile>
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp">
       <Filter>Effects\ProjectilePreview</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Interactable\AutumnDoor.cpp">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Interactable\Gate.cpp">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\Item\Interactable\Interactable.cpp">
+      <Filter>Scene\Item\Interactable</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\HPBarUI.cpp">
+      <Filter>Scene</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

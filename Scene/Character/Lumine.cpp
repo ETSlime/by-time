@@ -1237,25 +1237,25 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
 			//self->EnableWeapon(true);
-			GameSystem::get_instance().ChangeMode(GameMode::RESULT, true);
+			self->m_playerAttr->keyCount++;
 		}
 	}
 
 }
 
-void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
-{
-	Lumine* self = static_cast<Lumine*>(context);
-
-	if (self->instance.attributes.hitTimer <= 0)
-	{
-		self->SetHitTimer(PLAYER_HIT_WINDOW);
-		if (!self->GetIsHit())
-		{
-			self->SetIsHit(true);
-		}
-	}
-}
+//void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
+//{
+//	Lumine* self = static_cast<Lumine*>(context);
+//
+//	if (self->instance.attributes.hitTimer <= 0)
+//	{
+//		self->SetHitTimer(PLAYER_HIT_WINDOW);
+//		if (!self->GetIsHit())
+//		{
+//			self->SetIsHit(true);
+//		}
+//	}
+//}
 
 //void Lumine::RenderImGui(void)
 //{
@@ -1269,3 +1269,28 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 //		ImGui::SliderFloat("Gun RotZ: ", &m_gunRotZ, -XM_PI, XM_PI, "%.1f");
 //	}
 //}
+
+void Lumine::ForwardEnemyAttackHit(const CollisionEvent& event)
+{
+	if (m_player)
+	{
+		Player* player = static_cast<Player*>(m_player);
+		player->OnEnemyAttackHit(event);
+	}
+}
+
+void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
+{
+	Lumine* self = static_cast<Lumine*>(context);
+
+	if (self->instance.attributes.hitTimer <= 0)
+	{
+		self->SetHitTimer(PLAYER_HIT_WINDOW);
+		if (!self->GetIsHit())
+		{
+			self->SetIsHit(true);
+			// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
+			self->ForwardEnemyAttackHit(event);
+		}
+	}
+}

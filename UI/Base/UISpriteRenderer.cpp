@@ -86,40 +86,38 @@ void UISpriteRenderer::SetSpriteWithColor(ID3D11Buffer* buf, float X, float Y, f
     Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
 }
 
-void UISpriteRenderer::SetSpriteWithRotation(ID3D11Buffer* buf, float X, float Y, float Width, float Height,
+void UISpriteRenderer::SetSpriteWithRotation(
+    ID3D11Buffer* buf,
+    float X, float Y,
+    float Width, float Height,
     float U, float V, float UW, float VH,
-    XMFLOAT4 /*color*/, float Rot)
+    XMFLOAT4 color, float Rot)
 {
     D3D11_MAPPED_SUBRESOURCE msr;
-    Renderer::get_instance().GetDeviceContext()->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+    Renderer::get_instance().GetDeviceContext()->Map(
+        buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 
     UIVertex* vertex = reinterpret_cast<UIVertex*>(msr.pData);
 
     float hw = Width * 0.5f;
     float hh = Height * 0.5f;
 
-    // 回転中心からの距離と角度を計算
-    float baseAngle = atan2f(hh, hw);
-    float radius = sqrtf(hw * hw + hh * hh);
+    float cosR = cosf(Rot);
+    float sinR = sinf(Rot);
 
-    float x, y;
+    XMFLOAT2 localPos[4] = {
+        {-hw, -hh}, { hw, -hh},
+        {-hw,  hh}, { hw,  hh}
+    };
 
-    // 頂点を回転して配置
-    x = X - cosf(baseAngle + Rot) * radius;
-    y = Y - sinf(baseAngle + Rot) * radius;
-    vertex[0].Position = XMFLOAT2(x, y); // 左上
+    for (int i = 0; i < 4; i++) {
+        float x = localPos[i].x * cosR - localPos[i].y * sinR;
+        float y = localPos[i].x * sinR + localPos[i].y * cosR;
+        vertex[i].Position = XMFLOAT2(X + x, Y + y);
 
-    x = X + cosf(baseAngle - Rot) * radius;
-    y = Y - sinf(baseAngle - Rot) * radius;
-    vertex[1].Position = XMFLOAT2(x, y); // 右上
-
-    x = X - cosf(baseAngle - Rot) * radius;
-    y = Y + sinf(baseAngle - Rot) * radius;
-    vertex[2].Position = XMFLOAT2(x, y); // 左下
-
-    x = X + cosf(baseAngle + Rot) * radius;
-    y = Y + sinf(baseAngle + Rot) * radius;
-    vertex[3].Position = XMFLOAT2(x, y); // 右下
+        // ★カラーを必ず設定する
+        vertex[i].Color = color;
+    }
 
     vertex[0].TexCoord = XMFLOAT2(U, V);
     vertex[1].TexCoord = XMFLOAT2(U + UW, V);
@@ -128,6 +126,7 @@ void UISpriteRenderer::SetSpriteWithRotation(ID3D11Buffer* buf, float X, float Y
 
     Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
 }
+
 
 void UISpriteRenderer::SetSpriteParallelogram(
     ID3D11Buffer* buf,

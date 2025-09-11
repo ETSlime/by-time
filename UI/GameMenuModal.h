@@ -66,7 +66,13 @@ private:
 	// ボタンのクリックイベントハンドラー
 	static void OnResumeClicked(void* userData);
 	static void OnExitClicked(void* userData);
-	static void OnSceneSwitchClicked(void* userData);
+	static void SwitchToScene1(void* userData);
+	static void SwitchToScene2(void* userData);
+	static void SwitchToScene3(void* userData);
+	static void SwitchToScene4(void* userData);
+	static void SwitchToScene5(void* userData);
+	static void SwitchToScene6(void* userData);
+	static void OnSceneSwitchClicked(void* userData, SceneID sceneToLoad);
 
 	void ApplyBounceTween(ISpriteTransformable* target, const XMFLOAT2& targetPos, float offset = 300.0f);
 

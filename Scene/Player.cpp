@@ -44,6 +44,7 @@ Player::Player()
 	m_playerAttr.allowControl = true;
 	m_playerAttr.isMeleeMode = true; // 初期は近接モード
 	m_playerAttr.seedCount = 0; // 初期は種を持っていない
+	m_playerAttr.keyCount = 0;
 
 	Transform transform;
 	transform.pos = PLAYER_INIT_POS;
@@ -59,6 +60,7 @@ Player::Player()
 
 	m_previewRenderer = new ProjectilePreviewRenderer();
 	m_predictor.SetCollisionVoxelGrid(CollisionManager::get_instance().GetVoxelGrid()); // 地形ボクセルをセット
+
 }
 
 Player::~Player()
@@ -68,6 +70,11 @@ Player::~Player()
 
 void Player::Update(void)
 {
+	// 無敵時間のカウントダウン
+	if (m_invincibleTimer > 0.0f) {
+		m_invincibleTimer -= m_playerGO->timer.GetScaledDeltaTime();
+	}
+
 	if (!m_playerGO->GetInstance()->load)
 	{
 		m_playerGO->Update();
@@ -99,23 +106,24 @@ void Player::Update(void)
 	m_attributes->spd *= SPD_DECAY_RATE;
 	m_playerGO->Update();
 
-	//For debugging : Automatic HP reduction(1 per second)
-		if (m_autoHPDrain)
-		{
-			float deltaTime = 1.0f / 60.0f;
-				m_hpDrainTimer += deltaTime;
+	////テストでHPを自動で減少させてみた
+	//	if (m_autoHPDrain)
+	//	{
+	//		float deltaTime = 1.0f / 60.0f;
+	//			m_hpDrainTimer += deltaTime;
+	//
+	//		if (m_hpDrainTimer >= 1.0f)
+	//		{
+	//			TakeDamage(1);
+	//			m_hpDrainTimer = 0.0f;
+	//		}
+	//	}
 
-			if (m_hpDrainTimer >= 1.0f)
-			{
-				TakeDamage(1);
-				m_hpDrainTimer = 0.0f;
-			}
-		}
-	//For Debugging : HP Recovery
-		if (m_inputManager.GetKeyboardPress(DIK_L))
-		{
-			m_currentHP = 100.0f;
-		}
+	////テストでHPを全回復させてみた
+	//	if (m_inputManager.GetKeyboardPress(DIK_L))
+	//	{
+	//		m_currentHP = 100.0f;
+	//	}
 
 
 #ifdef _DEBUG
@@ -395,19 +403,55 @@ void Player::UpdateNormalMode(void)
 		m_attributes.isJumping = true;
 	}
 
-	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
-		if (m_linkedInteractable != nullptr)
-		{
-			if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
+	*/
+	if (m_linkedInteractable != nullptr) {
+
+		if (m_InteractPromptTexLoc != m_linkedInteractable->GetPromptTextureLocation()) {
+		
+			UIManager::get_instance().ClearActivePrompt();
+
+			delete m_InteractPrompt;
+
+			m_InteractPrompt = nullptr;
+		
+			m_InteractPromptTexLoc = m_linkedInteractable->GetPromptTextureLocation();
+		}
+
+		if (m_InteractPrompt == nullptr) {
+			m_InteractPrompt = new UIInteractPrompt();
+
+			const char* promptTexture = m_InteractPromptTexLoc != nullptr? m_InteractPromptTexLoc : "data/TEXTURE/UI/interactUI.png";
+
+			m_InteractPrompt->Initialize(promptTexture);
+			m_InteractPrompt->SetPosition(1200, 500); // 画面中央に配置
+			UIManager::get_instance().SetActivePrompt(m_InteractPrompt);
+		}
+
+		if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
+			
+			/*if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
 				m_linkedInteractable->Use();
 				m_linkedInteractable->SetActive(false);
 			}
 			else if (m_linkedInteractable->GetItemType() == ItemType::IntVines) {
 				m_transform.pos.y += 500;
-			}
+			}*/
+
+			m_linkedInteractable->Interact();
+
 		}
+
 		m_linkedInteractable = nullptr;
-	}*/
+	}
+	else {
+	
+		UIManager::get_instance().ClearActivePrompt();
+
+		delete m_InteractPrompt;
+
+		m_InteractPrompt = nullptr;
+	
+	}
 
 }
 
@@ -769,3 +813,15 @@ void Player::Heal(int amount)
 	float hpRatio = static_cast<float>(m_currentHP) / static_cast<float>(m_maxHP);
 	SetHP(hpRatio);  // HPバー更新
 }
+
+void Player::OnEnemyAttackHit(const CollisionEvent& e)
+{
+	if (m_invincibleTimer > 0.0f) {
+		return; // 無敵中は無視
+	}
+
+	TakeDamage(10);
+
+	m_invincibleTimer = 0.5f; // 0.5秒の無敵時間
+}
+
