@@ -16,6 +16,7 @@
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Interactable/AutumnDoor.h"
+#include "UI/sound.h"
 
 //*****************************************************************************
 // マクロ定義r
@@ -400,7 +401,7 @@ void Ground::InitSceneLoadMap(void)
 	m_sceneLoadMap[TO_UINT64(SceneID::SCENE_6)] = &Ground::LoadScene6;
 }
 
-void Ground::LoadScene1(void)
+void Ground::LoadScene1(void)//春の朝
 {
 	if(m_sceneKey != nullptr)
 		m_sceneKey->SetActive(false);
@@ -519,9 +520,11 @@ void Ground::LoadScene1(void)
 			
 		}
 	}
+
+	m_pendingBGM = SOUND_LABEL_BGM_spring;
 }
 
-void Ground::LoadScene2(void)
+void Ground::LoadScene2(void)//春の夜
 {
 	if (m_sceneKey == nullptr) 
 	{
@@ -636,37 +639,55 @@ void Ground::LoadScene2(void)
 
 	RegisterEventTrigger(triggerBox, PlayerCallbackAction::StopClimbUp, SceneID::SCENE_2);
 
-
+	// BGM切替
+	StopSound(); // 他のBGMを止める
+	PlaySound(SOUND_LABEL_BGM_spring);
+	SetBGMVolume(0.5f); // デフォルト音量
 }
 
-void Ground::LoadScene3(void)
+void Ground::LoadScene3(void)//夏の朝
 {
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	// BGM切替
+	StopSound(); // 他のBGMを止める
+	PlaySound(SOUND_LABEL_BGM_summer);
+	SetBGMVolume(0.5f); // デフォルト音量
 }
 
-void Ground::LoadScene4(void)
+void Ground::LoadScene4(void)//夏の夜
 {
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	// BGM切替
+	StopSound(); // 他のBGMを止める
+	PlaySound(SOUND_LABEL_BGM_summer);
+	SetBGMVolume(0.5f); // デフォルト音量
 }
 
-void Ground::LoadScene5(void)
+void Ground::LoadScene5(void)//秋の朝
 {
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	// BGM切替
+	StopSound(); // 他のBGMを止める
+	PlaySound(SOUND_LABEL_BGM_autumn);
+	SetBGMVolume(0.5f); // デフォルト音量
 }
 
-void Ground::LoadScene6(void)
+void Ground::LoadScene6(void)//秋の夜
 {
 
 	if (m_sceneKey2 == nullptr)
@@ -685,6 +706,11 @@ void Ground::LoadScene6(void)
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	// BGM切替
+	StopSound(); // 他のBGMを止める
+	PlaySound(SOUND_LABEL_BGM_autumn);
+	SetBGMVolume(0.5f); // デフォルト音量
 }
 
 void Ground::GenerateEnvironmentObj(void*)

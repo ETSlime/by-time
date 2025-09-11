@@ -18,6 +18,7 @@
 #include "UI/UILoadingScene.h"
 #include "UI/Base/UIManager.h"
 #include "UI/Base/TweenManager.h"
+#include "UI/sound.h"
 #include "Scene/Player.h"
 #include "Scene/EnemyManager.h"
 #include "Scene/Item/ItemManager.h"
@@ -71,7 +72,8 @@ class GameSystem : public SingletonBase<GameSystem>
 public:
 
     // 初期化と更新
-    void Init(void);
+    //void Init(void);
+    void Init(HWND hWnd);
     void Shutdown(void);
     void Update(void);
     void Draw(void);
@@ -104,6 +106,19 @@ public:
     GameMode GetMode(void) const { return m_mode; }
 
 	Player* GetPlayer(void) const { return m_player; }
+
+    // ==== サウンド関連 ====
+    void SetBGMVolume(float volume);
+    void SetSEVolume(float volume);
+    void IncreaseBGMVolume();
+    void DecreaseBGMVolume();
+    void IncreaseSEVolume();
+    void DecreaseSEVolume();
+
+    // 今の音量を取得できるようにしても便利
+    float GetBGMVolume() const { return g_BGMVolume; }
+    float GetSEVolume() const { return g_SEVolume; }
+
 
 protected:
     // プライベートコンストラクタ

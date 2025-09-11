@@ -5,6 +5,7 @@
 //
 //=============================================================================
 #include "Core/GameSystem.h"
+#include "UI/sound.h"
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
@@ -12,9 +13,11 @@
 #include "Utility/Debug/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
-void GameSystem::Init(void)
+void GameSystem::Init(HWND hWnd)
 {
     m_mode = GameMode::TITLE;
+
+    InitSound(hWnd); // ←ここで初期化できる
 
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
@@ -467,6 +470,11 @@ void GameSystem::UpdateLoading(void)
             // 画面が黒い状態からゲーム画面へフェードインを開始
             m_UIManager.GetFader().StartFadeIn();
             ChangeMode(GameMode::GAME);
+
+            // ★ロード完了後に初めてBGM再生
+            StopSound();
+            PlaySound(m_ground.GetSceneBGM());
+            SetBGMVolume(0.5f);
         }
     }
 }
@@ -538,4 +546,37 @@ void GameSystem::DrawGame(void)
 void GameSystem::DrawResult(void)
 {
     // リザルト画面の描画
+}
+
+//=============================================================================
+// サウンド制御
+//=============================================================================
+void GameSystem::SetBGMVolume(float volume)
+{
+    ::SetBGMVolume(volume); // sound.cpp の関数を呼び出す
+}
+
+void GameSystem::SetSEVolume(float volume)
+{
+    ::SetSEVolume(volume);
+}
+
+void GameSystem::IncreaseBGMVolume()
+{
+    ::IncreaseBGMVolume();
+}
+
+void GameSystem::DecreaseBGMVolume()
+{
+    ::DecreaseBGMVolume();
+}
+
+void GameSystem::IncreaseSEVolume()
+{
+    ::IncreaseSEVolume();
+}
+
+void GameSystem::DecreaseSEVolume()
+{
+    ::DecreaseSEVolume();
 }

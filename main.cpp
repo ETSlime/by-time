@@ -338,7 +338,7 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 	collisionManager.Init();
 
 	// ゲームシステムの初期化
-	gameSystem.Init();
+	gameSystem.Init(hWnd);
 
 	// 入力処理の初期化
 	inputManager.Init(hInstance, hWnd);
