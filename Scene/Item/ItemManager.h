@@ -19,9 +19,11 @@
 
 #define SEED_SIZE			(0.16f)
 
+// ‘O•ûéŒ¾
 struct SaveData;
 
-class ItemManager: public SingletonBase<ItemManager>, public IDebugUI {
+class ItemManager: public SingletonBase<ItemManager>, public IDebugUI 
+{
 
 public:
 	void Init(void);

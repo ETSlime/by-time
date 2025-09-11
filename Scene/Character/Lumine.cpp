@@ -58,6 +58,8 @@
 
 #define MAX_NEAREST_ENEMY_DIST	(1500.0f) // Å‚à‹ß‚¢“G‚ð’T‚·‹——£
 
+#define MAX_BULLET_COUNT		(99)
+
 Lumine::Lumine()
 {
 	SkinnedGameObjectConfig config;
@@ -208,6 +210,9 @@ void Lumine::HandleInput(void)
 		{
 			float yaw = instance.transform.rot.y;
 			fireDir = XMFLOAT3(sin(yaw), 0.0f, cos(yaw));
+
+			CollisionManager::get_instance().RaycastForTargetPoint(muzzlePos, fireDir, &targetPoint);
+
 		}
 
 		instance.attributes.lastFireTimeCountDown = LAST_FIRE_TIME; // ’e‚ðŒ‚‚Á‚½ŽžŠÔ‚ðƒŠƒZƒbƒg
@@ -215,14 +220,31 @@ void Lumine::HandleInput(void)
 		Transform trans;
 		trans.pos = muzzlePos;
 		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-		trans.scl = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
 		if (m_playerAttr->fireCooldownSec <= 0.0f)
 		{
-			constexpr float bulletSpeed = 25.0f;
-			Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, fireDir, bulletSpeed);
-			projectile->SetPotentialHitPos(targetPoint);
-			m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+			if (m_playerAttr->currentProjectile == ProjectileType::Bullet)
+			{
+				trans.scl = XMFLOAT3(0.7f, 0.7f, 0.7f);
+				constexpr float bulletSpeed = 25.0f;
+				Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, fireDir, bulletSpeed);
+				projectile->SetPotentialHitPos(targetPoint);
+				m_playerAttr->fireIntervalSec = BULLET_FIRE_INTERVAL;
+				m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+			}
+			else if (m_playerAttr->currentProjectile == ProjectileType::SunBullet)
+			{
+				if (m_playerAttr->bulletCount > 0)
+				{
+					m_playerAttr->bulletCount--;
+					trans.scl = XMFLOAT3(1.5f, 1.5f, 1.5f);
+					constexpr float bulletSpeed = 40.0f;
+					Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::SunBullet, trans, fireDir, bulletSpeed);
+					projectile->SetPotentialHitPos(targetPoint);
+					m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
+					m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+				}
+			}
 		}
 
 
@@ -727,6 +749,7 @@ void Lumine::ResetStatus(void)
 	m_playerAttr->allowControl = true;
 	m_playerAttr->throwMode = false;
 	m_playerAttr->confirmThrow = false;
+	instance.attributes.isAttacking = false;
 	instance.attributes.isMoveBlocked = false;
 }
 
@@ -1280,6 +1303,13 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		{
 			self->EnableWeapon(true);
 		}
+		else if (item && item->GetItemType() == ItemType::Bullet)
+		{
+			self->m_playerAttr->hasBullet = true;
+			self->m_playerAttr->bulletCount += 10;
+			if (self->m_playerAttr->bulletCount > MAX_BULLET_COUNT)
+				self->m_playerAttr->bulletCount = MAX_BULLET_COUNT;
+		}
 
 	}
 
@@ -1289,9 +1319,13 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 {
 	Lumine* self = static_cast<Lumine*>(context);
 
-	if (self->instance.attributes.hitTimer <= 0)
+	if (event.colliderA->tag == ColliderTag::ENEMY_PROJECTILE || event.colliderB->tag == ColliderTag::ENEMY_PROJECTILE)
 	{
-		self->SetHitTimer(PLAYER_HIT_WINDOW);
+		const Collider* projectileCol = event.colliderA->tag == ColliderTag::ENEMY_PROJECTILE ? event.colliderA : event.colliderB;
+		auto projectileColOwner = static_cast<Projectile*>(projectileCol->owner);
+
+		projectileColOwner->SetActive(FALSE);
+
 		if (!self->GetIsHit())
 		{
 			self->SetIsHit(true);
@@ -1300,6 +1334,22 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 		if (self->m_playerAttr->throwMode)
 		{
 			self->m_playerAttr->cancelThrowFlag = true;
+		}
+	}
+	else
+	{
+		if (self->instance.attributes.hitTimer <= 0)
+		{
+			self->SetHitTimer(PLAYER_HIT_WINDOW);
+			if (!self->GetIsHit())
+			{
+				self->SetIsHit(true);
+			}
+
+			if (self->m_playerAttr->throwMode)
+			{
+				self->m_playerAttr->cancelThrowFlag = true;
+			}
 		}
 	}
 }

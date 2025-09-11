@@ -22,7 +22,7 @@
 #define MAX_RAYCAST_DISTANCE            10000.0f
 
 constexpr float HEIGHT_EPSILON = 5.0f;
-constexpr float SMOOTHING_FACTOR = 0.2f;
+constexpr float SMOOTHING_FACTOR = 0.5f;
 // 最大許容斜面角度（ラジアン、例：45度）
 const float MAX_SLOPE_ANGLE = 0.785398f; // 約45度
 // 階段として許容する最大高さ差（ステップオフセット）
@@ -114,6 +114,8 @@ void CollisionManager::Update()
 
         if (dynamicCol->tag == ColliderTag::WALL ||
             dynamicCol->tag == ColliderTag::STATIC_OBJECT ||
+            dynamicCol->tag == ColliderTag::AIR_WALL ||
+            dynamicCol->tag == ColliderTag::TRANSPARENT_WALL ||
             dynamicCol->enable == false) continue;
 
         // 動的オブジェクトと静的オブジェクト（地面）の衝突検出
@@ -532,12 +534,12 @@ void CollisionManager::HandleStaticCollision(const Collider* dynamicCol)
 #endif // _DEBUG
 
                 }
-                else if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE)
+                else if (dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE
+                    || dynamicCol->tag == ColliderTag::ENEMY_PROJECTILE)
                 {
                     CollisionEvent event;
                     event.additionalData = &tri->normal;
 					dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::ProjectileHit);
-					//break; // 弾は最初に当たった面で処理を終える
                 }
 
                 CollisionEvent collisionEvent;
@@ -676,7 +678,6 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     )
                 {
                     const Collider* enemyCol = dynamicCol->tag == ColliderTag::ENEMY ? dynamicCol : dynamicCol2;
-                    auto colliderOwner = static_cast<Enemy*>(enemyCol->owner);
 
                     enemyCol->CallCollisionCallbacks(event, CollisionCallbackID::PlayerAttackHit);
 
@@ -697,6 +698,23 @@ void CollisionManager::HandleDynamicCollision(const Collider* dynamicCol, UINT s
                     // コールバックを持っていれば呼ぶ
                     dynamicCol->CallCollisionCallbacks(event, CollisionCallbackID::Item);
                     dynamicCol2->CallCollisionCallbacks(event, CollisionCallbackID::Item);
+
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER_PROJECTILE && dynamicCol2->tag == ColliderTag::BOSS_ICE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER_PROJECTILE && dynamicCol->tag == ColliderTag::BOSS_ICE))
+                {
+                    const Collider* iceCol = dynamicCol->tag == ColliderTag::BOSS_ICE ? dynamicCol : dynamicCol2;
+
+                    // コールバックを持っていれば呼ぶ
+                    iceCol->CallCollisionCallbacks(event, CollisionCallbackID::PlayerAttackHit);
+
+                }
+                else if ((dynamicCol->tag == ColliderTag::PLAYER && dynamicCol2->tag == ColliderTag::ENEMY_PROJECTILE)
+                    || (dynamicCol2->tag == ColliderTag::PLAYER && dynamicCol->tag == ColliderTag::ENEMY_PROJECTILE))
+                {
+                    const Collider* playerCol = dynamicCol->tag == ColliderTag::PLAYER ? dynamicCol : dynamicCol2;
+
+                    playerCol->CallCollisionCallbacks(event, CollisionCallbackID::EnemyAttackHit);
 
                 }
                 else

@@ -87,12 +87,15 @@ struct EnemyAttributes
 
 	bool				die;
 	bool				isDead;
+	bool				respawn;
+	bool				isInvincible;
 	bool				startFadeOut;
 	bool				randomMove;
 	bool				initialMove;
 	float				respawnTimer;
 
 	bool				disableGravity;
+	bool				turnOnBehaviorTree;
 
 	void Initialize()
 	{
@@ -121,6 +124,9 @@ struct EnemyAttributes
 		cooldownProbability = 0.5f;
 
 		disableGravity = false;
+		respawn = true;
+		isInvincible = false;
+		turnOnBehaviorTree = true;
 	}
 };
 
@@ -174,11 +180,18 @@ public:
 	void ReduceHP(float amount);
 
 	void SetRandomMove(bool random) { m_enemyAttr.randomMove = random; }
+	void SetRespawn(bool respawn) { m_enemyAttr.respawn = respawn; }
+	void SetInvincible(bool invincible) { m_enemyAttr.isInvincible = invincible; }
+	void SetChasePlayer(bool chase) { m_enemyAttr.isChasingPlayer = chase; }
+
+	float DistanceToPlayer(void) const;
+	float DistanceToPlayerSq(void) const;
 
 	void InitHPGauge(void);
 	void UpdateHPGauge(void);
 
 	void ChasePlayer(void);
+	void ChaseAndAttackPlayer(void);
 	void AttackPlayer(void);
 	void Patrol(void);
 	void CooldownMove(void);
@@ -186,7 +199,6 @@ public:
 	bool DetectPlayer(void);
 	bool CheckAvailableToMove(void);
 
-	void SetChasePlayer(bool chase) { m_enemyAttr.isChasingPlayer = chase; }
 
 protected:
 	// コリジョンイベントコールバック関数

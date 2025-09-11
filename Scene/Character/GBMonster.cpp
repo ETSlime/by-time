@@ -7,6 +7,7 @@
 #include "Scene/Character/GBMonster.h"
 #include "Utility/InputManager.h"
 #include "Scene/Player.h"
+#include "Scene/Item/ItemManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`

@@ -8,6 +8,7 @@
 #include "UI/Base/UIManager.h"
 #include "Core/TextureMgr.h"
 #include "Core/GameSystem.h"
+#include "Scene/Player.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -45,6 +46,7 @@
 #define HUD_SEED_ICON_TEXTURE_SIZE_Y			1394.0f
 
 #define HUD_BULLET_ICON_TEXTURE_PATH			"data/TEXTURE/UI/bullet.png"
+#define HUD_SUN_BULLET_ICON_TEXTURE_PATH		"data/TEXTURE/UI/sun_bullet.png"
 #define HUD_BULLET_ICON_TEXTURE_POS_X			HUD_EQUIPMENT_SLOT_TEXTURE_POS_X * 0.917f
 #define HUD_BULLET_ICON_TEXTURE_POS_Y			HUD_EQUIPMENT_SLOT_TEXTURE_POS_Y * 1.0f
 #define HUD_BULLET_ICON_TEXTURE_SIZE_X			1497.0f
@@ -64,6 +66,19 @@
 #define HUD_BULLET_COUNT_TEXTURE_POS_Y			HUD_BULLET_ICON_TEXTURE_POS_Y * 0.96f
 #define ITEM_COUNT_DIGIT						2			// 桁数
 
+#define HUD_NUM_INFINITY_TEXTURE_PATH			"data/TEXTURE/UI/infinity.png"
+#define HUD_NUM_INFINITY_TEXTURE_SIZE_X			1091.0f
+#define HUD_NUM_INFINITY_TEXTURE_SIZE_Y			649.0f
+#define HUD_NUM_INFINITY_TEXTURE_POS_X			HUD_BULLET_COUNT_TEXTURE_POS_X * 0.995f
+#define HUD_NUM_INFINITY_TEXTURE_POS_Y			HUD_BULLET_COUNT_TEXTURE_POS_Y
+
+#define	HUD_HPGAUGE_TEXTURE_PATH				"data/TEXTURE/EnemyHPGauge.png"
+#define	HUD_HPGAUGE_COVER_TEXTURE_PATH			"data/TEXTURE/EnemyHPGauge_bg.png"
+#define HUD_HPGAUGE_TEXTURE_SIZE_X				64.0f
+#define HUD_HPGAUGE_TEXTURE_SIZE_Y				7.0f
+#define HUD_HPGAUGE_TEXTURE_POS_X				SCREEN_CENTER_X * 0.5f
+#define HUD_HPGAUGE_TEXTURE_POS_Y				SCREEN_HEIGHT * 0.85f
+
 UIMainHUD::~UIMainHUD()
 {
 	for (UINT i = 0; i < m_sprites.getSize(); ++i)
@@ -73,6 +88,12 @@ UIMainHUD::~UIMainHUD()
 			SAFE_DELETE(m_sprites[i]);
 		}
 	}
+
+	SAFE_DELETE(m_itemCount);
+	SAFE_DELETE(m_itemCountSign);
+	SAFE_DELETE(m_numInfinity);
+	SAFE_DELETE(m_bulletIcon);
+	SAFE_DELETE(m_sunBulletIcon);
 }
 
 void UIMainHUD::Initialize(void)
@@ -127,7 +148,14 @@ void UIMainHUD::Initialize(void)
 	m_bulletIcon->SetSize(HUD_BULLET_ICON_TEXTURE_SIZE_X, HUD_BULLET_ICON_TEXTURE_SIZE_Y);
 	m_bulletIcon->SetPosition(HUD_BULLET_ICON_TEXTURE_POS_X, HUD_BULLET_ICON_TEXTURE_POS_Y);
 	m_bulletIcon->SetScale(0.056f, 0.056f);
-	m_sprites.push_back(m_bulletIcon);
+
+	m_sunBulletIcon = new UISprite(
+		UIManager::get_instance().GetSpriteVertexBuffer(),
+		TextureMgr::get_instance().CreateTexture(HUD_SUN_BULLET_ICON_TEXTURE_PATH)
+	);
+	m_sunBulletIcon->SetSize(HUD_BULLET_ICON_TEXTURE_SIZE_X, HUD_BULLET_ICON_TEXTURE_SIZE_Y);
+	m_sunBulletIcon->SetPosition(HUD_BULLET_ICON_TEXTURE_POS_X, HUD_BULLET_ICON_TEXTURE_POS_Y);
+	m_sunBulletIcon->SetScale(0.056f, 0.056f);
 
 	m_crosshair = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
@@ -151,6 +179,34 @@ void UIMainHUD::Initialize(void)
 	);
 	m_itemCountSign->SetSize(HUD_ITEM_COUNT_TEXTURE_SIZE_X, HUD_ITEM_COUNT_TEXTURE_SIZE_Y);
 	m_itemCountSign->SetScale(0.5f, 0.5f);
+
+	m_numInfinity = new UISprite(
+		UIManager::get_instance().GetSpriteVertexBuffer(),
+		TextureMgr::get_instance().CreateTexture(HUD_NUM_INFINITY_TEXTURE_PATH)
+	);
+	m_numInfinity->SetSize(HUD_NUM_INFINITY_TEXTURE_SIZE_X, HUD_NUM_INFINITY_TEXTURE_SIZE_Y);
+	m_numInfinity->SetPosition(HUD_NUM_INFINITY_TEXTURE_POS_X, HUD_NUM_INFINITY_TEXTURE_POS_Y);
+	m_numInfinity->SetScale(0.035f, 0.035f);
+
+	m_bossHPGaugeCover = new UISprite(
+		UIManager::get_instance().GetSpriteVertexBuffer(),
+		TextureMgr::get_instance().CreateTexture(HUD_HPGAUGE_COVER_TEXTURE_PATH)
+	);
+	m_bossHPGaugeCover->SetSize(HUD_HPGAUGE_TEXTURE_SIZE_X, HUD_HPGAUGE_TEXTURE_SIZE_Y);
+	m_bossHPGaugeCover->SetPosition(HUD_HPGAUGE_TEXTURE_POS_X, HUD_HPGAUGE_TEXTURE_POS_Y);
+	m_bossHPGaugeCover->SetScale(15.0f, 5.0f);
+	m_bossHPGaugeCover->SetDrawMode(SpriteDrawMode::LeftTop);
+	m_sprites.push_back(m_bossHPGaugeCover);
+
+	m_bossHPGauge = new UISprite(
+		UIManager::get_instance().GetSpriteVertexBuffer(),
+		TextureMgr::get_instance().CreateTexture(HUD_HPGAUGE_TEXTURE_PATH)
+	);
+	m_bossHPGauge->SetSize(HUD_HPGAUGE_TEXTURE_SIZE_X, HUD_HPGAUGE_TEXTURE_SIZE_Y);
+	m_bossHPGauge->SetPosition(HUD_HPGAUGE_TEXTURE_POS_X, HUD_HPGAUGE_TEXTURE_POS_Y);
+	m_bossHPGauge->SetScale(15.0f, 5.0f);
+	m_bossHPGauge->SetDrawMode(SpriteDrawMode::LeftTop);
+	m_sprites.push_back(m_bossHPGauge);
 }
 
 void UIMainHUD::Update(void)
@@ -161,11 +217,16 @@ void UIMainHUD::Update(void)
 		if (m_player == nullptr) return; // プレイヤーがまだ初期化されていない場合は何もしない
 	}
 
+	PlayerAttributes& attributes = m_player->GetPlayerAttributes();
+
 	// アイコンの表示状態を更新
 	m_seedIcon->SetVisible(m_player->HasSeed());
-	m_bulletIcon->SetVisible(m_player->HasBullet());
+	if (attributes.bulletCount > 0)
+		m_sunBulletIcon->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	else
+		m_sunBulletIcon->SetColor(XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f));
 
-	m_crosshair->SetVisible(m_player->GetPlayerAttributes().aimMode);
+	m_crosshair->SetVisible(attributes.aimMode);
 
 	// アイコンの位置を更新
 	if (m_player->GetMeleeMode())
@@ -182,6 +243,28 @@ void UIMainHUD::Update(void)
 		m_gunIcon->SetPosition(HUD_MAIN_GUN_ICON_TEXTURE_POS_X, HUD_MAIN_GUN_ICON_TEXTURE_POS_Y);
 		m_gunIcon->SetScale(HUD_MAIN_GUN_ICON_TEXTURE_SCALE, HUD_MAIN_GUN_ICON_TEXTURE_SCALE);
 	}
+
+	// ボスの体力ゲージを更新
+	Boss* boss = EnemyManager::get_instance().GetBoss();
+	if (boss)
+	{
+		if (boss->GetBossFightStarted())
+		{
+			m_bossHPGauge->SetVisible(true);
+			m_bossHPGaugeCover->SetVisible(true);
+
+			// 体力に応じてゲージの長さを変更
+			const EnemyAttributes& enemyAttr = boss->GetEnemyAttribute();
+			float hpRatio = enemyAttr.HP / enemyAttr.maxHP;
+			hpRatio = max(hpRatio, 0.0f);
+			m_bossHPGauge->SetScale(15.0f * hpRatio, 5.0f);
+		}
+		else
+		{
+			m_bossHPGauge->SetVisible(false);
+			m_bossHPGaugeCover->SetVisible(false);
+		}
+	}
 }
 
 void UIMainHUD::Draw(void)
@@ -197,14 +280,28 @@ void UIMainHUD::Draw(void)
 	// アイテムの所持数を表示
 	if (m_player)
 	{
-		DrawNumers(m_player->GetPlayerAttributes().bulletCount, HUD_BULLET_COUNT_TEXTURE_POS_X, HUD_BULLET_COUNT_TEXTURE_POS_Y);
-		DrawNumers(m_player->GetPlayerAttributes().seedCount, HUD_SEED_COUNT_TEXTURE_POS_X, HUD_SEED_COUNT_TEXTURE_POS_Y);
+		PlayerAttributes& attributes = m_player->GetPlayerAttributes();
+
+		if (attributes.currentProjectile == ProjectileType::SunBullet)
+		{
+			m_sunBulletIcon->Draw();
+			DrawNumers(attributes.bulletCount, HUD_BULLET_COUNT_TEXTURE_POS_X, HUD_BULLET_COUNT_TEXTURE_POS_Y);
+		}
+		else
+		{
+			m_numInfinity->Draw();
+			m_itemCountSign->SetPosition(HUD_BULLET_COUNT_TEXTURE_POS_X - m_itemCount->GetSize().x * ITEM_COUNT_DIGIT, HUD_BULLET_COUNT_TEXTURE_POS_Y);
+			m_itemCountSign->Draw();
+			m_bulletIcon->Draw();
+		}
+
+		DrawNumers(attributes.seedCount, HUD_SEED_COUNT_TEXTURE_POS_X, HUD_SEED_COUNT_TEXTURE_POS_Y);
 	}
 }
 
 void UIMainHUD::DrawNumers(int number, float posX, float posY)
 {
-	if (number <= 0) return;
+	if (number < 0) return;
 
 	// スコアの位置やテクスチャー座標を反映
 	float pw = m_itemCount->GetSize().x;	// スコアの表示幅

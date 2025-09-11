@@ -91,6 +91,15 @@ float Length3(const XMFLOAT3& a, const XMFLOAT3& b);
 float SmoothAngleLerp(float current, float target, float t);
 XMFLOAT3 DirNorm(const XMFLOAT3& a, const XMFLOAT3& b);
 void ExitGame(void);
+XMFLOAT3 Add(const XMFLOAT3& a, const XMFLOAT3& b);
+XMFLOAT3 Sub(const XMFLOAT3& a, const XMFLOAT3& b);
+XMFLOAT3 Scale(const XMFLOAT3& v, float s);
+float ScalarSaturate(float x);
+float DegToRad(float d);
+XMFLOAT3 NormalizeSafe(const XMFLOAT3& v);
+float Dot(const XMFLOAT3& a, const XMFLOAT3& b);
+float Dist(const XMFLOAT3& a, const XMFLOAT3& b);
+float DistSq(const XMFLOAT3& a, const XMFLOAT3& b);
 
 // Declare additional functions for releasing interfaces, 
 // and macros for error-handling and retrieving the module's base address.

@@ -74,6 +74,9 @@ void ShaderManager::RegisterShaderSourcePaths(void)
     RegisterShaderSource(ShaderSetID::VFX, VertexLayoutID::VFX,
         "Shaders/VFX.hlsl", "VS",
         "Shaders/VFX.hlsl", "PS");
+    RegisterShaderSource(ShaderSetID::Laser, VertexLayoutID::Laser,
+        "Shaders/Laser.hlsl", "VS",
+        "Shaders/Laser.hlsl", "PS");
     RegisterShaderSource(ShaderSetID::ProjectilePreview, VertexLayoutID::ProjectilePreview,
         "Shaders/ProjectilePreview.hlsl", "VS",
         "Shaders/ProjectilePreview.hlsl", "PS");

@@ -139,7 +139,7 @@ void ParticleEffectRendererBase::Update(void)
             m_spawnRateMin = 0;
 
 		}
-        else if (m_duration <= 0.0f)
+        if (m_duration <= 0.0f)
         {
             m_shutdown = true; // パーティクルの寿命が尽きたらシャットダウン
         }

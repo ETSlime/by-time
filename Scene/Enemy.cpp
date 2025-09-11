@@ -104,7 +104,8 @@ void Enemy::Update(void)
 		if (!CheckAvailableToMove())
 			return;
 
-		m_behaviorTree->RunBehaviorTree();
+		if (m_enemyAttr.turnOnBehaviorTree)
+			m_behaviorTree->RunBehaviorTree();
 
 		float deltaDir = instance.attributes.targetDir - instance.attributes.dir;
 		if (deltaDir > XM_PI) deltaDir -= XM_2PI;
@@ -154,7 +155,7 @@ void Enemy::Update(void)
 
 bool Enemy::UpdateAliveState(void)
 {
-	if (m_enemyAttr.isDead == true)
+	if (m_enemyAttr.isDead == true && m_enemyAttr.respawn)
 	{
 		m_enemyAttr.respawnTimer -= m_timer.GetScaledDeltaTime();
 		if (m_enemyAttr.respawnTimer <= 0.0f)
@@ -187,6 +188,18 @@ bool Enemy::UpdateAliveState(void)
 			m_enemyAttr.isDead = true;
 			instance.collider.enable = false; // 当たり判定を無効化
 			instance.castShadow = false; // 影を落とさない
+			if (m_enemyAttr.enemyType == EnemyType::GBMonster)
+			{
+				Transform trans = instance.transform;
+				trans.pos.y += 10.0f;
+				ItemManager::get_instance().SpawnItem(ItemType::Bullet, trans, true);
+			}
+			else if (m_enemyAttr.enemyType == EnemyType::Boss)
+			{
+				Transform trans = instance.transform;
+				trans.pos.y += 10.0f;
+				ItemManager::get_instance().SpawnItem(ItemType::Key, trans, true);
+			}
 		}
 		return false;
 	}
@@ -211,6 +224,10 @@ void Enemy::Draw(void)
 
 void Enemy::DrawUI(EnemyUIType type)
 {
+	// ボスにはHPゲージを表示しない
+	if (m_enemyAttr.enemyType == EnemyType::Boss)
+		return;
+
 	switch (type)
 	{
 	case EnemyUIType::HPGauge:
@@ -306,6 +323,25 @@ void Enemy::DrawHPGaugeCover(void)
 
 	// ポリゴンの描画
 	Renderer::get_instance().GetDeviceContext()->Draw(4, 0);
+}
+
+float Enemy::DistanceToPlayer(void) const
+{
+	// 距離^2 を再利用して sqrt を取る
+	return sqrtf(DistanceToPlayerSq());
+}
+
+float Enemy::DistanceToPlayerSq(void) const
+{
+	// 敵とプレイヤーの位置ベクトルをロード
+	XMVECTOR enemyPosVec = XMLoadFloat3(&instance.transform.pos);
+	XMVECTOR playerPosVec = XMLoadFloat3(&m_player->GetTransform().pos);
+
+	// 敵→プレイヤーのベクトル
+	XMVECTOR toPlayerVec = XMVectorSubtract(playerPosVec, enemyPosVec);
+
+	// 長さ^2 を計算
+	return XMVectorGetX(XMVector3LengthSq(toPlayerVec));
 }
 
 void Enemy::InitHPGauge(void)
@@ -484,16 +520,31 @@ void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 {
 	Enemy* self = static_cast<Enemy*>(context);
 
+
 	if (event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE || event.colliderB->tag == ColliderTag::PLAYER_PROJECTILE)
 	{
 		const Collider* projectileCol = event.colliderA->tag == ColliderTag::PLAYER_PROJECTILE ? event.colliderA : event.colliderB;
-		auto itemColOwner = static_cast<Projectile*>(projectileCol->owner);
+		auto projectileColOwner = static_cast<Projectile*>(projectileCol->owner);
 
-		itemColOwner->SetActive(FALSE);
+		projectileColOwner->SetActive(FALSE);
+
+		if (projectileColOwner->GetProjectileAttributes().projectileType == ProjectileType::SunBullet)
+		{
+			projectileColOwner->PlayEffect(HitColliderType::Enemy, XMFLOAT3());
+		}
+
+		// 無敵状態ならダメージを受けない
+		if (self->m_enemyAttr.isInvincible)
+			return;
+
 		self->ReduceHP(10.0f);
 	}
 	else if (self->GetAttributesConst().hitTimer <= 0)
 	{
+		// 無敵状態ならダメージを受けない
+		if (self->m_enemyAttr.isInvincible)
+			return;
+
 		self->SetHitTimer(ENEMY_HIT_WINDOW);
 		if (!self->GetIsHit())
 		{
@@ -516,6 +567,10 @@ void Enemy::OnItemHitCallback(const CollisionEvent& event, void* context)
 {
 	Enemy* self = static_cast<Enemy*>(context);
 
+	// 無敵状態ならダメージを受けない
+	if (self->m_enemyAttr.isInvincible)
+		return;
+
 	if (!self->GetIsHit())
 	{
 		self->ReduceHP(200.0f);
@@ -530,6 +585,12 @@ void Enemy::OnItemHitCallback(const CollisionEvent& event, void* context)
 	}
 
 	self->SetChasePlayer(true);
+
+	Boss* boss = dynamic_cast<Boss*>(self);
+	if (boss && boss->GetStateMachine()->GetCurrentState() == STATE(EnemyState::BOSS_FIGHT_CAST_ICE))
+	{
+		boss->SetInterruptedIceCast(true);
+	}
 
 }
 
@@ -610,6 +671,32 @@ void Enemy::UpdateBoneHitCollider(EnemyBoneHitCollider& hitCollider, BodyTransfo
 }
 
 void Enemy::ChasePlayer(void)
+{
+	if (m_player == nullptr) return;
+
+	Transform playerTransform = m_player->GetTransform();
+
+	// 敵からプレイヤーへの方向ベクトル
+	XMVECTOR enemyPosVec = XMLoadFloat3(&instance.transform.pos);
+	XMVECTOR playerPosVec = XMLoadFloat3(&playerTransform.pos);
+
+	// プレイヤーまでの距離
+	XMVECTOR diff = XMVectorSubtract(playerPosVec, enemyPosVec);
+	float distSq = XMVectorGetX(XMVector3LengthSq(diff));
+	m_enemyAttr.distPlayerSq = distSq;
+
+	// 目標方向を計算
+	float dx = instance.transform.pos.x - playerTransform.pos.x;
+	float dz = instance.transform.pos.z - playerTransform.pos.z;
+
+	instance.attributes.targetDir = -atan2(dz, dx) - XM_PI * 0.5f;
+
+	// プレイヤー方向に移動
+	instance.attributes.isMoving = true;
+	instance.attributes.spd = VALUE_MOVE;
+}
+
+void Enemy::ChaseAndAttackPlayer(void)
 {
 	if (m_player == nullptr) return;
 

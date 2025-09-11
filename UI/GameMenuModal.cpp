@@ -14,6 +14,8 @@ GameMenuModal::GameMenuModal(GameSystem* gameSystem, SceneID sceneID) : m_gameSy
 	m_currentTimeControl = static_cast<TimeControlButton>(sceneID);
 	m_elements.reserve(12);
 
+	bool allowSaveAndSwitchScene = m_gameSystem->AllowSaveAndSwitch();
+
 	m_background = new UISprite(
 		UIManager::get_instance().GetSpriteVertexBuffer(),
 		TextureMgr::get_instance().CreateTexture(MENU_BACKGROUND_TEXTURE_PATH));

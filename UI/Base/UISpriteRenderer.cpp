@@ -32,7 +32,7 @@ void UISpriteRenderer::SetSpriteCenter(ID3D11Buffer* buf, float X, float Y, floa
 }
 
 void UISpriteRenderer::SetSpriteLeftTop(ID3D11Buffer* buf, float X, float Y, float Width, float Height,
-    float U, float V, float UW, float VH)
+    float U, float V, float UW, float VH, XMFLOAT4 color)
 {
     HRESULT hr = S_OK;
     D3D11_MAPPED_SUBRESOURCE msr;
@@ -51,6 +51,12 @@ void UISpriteRenderer::SetSpriteLeftTop(ID3D11Buffer* buf, float X, float Y, flo
     vertex[1].TexCoord = XMFLOAT2(U + UW, V);
     vertex[2].TexCoord = XMFLOAT2(U, V + VH);
     vertex[3].TexCoord = XMFLOAT2(U + UW, V + VH);
+
+    // ƒJƒ‰[Ý’è
+    vertex[0].Color = color;
+    vertex[1].Color = color;
+    vertex[2].Color = color;
+    vertex[3].Color = color;
 
     Renderer::get_instance().GetDeviceContext()->Unmap(buf, 0);
 }

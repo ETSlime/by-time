@@ -12,6 +12,8 @@
 struct SaveData
 {
 	int	seedCount;
+	int bulletCount;
+	bool hasBullet;
 	XMFLOAT3 pos;
 	SceneID currentSceneID;
 };

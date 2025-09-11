@@ -347,9 +347,6 @@
     <ClInclude Include="Scene\Weapon\ProjectileManager.h">
       <Filter>Scene\Weapon</Filter>
     </ClInclude>
-    <ClInclude Include="Scene\Weapon\Bullet.h">
-      <Filter>Scene\Weapon</Filter>
-    </ClInclude>
     <ClInclude Include="UI\Base\TweenManager.h">
       <Filter>UI\Base</Filter>
     </ClInclude>
@@ -451,6 +448,9 @@
     </ClInclude>
     <ClInclude Include="Scene\Character\Boss.h">
       <Filter>Scene\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\LaserRenderer.h">
+      <Filter>Effects\SpecialEffects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -662,9 +662,6 @@
     <ClCompile Include="Scene\Weapon\ProjectileManager.cpp">
       <Filter>Scene\Weapon</Filter>
     </ClCompile>
-    <ClCompile Include="Scene\Weapon\Bullet.cpp">
-      <Filter>Scene\Weapon</Filter>
-    </ClCompile>
     <ClCompile Include="UI\Base\UIButton.cpp">
       <Filter>UI\Base</Filter>
     </ClCompile>
@@ -739,6 +736,9 @@
     </ClCompile>
     <ClCompile Include="Scene\Character\Boss.cpp">
       <Filter>Scene\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\LaserRenderer.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

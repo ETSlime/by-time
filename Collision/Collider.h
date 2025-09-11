@@ -22,14 +22,18 @@ enum class ColliderTag
     NPC,
     TRIGGER,
     WALL,
+	TRANSPARENT_WALL,
     AIR_WALL,
+    ICE_WALL,
     TREE,
     ITEM,
     STATIC_OBJECT,
+    BOSS_ICE,
     TELEPORTER,
     PLAYER_ATTACK,
     ENEMY_ATTACK,
-    PLAYER_PROJECTILE
+    PLAYER_PROJECTILE,
+	ENEMY_PROJECTILE,
 };
 
 enum class CollisionCallbackID
