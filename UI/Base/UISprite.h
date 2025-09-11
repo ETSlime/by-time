@@ -72,7 +72,8 @@ public:
                 m_vertexBuffer,
                 m_position.x, m_position.y,
                 scaledSize.x, scaledSize.y,
-                m_uv.x, m_uv.y, m_uv.z, m_uv.w);
+                m_uv.x, m_uv.y, m_uv.z, m_uv.w,
+                m_color);
             break;
 
         case SpriteDrawMode::CenterWithColor:

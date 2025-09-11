@@ -113,6 +113,19 @@ void EffectSystem::Draw(void)
 
 	}
 
+	// その他のエフェクト描画
+	if (!m_otherEffects.empty())
+	{
+		// パイプライン状態をリセット
+		m_context->GSSetShader(nullptr, nullptr, 0);
+
+		for (auto other : m_otherEffects)
+		{
+			other->SetupPipeline();
+			other->Draw();
+		}
+	}
+
 	// BillboardSimple
 	if (!m_billboardSimpleEffects.empty())
 	{
@@ -169,19 +182,6 @@ void EffectSystem::Draw(void)
 
 		lastType = EffectType::SoftBody;
 	}	
-
-	// その他のエフェクト描画
-	if (!m_otherEffects.empty())
-	{
-		// パイプライン状態をリセット
-		m_context->GSSetShader(nullptr, nullptr, 0);
-
-		for (auto other : m_otherEffects)
-		{
-			other->SetupPipeline();
-			other->Draw();
-		}
-	}
 
 	// 最後にパイプライン状態をリセット
 	ClearAllEffectBindings();

@@ -47,7 +47,8 @@ private:
     void UpdateSphereMesh(const XMFLOAT3& hitNormal, float radius, UINT sliceCount = MAX_SPHERE_SLICES, UINT stackCount = MAX_SPHERE_STACKS);
     // 初期化時に呼ぶ：動的に頂点/インデックスを書き込むためのバッファだけ確保する
     void CreateSphereBuffers(UINT maxSliceCount, UINT maxStackCount);
-    bool LoadShaders(void);
+    // シェーダー読み込み
+	bool LoadShaders(void);
 
     ID3D11Device* m_device;
     ID3D11DeviceContext* m_context;

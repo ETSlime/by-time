@@ -257,6 +257,8 @@ void Player::LoadSaveData(const SaveData& saveData)
 {
 	SetPosition(saveData.pos);
 	m_playerAttr.seedCount = saveData.seedCount;
+	m_playerAttr.bulletCount = saveData.bulletCount;
+	m_playerAttr.hasBullet = saveData.hasBullet;
 }
 
 void Player::SetClimbMode(PlayerState climbState)
@@ -789,6 +791,11 @@ void Player::HandleInput(void)
 	else
 	{
 		m_attributes->isRunning = false;
+	}
+
+	if (m_inputManager.GetKeyboardRelease(KEY_SWITCH_BULLET))
+	{
+		m_playerAttr.currentProjectile = m_playerAttr.currentProjectile == ProjectileType::Bullet ? ProjectileType::SunBullet : ProjectileType::Bullet;
 	}
 }
 

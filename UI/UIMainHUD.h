@@ -30,8 +30,13 @@ private:
     UISprite* m_gunIcon = nullptr;
     UISprite* m_seedIcon = nullptr;
 	UISprite* m_bulletIcon = nullptr;
+    UISprite* m_sunBulletIcon = nullptr;
 	UISprite* m_itemCount = nullptr;
 	UISprite* m_itemCountSign = nullptr;
+	UISprite* m_numInfinity = nullptr;
+
+	UISprite* m_bossHPGauge = nullptr;
+	UISprite* m_bossHPGaugeCover = nullptr;
 
     UISprite* m_crosshair = nullptr;
 

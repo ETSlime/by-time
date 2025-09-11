@@ -8,6 +8,7 @@
 //
 //=============================================================================
 #include "Scene/Enemy.h"
+#include "Scene/Character/Boss.h"
 #include "Utility/DoubleLinkedList.h"
 #include "Utility/SingletonBase.h"
 
@@ -32,6 +33,7 @@ public:
 	int GetEnemyLoadedCnt(void) const { return m_currentEnemyLoadCnt; }
 
 	const DoubleLinkedList<Enemy*>* GetEnemy() { return &m_enemyList; }
+	Boss* GetBoss(void) { return m_boss; }
 
 private:
 
@@ -45,6 +47,8 @@ private:
 	Renderer& m_renderer = Renderer::get_instance();
 	const Player* m_player;
 	bool m_drawBoundingBox = true;
+
+	Boss* m_boss = nullptr;
 
 	Enemy* debugEnemy = nullptr;
 	float debugEnemyPosX = 0.0f;

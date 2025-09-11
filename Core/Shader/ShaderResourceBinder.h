@@ -32,6 +32,7 @@
 #define SLOT_CB_CASCADE_DATA_ARRAY          6
 #define SLOT_CB_CAMERA_POS                  7
 #define SLOT_CB_EFFECT_PARTICLE             7
+#define SLOT_CB_LASER                       7
 #define SLOT_CB_EFFECT_SPH                  8
 #define SLOT_CB_CASCADE_DATA                8
 #define SLOT_CB_SKYBOX                      9  

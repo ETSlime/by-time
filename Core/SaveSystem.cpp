@@ -37,7 +37,8 @@ bool SaveSystem::SaveGame(void)
         return false;
 
 	WriteHex(fp, state.seedCount);
-
+    WriteHex(fp, state.bulletCount);
+    WriteHex(fp, state.hasBullet);
     WriteHex(fp, state.pos.x);
     WriteHex(fp, state.pos.y);
     WriteHex(fp, state.pos.z);
@@ -60,7 +61,8 @@ bool SaveSystem::LoadGame(SaveData& saveData)
 
     bool ok = true;
     ok = ok && ReadHex(fp, saveData.seedCount);
-
+    ok = ok && ReadHex(fp, saveData.bulletCount);
+    ok = ok && ReadHex(fp, saveData.hasBullet);
     ok = ok && ReadHex(fp, saveData.pos.x);
     ok = ok && ReadHex(fp, saveData.pos.y);
     ok = ok && ReadHex(fp, saveData.pos.z);
@@ -92,9 +94,14 @@ bool SaveSystem::CheckSaveDataExists(void)
 
 void SaveSystem::GetSaveData(SaveData& saveData)
 {
-	saveData.seedCount = GameSystem::get_instance().GetPlayer()->GetPlayerAttributes().seedCount;
-	saveData.pos = GameSystem::get_instance().GetPlayer()->GetTransform().pos;
+    Player* player = GameSystem::get_instance().GetPlayer();
+
+	saveData.seedCount = player->GetPlayerAttributes().seedCount;
+    saveData.bulletCount = player->GetPlayerAttributes().bulletCount;
+    saveData.hasBullet = player->GetPlayerAttributes().hasBullet;
+	saveData.pos = player->GetTransform().pos;
 	saveData.currentSceneID = Ground::get_instance().GetCurrentSceneID();
+
 
 }
 

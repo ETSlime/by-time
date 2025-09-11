@@ -64,8 +64,9 @@
 
 #define KEY_INTERACT				DIK_F       // インタラクトキー（ドア開ける、アイテム拾うなど）
 #define KEY_SWITCH_WEAPON			DIK_Q		// 武器切り替えキー
-#define KEY_ENTER_THROW_MODE		DIK_G 
-#define KEY_EXIT_THROW_MODE			DIK_R
+#define KEY_ENTER_THROW_MODE		DIK_G 		// 投擲モードに入るキー
+#define KEY_EXIT_THROW_MODE			DIK_R		// 投擲モードを抜けるキー
+#define KEY_SWITCH_BULLET			DIK_TAB
 
 //*****************************************************************************
 // プロトタイプ宣言

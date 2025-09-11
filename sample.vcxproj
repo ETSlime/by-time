@@ -191,6 +191,7 @@
     <ClInclude Include="Effects\Skybox.h" />
     <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\LakeSurfaceRenderer.h" />
+    <ClInclude Include="Effects\SpecialEffects\LaserRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\SmokeEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\SwordTrail.h" />
     <ClInclude Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.h" />
@@ -228,7 +229,6 @@
     <ClInclude Include="Scene\EnterExitBehavior.h" />
     <ClInclude Include="Scene\Scene.h" />
     <ClInclude Include="Scene\Town.h" />
-    <ClInclude Include="Scene\Weapon\Bullet.h" />
     <ClInclude Include="Scene\Weapon\Projectile.h" />
     <ClInclude Include="Scene\Weapon\ProjectileManager.h" />
     <ClInclude Include="UI\Base\ISpriteUI.h" />
@@ -307,6 +307,7 @@
     <ClCompile Include="Effects\Skybox.cpp" />
     <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\LakeSurfaceRenderer.cpp" />
+    <ClCompile Include="Effects\SpecialEffects\LaserRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\SmokeEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\SwordTrail.cpp" />
     <ClCompile Include="Effects\SpecialEffects\Water\FluidHeightFieldBuilder.cpp" />
@@ -343,7 +344,6 @@
     <ClCompile Include="Scene\EnterExitBehavior.cpp" />
     <ClCompile Include="Scene\Scene.cpp" />
     <ClCompile Include="Scene\Town.cpp" />
-    <ClCompile Include="Scene\Weapon\Bullet.cpp" />
     <ClCompile Include="Scene\Weapon\Projectile.cpp" />
     <ClCompile Include="Scene\Weapon\ProjectileManager.cpp" />
     <ClCompile Include="UI\Base\ScreenFader.cpp" />

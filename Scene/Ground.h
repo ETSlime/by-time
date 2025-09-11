@@ -70,6 +70,8 @@ public:
 	void LoadScene(SceneID id); // シーンをロード
 	SceneID GetCurrentSceneID(void) { return m_currentSceneID; }
 
+	void SetEnableBossfightRoom(bool enable);
+
 	int GetTotalModelLoadCnt(void) const { return m_totalModelLoadCnt; } // 全モデルのロード数
 	int GetCurrentModelLoadCnt(void) const { return m_currentModelLoadCnt; } // 現在ロードしたモデル数
 
@@ -123,6 +125,7 @@ private:
 
 	SimpleArray<GameObject<ModelInstance>*>				m_staticGOs;
 	SimpleArray<GameObject<ModelInstance>*>             m_persistentStaticGOs;
+	SimpleArray<GameObject<ModelInstance>*>             m_tempGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>	m_skinnedGOs;
 	SimpleArray<GameObject<SkinnedMeshModelInstance>*>  m_persistentSkinnedGOs;
 
@@ -201,6 +204,7 @@ private:
 	Item* m_scenesGate = nullptr;
 
 	Skybox& m_skybox = Skybox::get_instance();
+	Renderer& m_Renderer = Renderer::get_instance();
 };
 
 template<typename T>
@@ -251,9 +255,9 @@ inline void Ground::DrawGameObjectArray(const SimpleArray<T*>& array)
 		auto& gameObject = array[i]; // GameObjectのポインタを取得
 
 		if (gameObject->GetUse() == false) continue;
-		if (gameObject->GetCollider().tag == ColliderTag::AIR_WALL)
+		if (gameObject->GetCollider().tag == ColliderTag::AIR_WALL || gameObject->GetCollider().tag == ColliderTag::ICE_WALL)
 		{
-			//continue;
+			continue;
 		}
 
 		gameObject->Draw();

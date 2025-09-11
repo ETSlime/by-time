@@ -12,6 +12,7 @@
 #include "Scene/Item/Item.h"
 #include "Scene/Item/Interactable/Interactable.h"
 #include "Scene/Item/ItemManager.h"
+#include "Scene/Weapon/Projectile.h"
 #include "Core/LightManager.h"
 #include "Utility/InputManager.h"
 #include "Effects/ProjectilePreview/ProjectilePreviewRenderer.h"
@@ -30,6 +31,9 @@
 
 #define PLAYER_INIT_POS				XMFLOAT3(9354.0f, 6470.0f, 2096.0f)
 
+#define BULLET_FIRE_INTERVAL		(0.1f)							// 弾の発射間隔（秒）
+#define SUN_BULLET_FIRE_INTERVAL	(0.5f)							// 弾の発射間隔（秒）
+
 struct PlayerAttributes
 {
 	UINT			actionQueueClearTime;
@@ -40,6 +44,7 @@ struct PlayerAttributes
 	int				seedCount = 0;
 	int				keyCount = 0;
 	int				bulletCount = 0;
+	bool			hasBullet = false;
 
 	bool			isMeleeMode = true;
 	bool			allowControl = true;
@@ -62,10 +67,11 @@ struct PlayerAttributes
 	bool			finishStoreWeapon = true;
 
 	bool			drawGun = false;
-	float			fireIntervalSec = 0.1f; // 射撃インターバル（秒）
+	float			fireIntervalSec = BULLET_FIRE_INTERVAL; // 射撃インターバル（秒）
 	float			fireCooldownSec = 0.0f; // 現在のクールダウン残り時間（秒）: 0以下なら発射可能
 
 	PlayerState		currentState = PlayerState::IDLE;
+	ProjectileType	currentProjectile = ProjectileType::Bullet;
 
 	float			groundY = 0.0f; // 地面のY座標
 	XMFLOAT3		initPos{};
@@ -95,13 +101,15 @@ public:
 	void SetClimbMode(PlayerState climbState);
 	void PlaceItem(ItemType type);
 
+	BOUNDING_BOX GetPlayerAABB(void) const { return m_playerGO->GetCollider().aabb; }
+
 	static void OnClimbPromptTriggered(void* userData);
 
 	static void OnPlaceItemPromptTriggered(void* userData);
 
 	bool GetMeleeMode(void) const { return m_playerAttr.isMeleeMode; }
 	bool HasSeed(void) const { return m_playerAttr.seedCount > 0; }
-	bool HasBullet(void) const { return m_playerAttr.bulletCount > 0; }
+	bool HasBullet(void) const { return m_playerAttr.hasBullet; }
 	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
 	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
 

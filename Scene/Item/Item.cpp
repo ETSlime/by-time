@@ -71,7 +71,15 @@ void Item::Initialize(bool enableCollider)
 		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;
+	case ItemType::Bullet:
+		config.modelPath = "data/MODEL/Item/Bullet/sun_bullet.obj";
+		config.scale = XMFLOAT3(15.0f, 15.0f, 15.0f);
+		config.rotation = XMFLOAT3(90.0f, 0.0f, 0.0f);
+		break;
 	}
+
+	instance.renderProgress.isRandomFade = false;
+	instance.renderProgress.progress = 1.0f;
 
 	config.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
 	config.colliderTag = ColliderTag::ITEM;
@@ -116,7 +124,7 @@ void Item::PlayEffect(HitColliderType type, const XMFLOAT3& hitNormal)
 
 		if (type == HitColliderType::Enemy)
 		{
-			smokeParams.startColor = XMFLOAT4(0.8f, 0.2f, 0.2f, 0.3f); // ìGÇ…ìñÇΩÇ¡ÇΩéûÇÕê‘Ç¢âå
+			smokeParams.startColor = XMFLOAT4(0.6f, 0.2f, 0.2f, 0.3f); // ìGÇ…ìñÇΩÇ¡ÇΩéûÇÕê‘Ç¢âå
 			smokeParams.duration = 3.0f; // íZÇ¢éûä‘Ç≈è¡Ç¶ÇÈ
 			smokeParams.lifeMin = 1.5f;
 			smokeParams.lifeMax = 2.0f;

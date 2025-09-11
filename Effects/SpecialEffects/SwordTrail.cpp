@@ -98,11 +98,15 @@ void SwordTrail::GenerateSwordTrailMesh(void)
 		XMStoreFloat3(&v3.position, hilt2);
 		XMStoreFloat3(&v4.position, tip2);
 
+		// 透明度を設定（ヒルト側が不透明、先端側が透明）
+		float alphaHilt = 1.0f;
+		float alphaTip = 1.0f;
 
-		v1.color = XMFLOAT4(1, 1, 1, 1);
-		v2.color = XMFLOAT4(1, 1, 1, 1);
-		v3.color = XMFLOAT4(1, 1, 1, 1);
-		v4.color = XMFLOAT4(1, 1, 1, 1);
+		v1.color = XMFLOAT4(1, 1, 1, alphaHilt); // 剣柄
+		v3.color = XMFLOAT4(1, 1, 1, alphaHilt); // 剣柄
+		v2.color = XMFLOAT4(1, 1, 1, alphaTip);  // 剣尖
+		v4.color = XMFLOAT4(1, 1, 1, alphaTip);  // 剣尖
+
 
 		v1.uv = XMFLOAT2(0.0f, 0.0f);
 		v2.uv = XMFLOAT2(1.0f, 0.0f);

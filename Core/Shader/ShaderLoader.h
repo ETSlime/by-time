@@ -39,6 +39,7 @@ enum class ShaderSetID : uint64_t
     FluidMarchingCube,
     FluidMarchingCubeGPU,
     ProjectilePreview,
+    Laser,
     UI,
     Debug,
 };
@@ -93,6 +94,7 @@ enum class VertexLayoutID : uint64_t
     Instanced,
     Skybox,
     VFX,
+    Laser,
     ProjectilePreview,
     FluidSurface,
     UI,

@@ -44,7 +44,9 @@ enum class GameMode : int		// ゲームモード
     MAX
 };
 
-
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
 struct ResourceLoadContext
 {
     GameMode nextMode;             // 次に入るモード（例：GAME）
@@ -87,6 +89,8 @@ public:
     void ResumeGame(void);
     bool IsPaused(void) const { return m_isPaused; }
     bool IsAltDown(void) const { return m_isAltDown; } // Altキーが押されているかどうか
+
+    bool AllowSaveAndSwitch(void) const;
 
     // 会話モード切替
     void EnterDialogue(void) { m_inDialogue = true; }

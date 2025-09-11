@@ -37,6 +37,10 @@
 #define SOIL_SCALE			XMFLOAT3(48.0f, 31.0f, 46.0f)
 #define SOIL_ROT_Y			(-0.55f)
 
+#define BOSSFIGHT_ROOM_POS				XMFLOAT3(8725.67f, 6718.0f, 2411.0f)
+#define BOSSFIGHT_ROOM_SCALE			XMFLOAT3(398.0f, 120.0f, 380.0f)
+#define BOSSFIGHT_ROOM_ROT_Y			(0.0f)
+
 #define IVY_POS				XMFLOAT3(8881.0f, 7338.0f, 8112.0f)
 #define IVY_SCALE			XMFLOAT3(148.0f, 265.0f, 58.0f)
 #define IVY_ROT_Y			(1.2f)
@@ -73,7 +77,7 @@ void Ground::Initialize(void)
 	LakeSurfaceRenderer* lakeSurface = new LakeSurfaceRenderer(XMFLOAT3(4500.0f, 1500.0f, 4000.0f));
 	if (lakeSurface->Initialize(m_renderer.GetDevice(), m_renderer.GetDeviceContext()))
 	{
-		lakeSurface->SetPosition(XMFLOAT3(7954.0f, 6220.0f, 1996.0f)); // åŒÇÃà íuÇí≤êÆ
+		lakeSurface->SetPosition(XMFLOAT3(7954.0f, 6250.0f, 1996.0f)); // åŒÇÃà íuÇí≤êÆ
 		EffectSystem::get_instance().AddEffect(lakeSurface);
 	}
 	else
@@ -175,6 +179,8 @@ void Ground::Update(void)
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_skinnedGOs);
 	UpdateGameObjectArray<GameObject<SkinnedMeshModelInstance>>(m_persistentSkinnedGOs);
 
+	UpdateGameObjectArray<GameObject<ModelInstance>>(m_tempGOs);
+
 	if (m_town)
 		m_town->Update();
 
@@ -246,6 +252,7 @@ void Ground::Draw(void)
 	{
 		DrawGameObjectArray<GameObject<ModelInstance>>(m_staticGOs);
 		DrawGameObjectArray<GameObject<ModelInstance>>(m_persistentStaticGOs);
+		DrawGameObjectArray<GameObject<ModelInstance>>(m_tempGOs);
 	}
 	else if (m_renderer.GetRenderMode() == RenderMode::SKINNED_MESH)
 	{
@@ -334,11 +341,57 @@ void Ground::LoadScene(SceneID sceneID)
 	}
 }
 
+void Ground::SetEnableBossfightRoom(bool enable)
+{
+	if (enable)
+	{
+		GameObjectConfig airwallConfig{};
+		airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+		airwallConfig.castShadow = false;
+		airwallConfig.drawWorldAABB = false;
+		airwallConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+		airwallConfig.colliderTag = ColliderTag::AIR_WALL;
+		airwallConfig.position = XMFLOAT3(5180.0f, 6488.0f, 2400.0f);
+		airwallConfig.scale = XMFLOAT3(23.0f, 25.0f, 410.0f);
+		CreateSceneGO(airwallConfig, SceneID::NONE);
+
+		airwallConfig.position = XMFLOAT3(12637.0f, 6488.0f, 2400.0f);
+		airwallConfig.scale = XMFLOAT3(23.0f, 25.0f, 410.0f);
+		CreateSceneGO(airwallConfig, SceneID::NONE);
+
+		airwallConfig.position = XMFLOAT3(9407.0f, 6488.0f, 6378.0f);
+		airwallConfig.scale = XMFLOAT3(400.0f, 25.0f, 33.0f);
+		CreateSceneGO(airwallConfig, SceneID::NONE);
+
+		airwallConfig.position = XMFLOAT3(9407.0f, 6488.0f, -962.0f);
+		airwallConfig.scale = XMFLOAT3(400.0f, 25.0f, 36.0f);
+		CreateSceneGO(airwallConfig, SceneID::NONE);
+	}
+	else
+	{
+		auto& sceneData = m_sceneEntityMap[TO_UINT64(SceneID::NONE)];
+
+		m_tempGOs.clear();
+
+		// Ç‹Ç∏ÇÕÉVÅ[ÉìÇ©ÇÁìoò^âèú
+		for (ISceneEntity* entity : sceneData)
+			m_scene.UnregisterEntity(entity);
+
+
+		for (ISceneEntity* entity : sceneData)
+			entity->Destroy();
+
+		m_scene.DestroyAllMarkedGameObjects();
+
+		sceneData.clear();
+	}
+}
+
 void Ground::InitTerrain(void)
 {
 	GameObject<ModelInstance>* terrainGO = new GameObject<ModelInstance>();
 	GameObjectConfig terrainBuildConfig{};
-	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/ground.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/ground_new.obj";
 	terrainBuildConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
 	terrainBuildConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
 	terrainBuildConfig.position = TERRAIN_POS;
@@ -356,50 +409,50 @@ void Ground::InitTerrain(void)
 		m_persistentModelLoadCnt++;
 	}
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/bridge1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/bridge1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/broken_bridge1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/broken_bridge2.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/broken_bridge2.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/CD1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/CD1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/cubes.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/cubes.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/door_l.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/door_l.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/door_r.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/door_r.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/fence1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/fence1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/fence2.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/fence2.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/house_new.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/house_new.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/lines.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/lines.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain1.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain1.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain2.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain2.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/mountain3.obj";
+	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	terrainBuildConfig.modelPath = "data/MODEL/Level/spring/tree.obj";
-	CreateTerrainGO(terrainBuildConfig);
+	//terrainBuildConfig.modelPath = "data/MODEL/Level/spring/tree.obj";
+	//CreateTerrainGO(terrainBuildConfig);
 
 
 
@@ -493,15 +546,7 @@ void Ground::InitTerrain(void)
 
 	terrainBuildConfig.position = XMFLOAT3(4652.5f, 7690.8f, 11416.0f);
 	terrainBuildConfig.scale = XMFLOAT3(109.3f, 79.8f, 161.0f);
-	debugGO = CreateTerrainGO(terrainBuildConfig);
-
-	debugGOPosX = terrainBuildConfig.position.x;
-	debugGOPosY = terrainBuildConfig.position.y;
-	debugGOPosZ = terrainBuildConfig.position.z;
-	debugGOScaleX = terrainBuildConfig.scale.x;
-	debugGOScaleY = terrainBuildConfig.scale.y;
-	debugGOScaleZ = terrainBuildConfig.scale.z;
-	debugGORotY = terrainBuildConfig.rotation.y;
+	CreateTerrainGO(terrainBuildConfig);
 }
 
 GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
@@ -519,7 +564,10 @@ GameObject<ModelInstance>* Ground::CreateSceneGO(GameObjectConfig config, SceneI
 {
 	GameObject<ModelInstance>* staticGO = new GameObject<ModelInstance>();
 	staticGO->Instantiate(config);
-	m_staticGOs.push_back(staticGO);
+	if (sceneID == SceneID::NONE)
+		m_tempGOs.push_back(staticGO);
+	else
+		m_staticGOs.push_back(staticGO);
 
 	RegisterModelLoadMap(config.modelPath, false, false);
 	if (sceneID != SceneID::ALL)
@@ -634,6 +682,23 @@ void Ground::LoadSceneSpringDay(void)
 	}
 
 	LoadLakeAirWalls(SceneID::Spring_Day);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/spring/flowers_big.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/spring/flowers_small.obj";
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/spring/trees_new.obj";
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
 }
 
 void Ground::LoadSceneSpringNight(void)
@@ -712,7 +777,7 @@ void Ground::LoadSceneSpringNight(void)
 
 	GameObjectConfig IvyConfig{};
 	IvyConfig.modelPath = "data/MODEL/Environment/Ivy.obj";
-	IvyConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
+	IvyConfig.collisionType = ObjectCollisionType::NONE;
 	IvyConfig.colliderTag = ColliderTag::STATIC_OBJECT;
 	IvyConfig.scale = IVY_SCALE;
 	IvyConfig.position = IVY_POS;
@@ -744,10 +809,45 @@ void Ground::LoadSceneSpringNight(void)
 	RegisterEventTrigger(triggerBox, EventCallbackAction::StopClimbUp, SceneID::Spring_Night);
 
 	LoadLakeAirWalls(SceneID::Spring_Night);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/spring/flowers_big.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/spring/flowers_small.obj";
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/spring/trees_new.obj";
+	CreateSceneGO(springConfig, SceneID::Spring_Day);
 }
 
 void Ground::LoadSceneSummerDay(void)
 {
+	m_skybox.SetCurrentTime(DAY_TIME);
+
+	LoadLakeAirWalls(SceneID::Summer_Day);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/summer/flowers_small_summer.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Summer_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/summer/trees_summer.obj";
+	CreateSceneGO(springConfig, SceneID::Summer_Day);
+
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
@@ -757,6 +857,23 @@ void Ground::LoadSceneSummerDay(void)
 
 void Ground::LoadSceneSummerNight(void)
 {
+	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	LoadLakeAirWalls(SceneID::Summer_Day);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/summer/flowers_small_summer.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Summer_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/summer/trees_summer.obj";
+	CreateSceneGO(springConfig, SceneID::Summer_Day);
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
@@ -766,6 +883,23 @@ void Ground::LoadSceneSummerNight(void)
 
 void Ground::LoadSceneAutumnDay(void)
 {
+	m_skybox.SetCurrentTime(DAY_TIME);
+
+	LoadLakeAirWalls(SceneID::Autumn_Day);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/autumn/trees_autumn.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Autumn_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/autumn/flowers_small_autumn.obj";
+	CreateSceneGO(springConfig, SceneID::Autumn_Day);
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
@@ -775,6 +909,23 @@ void Ground::LoadSceneAutumnDay(void)
 
 void Ground::LoadSceneAutumnNight(void)
 {
+	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	LoadLakeAirWalls(SceneID::Autumn_Night);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/autumn/trees_autumn.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Autumn_Night);
+
+	springConfig.modelPath = "data/MODEL/Level/autumn/flowers_small_autumn.obj";
+	CreateSceneGO(springConfig, SceneID::Autumn_Night);
 	if (m_sceneKey2 == nullptr)
 	{
 
@@ -802,12 +953,12 @@ void Ground::LoadSceneWinterDay(void)
 	airwallConfig.castShadow = false;
 	airwallConfig.drawWorldAABB = false;
 	airwallConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
-	airwallConfig.colliderTag = ColliderTag::AIR_WALL;
-	airwallConfig.position = XMFLOAT3(9731.0f, 5979.0f, 2443.0f);
-	airwallConfig.scale = XMFLOAT3(277.0f, 25.0f, 370.0f);
+	airwallConfig.colliderTag = ColliderTag::ICE_WALL;
+	airwallConfig.position = XMFLOAT3(8645.0f, 6000.0f, 2481.0f);
+	airwallConfig.scale = XMFLOAT3(382.0f, 25.0f, 410.0f);
 	airwallConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	airwallConfig.trackTriangles = true;
-	debugGO = CreateSceneGO(airwallConfig, SceneID::Winter_Day);
+	CreateSceneGO(airwallConfig, SceneID::Winter_Day);
 
 	debugGOPosX = airwallConfig.position.x;
 	debugGOPosY = airwallConfig.position.y;
@@ -816,10 +967,52 @@ void Ground::LoadSceneWinterDay(void)
 	debugGOScaleY = airwallConfig.scale.y;
 	debugGOScaleZ = airwallConfig.scale.z;
 	debugGORotY = airwallConfig.rotation.y;
+
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/winter/trees_winter.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Winter_Day);
+
+	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
+	CreateSceneGO(springConfig, SceneID::Winter_Day);
 }
 
 void Ground::LoadSceneWinterNight(void)
 {
+	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	GameObjectConfig airwallConfig{};
+	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
+	airwallConfig.castShadow = false;
+	airwallConfig.drawWorldAABB = false;
+	airwallConfig.collisionType = ObjectCollisionType::OBJECT_BOUNDING_BOX;
+	airwallConfig.colliderTag = ColliderTag::ICE_WALL;
+	airwallConfig.position = XMFLOAT3(8645.0f, 6000.0f, 2481.0f);
+	airwallConfig.scale = XMFLOAT3(382.0f, 25.0f, 410.0f);
+	airwallConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	airwallConfig.trackTriangles = true;
+	CreateSceneGO(airwallConfig, SceneID::Winter_Night);
+
+	GameObjectConfig springConfig{};
+	springConfig.modelPath = "data/MODEL/Level/winter/trees_winter.obj";
+	springConfig.castShadow = false;
+	springConfig.drawWorldAABB = false;
+	springConfig.collisionType = ObjectCollisionType::NONE;
+	springConfig.scale = XMFLOAT3(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SIZE);
+	springConfig.position = TERRAIN_POS;
+	springConfig.flip = AxisFlip::FlipX;
+	springConfig.trackTriangles = true;
+	CreateSceneGO(springConfig, SceneID::Winter_Night);
+
+	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
+	CreateSceneGO(springConfig, SceneID::Winter_Night);
 }
 
 void Ground::LoadSceneAll(void)
@@ -1026,12 +1219,12 @@ void Ground::RenderImGui(void)
 
 	if (ImGui::CollapsingHeader("Debug GameObject"))
 	{
-		ImGui::SliderFloat("PosX: ", &debugGOPosX, 1131.0f, 8718.0f, "%.1f");
+		ImGui::SliderFloat("PosX: ", &debugGOPosX, 1131.0f, 13718.0f, "%.1f");
 		ImGui::SliderFloat("PosY: ", &debugGOPosY, 5131.0f, 13718.0f, "%.1f");
-		ImGui::SliderFloat("PosZ: ", &debugGOPosZ, 9131.0f, 13718.0f, "%.1f");
-		ImGui::SliderFloat("ScaleX: ", &debugGOScaleX, 5.0f, 299.0f, "%.1f");
+		ImGui::SliderFloat("PosZ: ", &debugGOPosZ, -1131.0f, 13718.0f, "%.1f");
+		ImGui::SliderFloat("ScaleX: ", &debugGOScaleX, 5.0f, 399.0f, "%.1f");
 		ImGui::SliderFloat("ScaleY: ", &debugGOScaleY, 5.0f, 99.0f, "%.1f");
-		ImGui::SliderFloat("ScaleZ: ", &debugGOScaleZ, 5.0f, 199.0f, "%.1f");
+		ImGui::SliderFloat("ScaleZ: ", &debugGOScaleZ, 5.0f, 399.0f, "%.1f");
 		ImGui::SliderFloat("RotY: ", &debugGORotY, -3, 3, "%.2f");
 	}
 

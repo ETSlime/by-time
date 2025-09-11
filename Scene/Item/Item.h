@@ -4,12 +4,16 @@
 #include "Utility/SimpleArray.h"
 #include "Core/Timer.h"
 
+//*****************************************************************************
+// マクロ定義
+//*****************************************************************************
 enum class ItemType
 {
 	Weapon,
 	GB,
 	Key,
 	Seed,
+	Bullet,
 	Interactable,// Interactableの方は手に入れない
 	IntSoil,
 	IntPSeed,
@@ -20,13 +24,9 @@ enum class ItemType
 	Max
 };
 
-enum class HitColliderType
-{
-	None,
-	Enemy,
-	Environment,
-};
-
+//*****************************************************************************
+// 構造体定義
+//*****************************************************************************
 struct ItemAttributes
 {
 	bool used;

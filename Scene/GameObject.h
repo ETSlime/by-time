@@ -455,10 +455,18 @@ public:
 	inline int	GetHitTimer(void) { return instance.attributes.hitTimer; }
 	inline void SetHitTimer(float hitTimer) { instance.attributes.hitTimer = hitTimer; }
 	inline void EnableWeapon(bool enable) { instance.attributes.hasWeapon = enable; }
+	inline void SetRenderProgress(float progress) { instance.renderProgress.progress = progress; instance.renderProgress.isRandomFade = true; }
+	inline float GetRenderProgress() { return instance.renderProgress.progress; }
 	inline void EnableSeed(bool enable) { instance.attributes.hasSeed = enable; }
 	inline long GetID() { return m_id; }
 	//inline void SetRenderProgress(float progress) { instance.attributes.renderProgress.progress = progress; }
 	//inline void SetSwitchCharEffect(bool effectON) { instance.attributes.charSwitchEffect = effectOn; }
+
+	inline void AddCollisionCallback(CollisionCallback callback, void* context, CollisionCallbackID callbackID)
+	{
+		instance.collider.AddCollisionCallback(callback, context, callbackID);
+	}
+
 	virtual AnimStateMachine* GetStateMachine() { return nullptr; }
 
 	void SetBoundingboxSize(XMFLOAT3 size)
@@ -500,7 +508,9 @@ public:
 	virtual bool CanStopRunning() const { return false; }
 	virtual bool CanAttack() const { return false; }
 	virtual bool CanAttack2() const  { return false; }
+	virtual bool CanStopAttacking2() const { return false; }
 	virtual bool CanAttack3() const  { return false; }
+	virtual bool CanStopAttacking3() const { return false; }
 	virtual bool CanRun()	const { return false; }
 	virtual bool CanHit()	const { return false; }
 	virtual bool CanHit2()	const { return false; }
@@ -520,6 +530,11 @@ public:
 	virtual bool CanClimb() const { return false; }
 	virtual bool CanGlide() const { return false; }
 	virtual bool CanStopGliding() const { return false; }
+	virtual bool CanFallDown() const { return false; }
+	virtual bool CanCastIce() const { return false; }
+	virtual bool CanDash() const { return false; }
+	virtual bool CanBackStep() const { return false; }
+	virtual bool CanLaser() const { return false; }
 	virtual void OnAttackAnimationEnd() {};
 	virtual void OnHitAnimationEnd() {};
 	virtual void OnDashAnimationEnd() {}
@@ -529,6 +544,8 @@ public:
 	virtual void OnPlantSeedAnimationEnd() {}
 	virtual void OnClimbAnimationEnd() {}
 	virtual void OnThrowAnimationEnd() {}
+	virtual void OnBossfightReady() {}
+	virtual void OnGetUpAnimationEnd() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
 	virtual void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) = 0;
