@@ -18,6 +18,8 @@ public:
 
 	void SetLinkedDoor(AutumnDoor* pAutumnDoor) { m_linkedDoor = pAutumnDoor; }
 
+	char* GetPromptTextureLocation() override;
+
 private:
 
 	bool m_opened = false;

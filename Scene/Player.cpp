@@ -397,9 +397,31 @@ void Player::UpdateNormalMode(void)
 	}
 
 	*/
-	if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
-		if (m_linkedInteractable != nullptr)
-		{
+	if (m_linkedInteractable != nullptr) {
+
+		if (m_InteractPromptTexLoc != m_linkedInteractable->GetPromptTextureLocation()) {
+		
+			UIManager::get_instance().ClearActivePrompt();
+
+			delete m_InteractPrompt;
+
+			m_InteractPrompt = nullptr;
+		
+			m_InteractPromptTexLoc = m_linkedInteractable->GetPromptTextureLocation();
+		}
+
+		if (m_InteractPrompt == nullptr) {
+			m_InteractPrompt = new UIInteractPrompt();
+
+			const char* promptTexture = m_InteractPromptTexLoc != nullptr? m_InteractPromptTexLoc : "data/TEXTURE/UI/interactUI.png";
+
+			m_InteractPrompt->Initialize(promptTexture);
+			m_InteractPrompt->SetPosition(1200, 500); // ‰æ–Ê’†‰›‚É”z’u
+			UIManager::get_instance().SetActivePrompt(m_InteractPrompt);
+		}
+
+		if (m_inputManager.GetKeyboardTrigger(DIK_F)) {
+			
 			/*if (m_linkedInteractable->GetItemType() == ItemType::IntSoil && m_attributes.hasSeed) {
 				m_linkedInteractable->Use();
 				m_linkedInteractable->SetActive(false);
@@ -411,7 +433,17 @@ void Player::UpdateNormalMode(void)
 			m_linkedInteractable->Interact();
 
 		}
+
 		m_linkedInteractable = nullptr;
+	}
+	else {
+	
+		UIManager::get_instance().ClearActivePrompt();
+
+		delete m_InteractPrompt;
+
+		m_InteractPrompt = nullptr;
+	
 	}
 
 }

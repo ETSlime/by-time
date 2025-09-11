@@ -25,3 +25,9 @@ void AutumnDoor::Interact()
 		
 	}
 }
+
+char* AutumnDoor::GetPromptTextureLocation()
+{
+	return Ground::get_instance().GetCurrentScene() == SceneID::SCENE_6 ? nullptr : "data/TEXTURE/UI/interactUI-puzzle2.png";
+}
+

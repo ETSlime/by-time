@@ -182,6 +182,7 @@ private:
 		);
 
 	Item* m_sceneKey = nullptr;
+	Item* m_sceneKey2 = nullptr;
 	Item* m_sceneSeed = nullptr;
 	Item* m_sceneSoil = nullptr;
 	Item* m_scenePSeed = nullptr;

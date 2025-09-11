@@ -121,4 +121,7 @@ private:
 
 	float m_hpDrainTimer = 0.0f;
 	bool m_autoHPDrain = true;
+
+	UIInteractPrompt* m_InteractPrompt = nullptr;
+	char* m_InteractPromptTexLoc = nullptr;
 };

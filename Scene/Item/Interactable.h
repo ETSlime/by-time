@@ -16,6 +16,8 @@ public:
 
 	virtual void Interact() {};
 
+	virtual char* GetPromptTextureLocation() { return nullptr; };
+
 private:
 	FBXLoader& m_fbxLoader = FBXLoader::get_instance();
 
