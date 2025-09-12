@@ -496,7 +496,8 @@ void Player::UpdateNormalMode(void)
 			m_InteractPromptTexLoc = m_linkedInteractable->GetPromptTextureLocation();
 		}
 
-		if (m_InteractPrompt == nullptr) {
+		if (m_InteractPrompt == nullptr && m_InteractPromptTexLoc != nullptr) {
+
 			m_InteractPrompt = new UIInteractPrompt();
 
 			const char* promptTexture = m_InteractPromptTexLoc != nullptr? m_InteractPromptTexLoc : "data/TEXTURE/UI/interactUI.png";
@@ -504,6 +505,7 @@ void Player::UpdateNormalMode(void)
 			m_InteractPrompt->Initialize(promptTexture);
 			m_InteractPrompt->SetPosition(1200, 500); // ‰æ–Ê’†‰›‚É”z’u
 			UIManager::get_instance().SetActivePrompt(m_InteractPrompt);
+
 		}
 
 		if (m_inputManager.GetKeyboardTrigger(DIK_F)) {

@@ -18,6 +18,7 @@ char* Gate::GetPromptTextureLocation()
 	Player* player = GameSystem::get_instance().GetPlayer();
 
 	int keyCount = player->GetPlayerAttributes().keyCount;
+
 	
 	switch (keyCount) {
 		
@@ -31,7 +32,7 @@ char* Gate::GetPromptTextureLocation()
 		return "data/TEXTURE/UI/interactUI-key2_3.png";
 		break;
 	default:
-		return nullptr;
+		return Interactable::GetPromptTextureLocation();
 		break;
 
 	}
