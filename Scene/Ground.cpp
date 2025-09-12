@@ -17,6 +17,7 @@
 #include "Scene/Ground.h"
 #include "Scene/Item/ItemManager.h"
 #include "Scene/Item/Interactable/AutumnDoor.h"
+#include "Scene/Item/Interactable/Gate.h"
 #include "Core/GameSystem.h"
 
 //*****************************************************************************
@@ -45,6 +46,8 @@
 #define IVY_POS				XMFLOAT3(8881.0f, 7338.0f, 8112.0f)
 #define IVY_SCALE			XMFLOAT3(148.0f, 265.0f, 58.0f)
 #define IVY_ROT_Y			(1.2f)
+
+#define GATE_SIZE			(13)
 
 //=============================================================================
 // ‰Šú‰»ˆ—
@@ -170,6 +173,17 @@ void Ground::Initialize(void)
 		m_scenesADoorL->ResetStatus();
 		m_scenesADoorR->ResetStatus();
 
+	}
+
+	if (m_scenesGate == nullptr) {
+	
+		Transform trans;
+		trans.pos = XMFLOAT3(1170.0f, 6414.0f, -1650.0f);
+		trans.rot = XMFLOAT3(0.0f, 1.5f, 0.0f);
+		trans.scl = XMFLOAT3(GATE_SIZE, GATE_SIZE, GATE_SIZE);
+
+		m_scenesGate = ItemManager::get_instance().SpawnItem(new Gate(trans));
+	
 	}
 
 	m_initialized = true;

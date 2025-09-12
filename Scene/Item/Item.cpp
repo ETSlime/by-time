@@ -67,7 +67,7 @@ void Item::Initialize(bool enableCollider)
 		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;
 	case ItemType::IntGate:
-		config.modelPath = "data/MODEL/Item/Gate/final_door.obj";
+		config.modelPath = "data/MODEL/Gate/final_door_f.obj";
 		config.scale = XMFLOAT3(2.0f, 2.0f, 2.0f);
 		config.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		break;

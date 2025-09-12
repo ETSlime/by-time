@@ -1321,7 +1321,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
-			self->EnableWeapon(true);
+			self->m_playerAttr->keyCount++;
 		}
 		else if (item && item->GetItemType() == ItemType::Bullet)
 		{
