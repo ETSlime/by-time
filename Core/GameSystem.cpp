@@ -9,6 +9,8 @@
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
+#include "UI/UIGameClear.h"
+#include "UI/UIGameOver.h"
 #include "UI/UIMainHUD.h"
 #include "Utility/Debug/Debugproc.h"
 #include "Effects/EffectSystem.h"
@@ -140,9 +142,20 @@ void GameSystem::InitGame(void)
 void GameSystem::InitResult(void)
 {
     if (GetPlayer()->GetCurrentHP() <= 0) {
+
+        UIGameOverScene* gameOverScene = new UIGameOverScene();
+        gameOverScene->Init(this);
+        m_UIManager.AddElement(gameOverScene);
+        m_cursorManager.RestoreCursorAndEnterUIExclusive();
     
-        ChangeMode(GameMode::TITLE);
+    }
+    else {
     
+        UIGameClearScene* gameClearScene = new UIGameClearScene();
+        gameClearScene->Init(this);
+        m_UIManager.AddElement(gameClearScene);
+        m_cursorManager.RestoreCursorAndEnterUIExclusive();
+
     }
 }
 

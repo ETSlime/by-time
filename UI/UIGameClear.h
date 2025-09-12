@@ -7,14 +7,15 @@
 
 #define GAMECLEAR_TEXTURE_PATH       "data/TEXTURE/gameclear.jpg" // 1枚テクスチャ
 
-class UIGameOverScene : public UIElement
+class UIGameClearScene : public UIElement
 {
 public:
-    UIGameOverScene() {}
+    UIGameClearScene() {}
 
     void Init(GameSystem* system)
     {
-        m_fullSprite = new UISprite();
+
+        m_fullSprite = new UISprite(UIManager::get_instance().GetSpriteVertexBuffer(), TextureMgr::get_instance().CreateTexture(GAMECLEAR_TEXTURE_PATH));
         //m_fullSprite->Init(TextureMgr::get_instance().CreateTexture(GAMECLEAR_TEXTURE_PATH),
             //UIManager::get_instance().GetSpriteVertexBuffer());
         m_fullSprite->SetPosition({ float(SCREEN_CENTER_X), float(SCREEN_CENTER_Y) });
@@ -28,7 +29,7 @@ public:
         m_inputManager = &InputManager::get_instance();
     }
 
-    ~UIGameOverScene()
+    ~UIGameClearScene()
     {
         SAFE_DELETE(m_fullSprite);
     }

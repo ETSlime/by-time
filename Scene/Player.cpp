@@ -465,6 +465,14 @@ void Player::UpdateNormalMode(void)
 		m_currentHP = 0;
 		SetHP(0);
 	}
+	if (m_inputManager.GetKeyboardPress(DIK_K))
+	{
+		GetPlayerAttributes().keyCount ++;
+	}
+	if (m_inputManager.GetKeyboardPress(DIK_L))
+	{
+		GetPlayerAttributes().keyCount --;
+	}
 
 #endif
 

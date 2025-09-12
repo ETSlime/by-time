@@ -14,9 +14,8 @@ public:
 
     void Init(GameSystem* system)
     {
-        m_fullSprite = new UISprite();
-        //m_fullSprite->Init(TextureMgr::get_instance().CreateTexture(GAMEOVER_TEXTURE_PATH),
-            //UIManager::get_instance().GetSpriteVertexBuffer());
+        
+        m_fullSprite = new UISprite(UIManager::get_instance().GetSpriteVertexBuffer(), TextureMgr::get_instance().CreateTexture(GAMEOVER_TEXTURE_PATH));
         m_fullSprite->SetPosition({ float(SCREEN_CENTER_X), float(SCREEN_CENTER_Y) });
         m_fullSprite->SetSize({ float(SCREEN_WIDTH), float(SCREEN_HEIGHT) });
 
