@@ -2,6 +2,7 @@
 #include "Scene/Item/Item.h"
 #include "Scene/Ground.h"
 #include "Scene/Item/Interactable/Interactable.h"
+#include "Core/SaveSystem.h"
 
 
 
@@ -151,13 +152,23 @@ Item* ItemManager::GetPickedItem(ItemType itemType) const
 
 void ItemManager::LoadSaveData(const SaveData& saveData)
 {
-	/*for (int i = 0; i < saveData.seedCount; i++)
+	for (int i = 0; i < saveData.seedCount; i++)
 	{
 		Transform trans;
 		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
-		Item* seed = SpawnItem(ItemType::Seed, trans, false);
+		Item* seed = SpawnItem(new Item(ItemType::Seed, trans));
 		seed->Pickup();
-	}*/
+	
+	}
+
+	for (int i = 0; i < saveData.keyCount; i++)
+	{
+		Transform trans;
+		trans.scl = XMFLOAT3(KEY_SIZE, KEY_SIZE, KEY_SIZE);
+		Item* key = SpawnItem(new Item(ItemType::Key, trans));
+		key->Pickup();
+	}
+
 }
 
 void ItemManager::RenderImGui(void)

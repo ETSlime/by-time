@@ -249,6 +249,11 @@ void Player::InitializePlayerStatus(void)
 
 	m_maxHP = 100.0f;
 	m_currentHP = 100.0f;
+
+	m_playerAttr.seedCount = 0;
+	m_playerAttr.keyCount = 0;
+	m_playerAttr.plantedSeed = false;
+
 	SetHP(1.0f);
 
 	Update();
@@ -259,6 +264,7 @@ void Player::LoadSaveData(const SaveData& saveData)
 	SetPosition(saveData.pos);
 	m_playerAttr.seedCount = saveData.seedCount;
 	m_playerAttr.bulletCount = saveData.bulletCount;
+	m_playerAttr.keyCount = saveData.keyCount;
 	m_playerAttr.hasBullet = saveData.hasBullet;
 }
 
@@ -448,12 +454,18 @@ void Player::UpdateNormalMode(void)
 #ifdef _DEBUG
 	if (m_inputManager.GetKeyboardPress(DIK_UP))
 	{
-		m_transform.pos.y += 50;
+		m_transform.pos.y += 200;
 	}
 	if (m_inputManager.GetKeyboardPress(DIK_DOWN))
 	{
 		m_transform.pos.y -= 50;
 	}
+	if (m_inputManager.GetKeyboardPress(DIK_O))
+	{
+		m_currentHP = 0;
+		SetHP(0);
+	}
+
 #endif
 
 	/// INTERACTABLE-IMPLEMENTATION
@@ -882,6 +894,10 @@ void Player::SetHP(float hp)
 	if (m_hpBar)
 	{
 		m_hpBar->SetHP(hp);
+	}
+
+	if (hp <= 0) {
+		GameSystem::get_instance().ChangeMode(GameMode::RESULT);
 	}
 }
 

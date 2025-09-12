@@ -67,6 +67,7 @@ public:
 	ItemType GetItemType(void) const { return m_itemAttributes.itemType; }
 
 	virtual void Interact() {};
+	virtual void ResetStatus() { m_itemAttributes.used = false; m_itemAttributes.pickedUp = false;};
 
 protected:
 	// プレイヤーがアイテムを拾ったときのコールバック

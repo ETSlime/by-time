@@ -78,6 +78,8 @@ public:
 	// 地形モデルのロードが完了しているか
 	bool IsTerrainReady(void) const { return m_currentTerrainModelLoadCnt >= m_totalTerrainModelLoadCnt; }
 
+	void ReinitializeSceneObjects();
+
 private:
 	void InitTerrain(void);
 	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);

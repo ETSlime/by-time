@@ -144,26 +144,33 @@ void Ground::Initialize(void)
 		options
 	);
 
+	if (m_scenesADoorL == nullptr && m_scenesADoorR == nullptr) {
 
+		Transform trans;
+		trans.pos = XMFLOAT3(4750.0f, 9285.0f, 11100.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
+		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
+		trans.scl = XMFLOAT3(AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE);
 
-	Transform trans;
-	trans.pos = XMFLOAT3(4850.0f, 9285.0f, 11200.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
-	trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	trans.scl = XMFLOAT3(AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE);
+		AutumnDoor* leftDoor = new AutumnDoor(DoorSide::Left, trans);
 
-	AutumnDoor* leftDoor = new AutumnDoor(DoorSide::Left, trans);
+		//trans.pos = XMFLOAT3(5436.0f, 4814.0f, 5034.0f);
+		trans.pos.x -= 63 * AUTUMNDOOR_SIZE;
 
-	//trans.pos = XMFLOAT3(5436.0f, 4814.0f, 5034.0f);
-	trans.pos.x -= 63* AUTUMNDOOR_SIZE;
+		AutumnDoor* rightDoor = new AutumnDoor(DoorSide::Right, trans);
 
-	AutumnDoor* rightDoor = new AutumnDoor(DoorSide::Right, trans);
+		leftDoor->SetLinkedDoor(rightDoor);
+		rightDoor->SetLinkedDoor(leftDoor);
 
-	leftDoor->SetLinkedDoor(rightDoor);
-	rightDoor->SetLinkedDoor(leftDoor);
+		// ‚¢‚Â‚Å‚à‚ ‚é
+		m_scenesADoorL = ItemManager::get_instance().SpawnItem(leftDoor);
+		m_scenesADoorR = ItemManager::get_instance().SpawnItem(rightDoor);
+	}
+	else {
+	
+		m_scenesADoorL->ResetStatus();
+		m_scenesADoorR->ResetStatus();
 
-	// ‚¢‚Â‚Å‚à‚ ‚é
-	m_scenesADoorL = ItemManager::get_instance().SpawnItem(leftDoor);
-	m_scenesADoorR = ItemManager::get_instance().SpawnItem(rightDoor);
+	}
 
 	m_initialized = true;
 }
@@ -386,6 +393,27 @@ void Ground::SetEnableBossfightRoom(bool enable)
 
 		sceneData.clear();
 	}
+}
+
+void Ground::ReinitializeSceneObjects()
+{
+
+	if (m_sceneSeed != nullptr) 
+		m_sceneSeed->ResetStatus();
+	
+
+	if (m_scenesADoorL != nullptr)
+		m_scenesADoorL->ResetStatus();
+
+	if (m_scenesADoorR != nullptr)
+		m_scenesADoorR->ResetStatus();
+
+	if (m_sceneKey != nullptr)
+		m_sceneKey->ResetStatus();
+
+	if (m_sceneKey2 != nullptr)
+		m_sceneKey2->ResetStatus();
+
 }
 
 void Ground::InitTerrain(void)

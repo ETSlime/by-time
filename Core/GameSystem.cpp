@@ -139,7 +139,11 @@ void GameSystem::InitGame(void)
 
 void GameSystem::InitResult(void)
 {
-
+    if (GetPlayer()->GetCurrentHP() <= 0) {
+    
+        ChangeMode(GameMode::TITLE);
+    
+    }
 }
 
 void GameSystem::ProcessModeLoading(void)
@@ -290,6 +294,7 @@ void GameSystem::StartAsyncResourceLoading(void)
 		}
         else
         {
+            m_ground.ReinitializeSceneObjects();
             m_ground.LoadScene(SceneID::Spring_Day);
         }
 

@@ -1349,6 +1349,8 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 		if (!self->GetIsHit())
 		{
 			self->SetIsHit(true);
+			// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
+			self->ForwardEnemyAttackHit(event);
 		}
 
 		if (self->m_playerAttr->throwMode)
@@ -1364,6 +1366,8 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 			if (!self->GetIsHit())
 			{
 				self->SetIsHit(true);
+				// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
+				self->ForwardEnemyAttackHit(event);
 			}
 
 			if (self->m_playerAttr->throwMode)

@@ -38,6 +38,7 @@ bool SaveSystem::SaveGame(void)
 
 	WriteHex(fp, state.seedCount);
     WriteHex(fp, state.bulletCount);
+    WriteHex(fp, state.keyCount);
     WriteHex(fp, state.hasBullet);
     WriteHex(fp, state.pos.x);
     WriteHex(fp, state.pos.y);
@@ -62,6 +63,7 @@ bool SaveSystem::LoadGame(SaveData& saveData)
     bool ok = true;
     ok = ok && ReadHex(fp, saveData.seedCount);
     ok = ok && ReadHex(fp, saveData.bulletCount);
+    ok = ok && ReadHex(fp, saveData.keyCount);
     ok = ok && ReadHex(fp, saveData.hasBullet);
     ok = ok && ReadHex(fp, saveData.pos.x);
     ok = ok && ReadHex(fp, saveData.pos.y);
@@ -98,6 +100,7 @@ void SaveSystem::GetSaveData(SaveData& saveData)
 
 	saveData.seedCount = player->GetPlayerAttributes().seedCount;
     saveData.bulletCount = player->GetPlayerAttributes().bulletCount;
+    saveData.keyCount = player->GetPlayerAttributes().keyCount;
     saveData.hasBullet = player->GetPlayerAttributes().hasBullet;
 	saveData.pos = player->GetTransform().pos;
 	saveData.currentSceneID = Ground::get_instance().GetCurrentSceneID();

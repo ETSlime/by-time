@@ -20,6 +20,8 @@ public:
 
 	char* GetPromptTextureLocation() override;
 
+	void ResetStatus() override;
+
 private:
 
 	bool m_opened = false;
