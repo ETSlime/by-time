@@ -497,7 +497,7 @@ void Player::UpdateNormalMode(void)
 			m_InteractPromptTexLoc = m_linkedInteractable->GetPromptTextureLocation();
 		}
 
-		if (m_InteractPrompt == nullptr) {
+		if (m_InteractPrompt == nullptr && m_InteractPromptTexLoc != nullptr) {
 			m_InteractPrompt = new UIInteractPrompt();
 
 			const char* promptTexture = m_InteractPromptTexLoc != nullptr? m_InteractPromptTexLoc : "data/TEXTURE/UI/interactUI.png";

@@ -152,7 +152,7 @@ void Ground::Initialize(void)
 	if (m_scenesADoorL == nullptr && m_scenesADoorR == nullptr) {
 
 		Transform trans;
-		trans.pos = XMFLOAT3(4750.0f, 9285.0f, 11100.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
+		trans.pos = XMFLOAT3(4800.0f, 9245.0f, 11100.0f);//XMFLOAT3(5336.0f, 4814.0f, 5034.0f); // 
 		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 		trans.scl = XMFLOAT3(AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE, AUTUMNDOOR_SIZE);
 
@@ -517,6 +517,24 @@ void Ground::InitTerrain(void)
 	CreateTerrainGO(terrainBuildConfig);
 
 	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
+	CreateTerrainGO(terrainBuildConfig);
+
+	// SteleTips - Haru
+	terrainBuildConfig.modelPath = "data/MODEL/Level/steletips/Stele_tips_haru.obj";
+	terrainBuildConfig.position = XMFLOAT3(8700.0f, 6480.0f, 8700.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0, XM_PI * 0.8f, 0);
+	CreateTerrainGO(terrainBuildConfig);
+
+	// SteleTips - Aki
+	terrainBuildConfig.modelPath = "data/MODEL/Level/steletips/Stele_tips_aki2.obj";
+	terrainBuildConfig.position = XMFLOAT3(3750.0f, 9360.0f, 10780.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0, XM_PI / 2, 0);
+	CreateTerrainGO(terrainBuildConfig);
+
+	// SteleTips - Fuyu
+	terrainBuildConfig.modelPath = "data/MODEL/Level/steletips/Stele_tips_fuyu2.obj";
+	terrainBuildConfig.position = XMFLOAT3(5236.0f, 6480.0f, 4734.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0, XM_PI, 0);
 	CreateTerrainGO(terrainBuildConfig);
 
 	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence.obj";

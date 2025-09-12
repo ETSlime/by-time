@@ -28,7 +28,7 @@ void AutumnDoor::Interact()
 
 char* AutumnDoor::GetPromptTextureLocation()
 {
-	return Ground::get_instance().GetCurrentSceneID() == SceneID::Autumn_Night ? nullptr : "data/TEXTURE/UI/interactUI-puzzle2.png";
+	return (Ground::get_instance().GetCurrentSceneID() == SceneID::Autumn_Night && !m_opened) ? Interactable::GetPromptTextureLocation() : nullptr;
 }
 
 void AutumnDoor::ResetStatus()

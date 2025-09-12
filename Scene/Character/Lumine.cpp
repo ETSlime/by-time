@@ -347,7 +347,7 @@ void Lumine::Update(void)
 		PlayGeneralAnim(AnimClipName::ANIM_DASH, animSpeed);
 		break;
 	case STATE(PlayerState::JUMP):
-		PlayJumpAnim(animSpeed);
+		PlayJumpAnim(animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::ATTACK_1):
 		PlayAttackAnim(animSpeed);
