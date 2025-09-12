@@ -26,6 +26,7 @@ enum class EffectType
     FireBall,
     Smoke,
     WaterFluid,
+    Falling,
     Particle_End,
 
     LakeSurface,

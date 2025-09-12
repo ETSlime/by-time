@@ -63,3 +63,20 @@ struct WaterFluidParticle
 
     float size;                    // サイズ
 };
+
+// 粒子構造体
+struct FallingParticle
+{
+    UINT particleID;                // 粒子ID（0から始まるインデックス）
+    XMFLOAT3 position;              // 現在位置
+    XMFLOAT3 prevPosition;          // 前フレーム位置
+
+    XMFLOAT3 velocity;              // 速度
+
+    XMFLOAT3 predictedPosition;     // 予測位置（次の位置、拘束前）
+    float lifeRemaining;            // 寿命（将来拡張用、今は1で固定でも可）
+
+    XMFLOAT4 color;                 // デバッグ用カラー（密度に応じた可視化など）
+
+    float size; // サイズ
+};

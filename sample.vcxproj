@@ -189,6 +189,7 @@
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h" />
     <ClInclude Include="Effects\Skybox.h" />
+    <ClInclude Include="Effects\SpecialEffects\FallingParticleRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\LakeSurfaceRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\LaserRenderer.h" />
@@ -305,6 +306,7 @@
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp" />
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
+    <ClCompile Include="Effects\SpecialEffects\FallingParticleRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\LakeSurfaceRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\LaserRenderer.cpp" />

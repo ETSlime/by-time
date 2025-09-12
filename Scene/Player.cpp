@@ -876,7 +876,7 @@ void Player::InitHPBar(UIManager* uiManager)
 {
 	if (m_hpBar)
 	{
-		delete m_hpBar;
+		SAFE_DELETE(m_hpBar);
 		m_hpBar = nullptr;
 	}
 

@@ -583,7 +583,7 @@ void Boss::PlayCastIceAnim(void)
 		// ベース位置
 		XMVECTOR base = XMLoadFloat3(&instance.transform.pos);
 
-		float middleHeight = 200.0f, sideHeightOffset = -50.0f, sideSpacing = 150.0f, forwardOffset = 120.0f;
+		float middleHeight = 400.0f, sideHeightOffset = -50.0f, sideSpacing = 150.0f, forwardOffset = 120.0f;
 
 		// オフセットベクトルを計算
 		XMVECTOR forwardOffsetV = XMVectorScale(forward, forwardOffset);
@@ -610,19 +610,19 @@ void Boss::PlayCastIceAnim(void)
 		Transform shootTrans;
 		shootTrans.pos = outUpMiddle;
 		shootTrans.scl = XMFLOAT3(2.0f, 3.0f, 2.0f);
-		m_iceShardMiddle = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 5.0f);
+		m_iceShardMiddle = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 15.0f);
 		m_iceShardMiddle->SetHoming(true);
 		m_iceShardMiddle->SetShot(false);
 		m_iceShardMiddle->SetRenderProgress(0.0f); // 描画進捗をリセット
 
 		shootTrans.pos = outUpRight;
-		m_iceShardRight = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 5.0f);
+		m_iceShardRight = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 15.0f);
 		m_iceShardRight->SetHoming(true);
 		m_iceShardRight->SetShot(false);
 		m_iceShardRight->SetRenderProgress(0.0f); // 描画進捗をリセット
 
 		shootTrans.pos = outUpLeft;
-		m_iceShardLeft = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 5.0f);
+		m_iceShardLeft = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::IceShard, shootTrans, XMFLOAT3(), 15.0f);
 		m_iceShardLeft->SetHoming(true);
 		m_iceShardLeft->SetShot(false);
 		m_iceShardLeft->SetRenderProgress(0.0f); // 描画進捗をリセット
@@ -637,7 +637,7 @@ void Boss::PlayLaserAnim(void)
 	AnimationClip* clip = m_stateMachine->GetCurrentAnimClip();
 	if (instance.pModel->GetCurrentAnim() != AnimClipName::ANIM_BOSS_FIGHT_LASER)
 		instance.pModel->SetCurrentAnim(clip);
-	instance.pModel->PlayCurrentAnim(m_playAnimSpeed);
+	instance.pModel->PlayCurrentAnim(m_playAnimSpeed * 0.7f);
 
 	constexpr float laserStartTime = 0.2f;
 	constexpr float laserEndTime = 0.8f;

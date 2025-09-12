@@ -582,9 +582,14 @@ void GameSystem::DrawGame(void)
     m_renderer.SetDepthMode(DepthMode::Effect); // パーティクルの深度設定
     m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
     m_renderer.SetRenderVFX(); // VFXの描画を設定
-    m_player->DrawEffect(); // プレイヤーのエフェクト描画
     m_effectSystem.Draw(); // エフェクトの描画
+
+    m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
+    m_renderer.SetRenderVFX(); // VFXの描画を設定
+    m_player->DrawEffect(); // プレイヤーのエフェクト描画
+
     m_decalRenderer.Draw(); // デカールの描画
+
 	if (m_enemyManager.GetBoss())
         m_enemyManager.GetBoss()->DrawEffect(); // ボスのエフェクト描画
     m_renderer.SetBlendState(BLEND_MODE_ALPHABLEND); // ブレンドステートを設定

@@ -104,6 +104,7 @@ struct Attributes
 	XMFLOAT4X4		mtxWorld = XMFLOAT4X4();	// ワールドマトリックス
 
 	float			spd = 0.0f;		// 移動スピード
+	float			valueMove = 0.0f; // 移動量
 	float			dir = 0.0f;		// 向き
 	float			targetDir = 0.0f;
 	bool			use = true;

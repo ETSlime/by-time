@@ -501,7 +501,6 @@ void Lumine::PlaceItem(ItemType type)
 			m_playerAttr->seedCount--;
 			m_playerAttr->allowControl = false;
 			m_stateMachine->SetCurrentState(STATE(PlayerState::PLANT_SEED));
-			m_playerAttr->plantedSeed = true;
 		}
 		return;
 	}
@@ -1321,7 +1320,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
-			self->m_playerAttr->keyCount++;
+			self->EnableWeapon(true);
 		}
 		else if (item && item->GetItemType() == ItemType::Bullet)
 		{
@@ -1349,8 +1348,12 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 		if (!self->GetIsHit())
 		{
 			self->SetIsHit(true);
-			// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
-			self->ForwardEnemyAttackHit(event);
+
+			if (self->m_player)
+			{
+				Player* player = static_cast<Player*>(self->m_player);
+				player->TakeDamage(10);
+			}
 		}
 
 		if (self->m_playerAttr->throwMode)
@@ -1366,8 +1369,12 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 			if (!self->GetIsHit())
 			{
 				self->SetIsHit(true);
-				// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
-				self->ForwardEnemyAttackHit(event);
+
+				if (self->m_player)
+				{
+					Player* player = static_cast<Player*>(self->m_player);
+					player->TakeDamage(10);
+				}
 			}
 
 			if (self->m_playerAttr->throwMode)

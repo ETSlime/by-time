@@ -169,6 +169,7 @@ protected:
     static bool CreateBillboardSimpleBuffer(ParticleEffectRendererBase* self);
     static bool CreateBillboardFlipbookBuffer(ParticleEffectRendererBase* self);
 	static bool CreateWaterFluidBuffer(ParticleEffectRendererBase* self);
+    static bool CreateFallingParticlesBuffer(ParticleEffectRendererBase* self);
     void RegisterarticleBufferFactories(void);
 
     // 汎用パーティクルバッファ作成関数（構造体・初期化データ対応）

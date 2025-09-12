@@ -141,7 +141,7 @@ void Camera::Update(void)
 			XMFLOAT3 localOffset = {
 				playerWidth * 0.45f,		// 右肩寄り
 				playerHeight * 0.8f,		// 頭付近
-			   -playerHeight * 1.7f			// 後方距離（半身視点）
+			   -playerHeight * 2.0f			// 後方距離（半身視点）
 			};
 
 			// プレイヤーのforward/right計算
@@ -152,7 +152,7 @@ void Camera::Update(void)
 
 			// LookAtをforward方向にずらす
 			XMVECTOR playerPosVec = XMLoadFloat3(&playerPos);
-			targetCamPos = ComputeShoulderCameraPos(playerPos, playerForward, localOffset, -11);
+			targetCamPos = ComputeShoulderCameraPos(playerPos, playerForward, localOffset, -15.0f);
 
 			// 基本的なlook targetはプレイヤー前方
 			float lookAheadDist = playerBB.GetHeight() * 2.0f; // 2倍程度前方を見る

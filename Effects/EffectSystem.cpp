@@ -8,6 +8,7 @@
 #include "Effects/SpecialEffects/SmokeEffectRenderer.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
+#include "Effects/SpecialEffects/FallingParticleRenderer.h"
 
 void EffectSystem::Init(void)
 {
@@ -19,6 +20,7 @@ void EffectSystem::Init(void)
 	m_billboardSimpleEffects.reserve(MAX_BILLBOARD_SIMPLE_NUM);
 	m_billboardFlipbookEffects.reserve(MAX_BILLBOARD_FLIPBOOK_NUM);
 	m_waterFluidEffects.reserve(MAX_WATER_FLUID_NUM);
+	m_fallingParticleEffects.reserve(MAX_FALLING_PARTICLE_NUM);
 	m_softBodyEffects.reserve(MAX_SOFTBODY_EFFECT_NUM);
 	m_otherEffects.reserve(MAX_OTHER_EFFECT_NUM);
 
@@ -71,6 +73,7 @@ void EffectSystem::Draw(void)
 	m_billboardFlipbookEffects.clear();
 	m_softBodyEffects.clear();
 	m_waterFluidEffects.clear();
+	m_fallingParticleEffects.clear();
 	m_otherEffects.clear();
 
 	// 分類処理
@@ -92,6 +95,9 @@ void EffectSystem::Draw(void)
 					break;
 				case ParticleShaderGroup::WaterFluid:
 					m_waterFluidEffects.push_back(particle);
+					break;
+				case ParticleShaderGroup::Falling:
+					m_fallingParticleEffects.push_back(particle);
 					break;
 				default:
 					break;
@@ -163,6 +169,18 @@ void EffectSystem::Draw(void)
 		}
 	}
 
+	// FallingParticle
+	if (!m_fallingParticleEffects.empty())
+	{
+		ParticleEffectRendererBase::ResetPipelineState(ParticleShaderGroup::Falling);
+		for (auto* effect : m_fallingParticleEffects)
+		{
+			effect->SetupPipeline();
+			effect->Draw();
+		}
+	}
+
+
 	EffectType lastType = EffectType::None; // 最初のダミー値
 
 	// ソフトボディフェークト描画
@@ -214,6 +232,9 @@ ParticleEffectRendererBase* EffectSystem::SpawnParticleEffect(ParticleEffectPara
 		break;
 	case EffectType::WaterFluid:
 		effect = new WaterFluidParticleRenderer();
+		break;
+	case EffectType::Falling:
+		effect = new FallingParticleRenderer();
 		break;
 	default:
 		return nullptr; // 未対応タイプ

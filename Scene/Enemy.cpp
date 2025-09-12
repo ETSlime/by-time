@@ -23,6 +23,7 @@
 //*****************************************************************************
 
 #define	VALUE_MOVE			(3.5f)							// 移動量
+#define VALUE_MOVE_BOSS		(5.0f)							// 移動量(ボス)
 #define VALUE_RUN			(120.0f)
 #define	VALUE_ROTATE		(XM_PI * 0.02f)					// 回転量
 
@@ -172,31 +173,31 @@ void Enemy::Update(void)
 	}
 
 	// 攻撃中の処理
-	if (instance.attributes.isAttacking)
-	{
-		m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
+	//if (instance.attributes.isAttacking)
+	//{
+	//	m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
 
-		bool inHitWindow =
-			(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
-			(m_enemyAttr.attackTimer < m_enemyAttr.attackHitDelay + m_enemyAttr.attackHitWindow);
+	//	bool inHitWindow =
+	//		(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
+	//		(m_enemyAttr.attackTimer < m_enemyAttr.attackHitDelay + m_enemyAttr.attackHitWindow);
 
-		// 攻撃開始 → 1フレームだけコライダーON
-		if (inHitWindow && !m_enemyAttr.hasDealtDamage)
-		{
-			EnableEnemyAttackCollider(true);
-			m_enemyAttr.hasDealtDamage = true;
+	//	// 攻撃開始 → 1フレームだけコライダーON
+	//	if (inHitWindow && !m_enemyAttr.hasDealtDamage)
+	//	{
+	//		EnableEnemyAttackCollider(true);
+	//		m_enemyAttr.hasDealtDamage = true;
 
-			// すぐOFFにして多重判定を防止
-			EnableEnemyAttackCollider(false);
-		}
+	//		// すぐOFFにして多重判定を防止
+	//		EnableEnemyAttackCollider(false);
+	//	}
 
-		if (m_enemyAttr.attackTimer >= m_enemyAttr.attackTotal)
-		{
-			instance.attributes.isAttacking = false;
-			EnableEnemyAttackCollider(false);
-			m_enemyAttr.hasDealtDamage = false; // 次回攻撃用にリセット
-		}
-	}
+	//	if (m_enemyAttr.attackTimer >= m_enemyAttr.attackTotal)
+	//	{
+	//		instance.attributes.isAttacking = false;
+	//		EnableEnemyAttackCollider(false);
+	//		m_enemyAttr.hasDealtDamage = false; // 次回攻撃用にリセット
+	//	}
+	//}
 }
 
 bool Enemy::UpdateAliveState(void)
@@ -440,7 +441,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::GBMonster:
@@ -450,7 +451,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::Boss:
@@ -460,7 +461,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE_BOSS;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::NPC_Fish:
@@ -471,7 +472,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.chaseRange = 0.0f;
 		m_enemyAttr.attackRange = 0.0f;
 		m_enemyAttr.disableGravity = true;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	default:
@@ -741,7 +742,7 @@ void Enemy::ChasePlayer(void)
 
 	// プレイヤー方向に移動
 	instance.attributes.isMoving = true;
-	instance.attributes.spd = VALUE_MOVE;
+	instance.attributes.spd = instance.attributes.valueMove;
 }
 
 void Enemy::ChaseAndAttackPlayer(void)

@@ -96,6 +96,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "VS",
         "Shaders/WaterFluid.hlsl", "PS",
         "Shaders/WaterFluid.hlsl", "GS", false);
+    RegisterShaderSource(ParticleShaderGroup::Falling, VertexLayoutID::ParticleSimple,
+        "Shaders/Falling.hlsl", "VS",
+        "Shaders/Falling.hlsl", "PS",
+        "Shaders/Falling.hlsl", "GS", false);
     RegisterShaderSource(ShaderSetID::FluidSurface, VertexLayoutID::FluidSurface,
         "Shaders/FluidSurface.hlsl", "VS",
         "Shaders/FluidSurface.hlsl", "PS");
@@ -137,6 +141,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Emit,
         "Shaders/WaterFluid.hlsl", "EmitCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::Falling, ComputePassType::Update,
+        "Shaders/Falling.hlsl", "UpdateCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::Falling, ComputePassType::Emit,
+        "Shaders/Falling.hlsl", "EmitCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
         "Shaders/SPHSystem.hlsl", "BuildGirdCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
