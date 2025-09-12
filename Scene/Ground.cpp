@@ -1050,6 +1050,8 @@ void Ground::LoadSceneWinterDay(void)
 
 	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
 	CreateSceneGO(springConfig, SceneID::Winter_Day);
+
+	m_pendingBGM = SOUND_LABEL_BGM_winter;
 }
 
 void Ground::LoadSceneWinterNight(void)
@@ -1081,6 +1083,8 @@ void Ground::LoadSceneWinterNight(void)
 
 	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
 	CreateSceneGO(springConfig, SceneID::Winter_Night);
+
+	m_pendingBGM = SOUND_LABEL_BGM_winter;
 }
 
 void Ground::LoadSceneAll(void)

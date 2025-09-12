@@ -207,6 +207,8 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
     // Œ»İ‚ÌUI‚ğˆê’UƒNƒŠƒA‚·‚é‚æ‚ÁI
     m_UIManager.Clear();
 
+    StopSound(g_CurrentBGM);
+
     switch (mode)
     {
     case GameMode::TITLE:
