@@ -5,7 +5,7 @@
 //
 //=============================================================================
 #include "UI/Base/UIButton.h"
-
+#include "Core/AudioManager.h"
 
 UIButton::UIButton(void) : m_name(nullptr), m_currentTex(nullptr), m_currentTint({ 1,1,1,1 }), m_isEnabled(true),
 m_state(ButtonState::Normal), m_pressedInside(false), m_prevMouseDown(false), m_useTintMode(false) 
@@ -91,6 +91,11 @@ void UIButton::HandleMouseInput(void)
     }
 
     const bool inside = IsCursorInside(mouseX, mouseY);
+    if (!m_prevHovering && inside)
+    {
+        AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_ui_hover);
+    }
+	m_prevHovering = inside;
 
     // 押下開始
     if (isPressed && !m_prevMouseDown && inside)
@@ -113,7 +118,7 @@ void UIButton::HandleMouseInput(void)
         if (m_pressedInside && inside && m_onClick)
         {
             // 効果音
-            //if (m_clickSE) AudioManager::GetInstance().PlaySE(m_clickSE);
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_ui_select);
             // コールバック
             m_onClick(m_userData);
         }

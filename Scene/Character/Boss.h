@@ -26,7 +26,7 @@
 
 #define BOSS_SIZE					XMFLOAT3(2.8f, 2.8f, 2.8f)
 
-#define BOSS_MAX_HP					(500.0f)
+#define BOSS_MAX_HP					(3500.0f)
 
 enum class BossAttackPattern
 {
@@ -108,6 +108,7 @@ public:
 	virtual void OnDieAnimationEnd() override;
 	virtual void OnGetUpAnimationEnd() override;
 	virtual void OnBossfightReady() override;
+	virtual void OnBossStandUp() override;
 	virtual const char* GetPanelName(void) const override { return "Boss"; }
 private:
 	// コリジョンイベントコールバック関数

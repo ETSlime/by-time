@@ -6,6 +6,7 @@
 //=============================================================================
 #include "Core/GameSystem.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
@@ -527,6 +528,28 @@ void GameSystem::UpdateLoading(void)
         {
             // 画面が黒い状態からゲーム画面へフェードインを開始
             m_UIManager.GetFader().StartFadeIn();
+			AudioManager::get_instance().StopSound();
+            switch (m_ground.GetCurrentSceneID())
+            {
+			case SceneID::Spring_Day:
+            case SceneID::Spring_Night:
+                AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_spring);
+				break;
+			case SceneID::Summer_Day:
+			case SceneID::Summer_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_summer);
+				break;
+			case SceneID::Autumn_Day:
+			case SceneID::Autumn_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_autumn);
+				break;
+			case SceneID::Winter_Day:
+			case SceneID::Winter_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_winter);
+				break;
+            default:
+                break;
+            }
             ChangeMode(GameMode::GAME);
         }
     }

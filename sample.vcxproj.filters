@@ -473,6 +473,12 @@
     <ClInclude Include="UI\UIGameClear.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="Effects\SpecialEffects\FallingParticleRenderer.h">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\AudioManager.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AI\AnimStateMachine.cpp">
@@ -772,6 +778,12 @@
     </ClCompile>
     <ClCompile Include="Scene\HPBarUI.cpp">
       <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Effects\SpecialEffects\FallingParticleRenderer.cpp">
+      <Filter>Effects\SpecialEffects</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\AudioManager.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

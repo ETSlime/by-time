@@ -10,7 +10,7 @@
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Effects/EffectSystem.h"
 #include "UI/Base/UIManager.h"
-
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -231,6 +231,7 @@ void Lumine::HandleInput(void)
 				projectile->SetPotentialHitPos(targetPoint);
 				m_playerAttr->fireIntervalSec = BULLET_FIRE_INTERVAL;
 				m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_bullet);
 			}
 			else if (m_playerAttr->currentProjectile == ProjectileType::SunBullet)
 			{
@@ -243,6 +244,13 @@ void Lumine::HandleInput(void)
 					projectile->SetPotentialHitPos(targetPoint);
 					m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
 					m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_sun_bullet);
+				}
+				else
+				{
+					m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
+					m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_sun_bullet_stuck);
 				}
 			}
 		}
@@ -773,6 +781,7 @@ bool Lumine::ExecuteAction(ActionEnum action)
 			return false;
 		else
 		{
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_player_melee_attack);
 			if (instance.attributes.attackWindow2)
 			{
 				instance.attributes.isAttacking = false;
@@ -1352,7 +1361,8 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 			if (self->m_player)
 			{
 				Player* player = static_cast<Player*>(self->m_player);
-				player->TakeDamage(10);
+				player->TakeDamage(4);
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_projectile_attack);
 			}
 		}
 
@@ -1373,7 +1383,8 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 				if (self->m_player)
 				{
 					Player* player = static_cast<Player*>(self->m_player);
-					player->TakeDamage(10);
+					player->TakeDamage(8);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_melee_attack);
 				}
 			}
 

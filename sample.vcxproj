@@ -152,6 +152,7 @@
     <ClInclude Include="Core\Async\LightweightMutex.h" />
     <ClInclude Include="Core\Async\SpinLock.h" />
     <ClInclude Include="Core\Async\ThreadPool.h" />
+    <ClInclude Include="Core\AudioManager.h" />
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\CursorManager.h" />
     <ClInclude Include="Core\GameSystem.h" />
@@ -279,6 +280,7 @@
     <ClCompile Include="Core\Async\AsyncModelLoader.cpp" />
     <ClCompile Include="Core\Async\AsyncResourceLoader.cpp" />
     <ClCompile Include="Core\Async\DeferredTaskSystem.cpp" />
+    <ClCompile Include="Core\AudioManager.cpp" />
     <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Core\CursorManager.cpp" />
     <ClCompile Include="Core\GameSystem.cpp" />

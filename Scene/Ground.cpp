@@ -87,6 +87,8 @@ void Ground::Initialize(void)
 	else
 		SAFE_DELETE(lakeSurface);
 
+	//m_sceneSeed.reserve(99);
+	//m_sceneSeed.setSize(99);
 
 	//SkinnedGameObjectConfig config;
 	//config.modelPath = MODEL_TERRAIN_PATH;
@@ -208,6 +210,23 @@ void Ground::Update(void)
 
 	if (m_environment)
 		m_environment->Update();
+
+	if (m_currentSceneID == SceneID::Winter_Day || m_currentSceneID == SceneID::Winter_Night)
+	{
+		// 雪のパーティクルを更新
+		Player* player = GameSystem::get_instance().GetPlayer();
+		if (player)
+		{
+			XMFLOAT3 emitPos = player->GetTransform().pos;
+			emitPos.y += 800.0f; // 少し上から
+			if (m_fallingParticles)
+			{
+				if (m_fallingParticles && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+					m_fallingParticles->EmitParticles(7000.0f, 1.0f, emitPos);
+			}
+		}
+	}
+
 
 	/// INTERACTABLE-IMPLEMENTATION
 	/*if (GetCurrentScene() == SceneID::SCENE_1) {
@@ -412,8 +431,14 @@ void Ground::SetEnableBossfightRoom(bool enable)
 void Ground::ReinitializeSceneObjects()
 {
 
-	if (m_sceneSeed != nullptr) 
-		m_sceneSeed->ResetStatus();
+	for (int i = 0; i < MAX_SEED_NUM; i++)
+	{
+		if (m_sceneSeed[i] != nullptr)
+			m_sceneSeed[i]->ResetStatus();
+	}
+
+	//if (m_sceneSeed != nullptr) 
+	//	m_sceneSeed->ResetStatus();
 	
 
 	if (m_scenesADoorL != nullptr)
@@ -494,32 +519,43 @@ void Ground::InitTerrain(void)
 	terrainBuildConfig.modelPath = "data/MODEL/Level/terrain/mountain3.obj";
 	CreateTerrainGO(terrainBuildConfig);
 
-	//terrainBuildConfig.modelPath = "data/MODEL/Level/spring/tree.obj";
-	//CreateTerrainGO(terrainBuildConfig);
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence.obj";
+	terrainBuildConfig.position = XMFLOAT3(1178.0f, 6415.0f, 3239.6f);
+	terrainBuildConfig.scale = XMFLOAT3(21.4f, 15.0f, 15.0f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 2.0f, 0.0f);
+	terrainBuildConfig.drawWorldAABB = false;
+	terrainBuildConfig.flip = AxisFlip::None;
+	terrainBuildConfig.loadAsync = false;
+	CreateTerrainGO(terrainBuildConfig);
 
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence2.obj";
+	terrainBuildConfig.position = XMFLOAT3(1361.0f, 6415.0f, 3623.6f);
+	CreateTerrainGO(terrainBuildConfig);
 
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence3.obj";
+	terrainBuildConfig.position = XMFLOAT3(1511.0f, 6415.0f, 3959.6f);
+	CreateTerrainGO(terrainBuildConfig);
 
-	//terrainBuildConfig.modelPath = "data/MODEL/Environment/Cube.obj";
-	//terrainBuildConfig.castShadow = false;
-	//terrainBuildConfig.drawWorldAABB = false;
-	//terrainBuildConfig.collisionType = ObjectCollisionType::COLLIDER_BOUNDING_BOX;
-	//terrainBuildConfig.colliderTag = ColliderTag::AIR_WALL;
-	//terrainBuildConfig.position = XMFLOAT3(9731.0f, 4142.0f, 2443.0f);
-	//terrainBuildConfig.scale = XMFLOAT3(277.0f, 269.0f, 370.0f);
-	//terrainBuildConfig.rotation = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	//CreateTerrainGO(terrainBuildConfig);
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence4.obj";
+	terrainBuildConfig.position = XMFLOAT3(1938.0f, 6415.0f, 4528.6f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 2.36f, 0.0f);
+	CreateTerrainGO(terrainBuildConfig);
 
-	//terrainBuildConfig.position = XMFLOAT3(6608.0f, 4353.0f, 2173.0f);
-	//terrainBuildConfig.scale = XMFLOAT3(32.0f, 269.0f, 344.0f);
-	//CreateTerrainGO(terrainBuildConfig);
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence5.obj";
+	terrainBuildConfig.position = XMFLOAT3(2270.0f, 6415.0f, 4864.6f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 2.36f, 0.0f);
+	CreateTerrainGO(terrainBuildConfig);
 
-	//terrainBuildConfig.position = XMFLOAT3(6017.0f, 4353.0f, 2169.0f);
-	//terrainBuildConfig.scale = XMFLOAT3(32.0f, 287.0f, 280.0f);
-	//CreateTerrainGO(terrainBuildConfig);
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence6.obj";
+	terrainBuildConfig.position = XMFLOAT3(2603.0f, 6415.0f, 5144.6f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 2.52f, 0.0f);
+	CreateTerrainGO(terrainBuildConfig);
 
-	//terrainBuildConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
-	//terrainBuildConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
-	//CreateTerrainGO(terrainBuildConfig);
+	terrainBuildConfig.modelPath = "data/MODEL/Level/addon/Fence7.obj";
+	terrainBuildConfig.position = XMFLOAT3(3362.0f, 6415.0f, 5536.6f);
+	terrainBuildConfig.rotation = XMFLOAT3(0.0f, 2.52f, 0.0f);
+	CreateTerrainGO(terrainBuildConfig);
+
 
 	terrainBuildConfig.modelPath = "data/MODEL/Environment/Cube.obj";
 	terrainBuildConfig.castShadow = false;
@@ -590,6 +626,10 @@ void Ground::InitTerrain(void)
 	terrainBuildConfig.position = XMFLOAT3(4652.5f, 7690.8f, 11416.0f);
 	terrainBuildConfig.scale = XMFLOAT3(109.3f, 79.8f, 161.0f);
 	CreateTerrainGO(terrainBuildConfig);
+
+	terrainBuildConfig.position = XMFLOAT3(2846.5f, 6492.8f, 8838.0f);
+	terrainBuildConfig.scale = XMFLOAT3(275.3f, 27.8f, 62.0f);
+	CreateTerrainGO(terrainBuildConfig);
 }
 
 GameObject<ModelInstance>* Ground::CreateTerrainGO(GameObjectConfig config)
@@ -633,6 +673,33 @@ void Ground::InitSceneLoadMap(void)
 	m_sceneLoadMap[TO_UINT64(SceneID::ALL)] = &Ground::LoadSceneAll;
 }
 
+void Ground::CreateInstanceEnvironmentObj(InstanceParams& params, float startPosX, float startPosZ,
+	int startNumX, int endNumX, int startNumZ, int endNumZ,
+	float scale, float rotY, float offSetX, float offsetY, float offsetZ, float jitter)
+{
+
+	float offsets = 0.0f;
+
+	for (int x = startNumX; x < endNumX; x++)
+	{
+		for (int z = startNumZ; z < endNumZ; z++)
+		{
+			if (jitter > 0.0f)
+			{
+				offsets = GetRandFloat(-jitter, jitter);
+			}
+
+			params.transformArray.push_back(InstanceTransformInfo(
+				startPosX - (x + offsets) * offSetX,		// posX
+				startPosZ + (z + offsets) * offsetZ,		// posZ
+				rotY,							// rotY
+				scale,							// scl
+				offsetY							// offsetY
+			));
+		}
+	}
+}
+
 void Ground::LoadSceneSpringDay(void)
 {
 	if(m_sceneKey != nullptr)
@@ -651,18 +718,6 @@ void Ground::LoadSceneSpringDay(void)
 	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(DAY_TIME);
 
-	//ParticleEffectParams params;
-	//params.type = EffectType::Smoke;
-	//params.position = XMFLOAT3(12282.0f, -1990.0f, -19485.0f);
-	//params.scale = 250.0f;
-	//params.acceleration = XMFLOAT3(0.0f, 15.0f, 0.0f);
-	//params.spawnRateMin = 2.0f;
-	//params.spawnRateMax = 5.0f;
-	//params.lifeMin = 3.0f;
-	//params.lifeMax = 6.0f;
-	//params.startColor = XMFLOAT4(0.6f, 0.6f, 0.6f, 0.3f); // 煙色
-	//IEffectRenderer* smoke = EffectSystem::get_instance().SpawnParticleEffect(params);
-	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(smoke);
 
 	BOUNDING_BOX triggerBox;
 	triggerBox.minPoint = XMFLOAT3(8547.6f, 6394.0f , 7774.6f);
@@ -670,38 +725,21 @@ void Ground::LoadSceneSpringDay(void)
 
 	RegisterEventTrigger(triggerBox, EventCallbackAction::PlaceItem, SceneID::Spring_Day);
 
+	SpawnAllSeeds();
 
-	//GameObject<ModelInstance>* bonfireGO = new GameObject<ModelInstance>();
-	//GameObjectConfig bonfireConfig{};
-	////bonfireConfig.modelPath = MODEL_BONFIRE_PATH;
-	//bonfireConfig.modelPath = "data/MODEL/Level/terrain_prototype3.obj";
-	//bonfireConfig.collisionType = ObjectCollisionType::MESH_BOUNDING_BOX;
-	//bonfireConfig.scale = XMFLOAT3(BONFIRE_SIZE * 1, BONFIRE_SIZE * 1, BONFIRE_SIZE * 1);
-	//bonfireConfig.position = XMFLOAT3(-5371.67f, -5775.0f, -1895.0f);
-	//bonfireConfig.drawWorldAABB = false;
-	//bonfireGO->Instantiate(bonfireConfig);
-	//m_staticGOs.push_back(bonfireGO);
-	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_1)].push_back(bonfireGO);
-
-	//if (!m_modelLoadMap.contains(bonfireConfig.modelPath))
+	//if (m_sceneSeed[0] == nullptr)
 	//{
-	//	m_modelLoadMap[bonfireConfig.modelPath] = 0;
-	//	m_totalModelLoadCnt++;
+
+	//	Transform trans;
+	//	trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
+	//	trans.rot = XMFLOAT3(1.0f, 1.0f, 10.0f);
+	//	trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+	//	m_sceneSeed[0] = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
+
 	//}
-
-	if (m_sceneSeed == nullptr) 
-	{
-
-		Transform trans;
-		trans.pos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
-		trans.rot = XMFLOAT3(1.0f, 1.0f, 10.0f);
-		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
-
-		m_sceneSeed = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
-
-	}
-	else if (!m_sceneSeed->GetPickedUp())
-		m_sceneSeed->SetActive(true);
+	//else if (!m_sceneSeed[0]->GetPickedUp())
+	//	m_sceneSeed[0]->SetActive(true);
 
 	if (m_sceneSoil == nullptr)
 	{
@@ -764,24 +802,6 @@ void Ground::LoadSceneSpringNight(void)
 	if (m_sceneKey2 != nullptr)
 		m_sceneKey2->SetActive(false);
 
-	/*if (m_scenePSeed != nullptr)
-	{
-
-		if(m_sceneVines == nullptr){
-
-			Transform trans = m_scenePSeed->GetTransform();
-
-			trans.pos.y -= 200;
-			trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
-			trans.scl = XMFLOAT3(120, 120, 120);
-
-			m_sceneVines = ItemManager::get_instance().SpawnItem(new Item(ItemType::IntVines, trans));
-		}
-		else if (!m_sceneVines->GetUsed())
-			m_sceneVines->SetActive(true);
-		
-
-	}*/
 
 	if (m_sceneSoil != nullptr)
 		m_sceneSoil->SetActive(false);
@@ -789,35 +809,12 @@ void Ground::LoadSceneSpringNight(void)
 	if (m_scenePSeed != nullptr)
 		m_scenePSeed->SetActive(false);
 
-	if (m_sceneSeed != nullptr)
-		m_sceneSeed->SetActive(false);
+	//if (m_sceneSeed != nullptr)
+	//	m_sceneSeed->SetActive(false);
 
 	m_skybox.SetSeason(SeasonID::SPRING);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
 	
-
-	//FireBallEffectParams fireparams;
-	//fireparams.type = EffectType::FireBall;
-	//fireparams.position = XMFLOAT3(11882.0f, -1990.0f, -19485.0f);
-	//fireparams.scale = 43.0f;
-	//fireparams.lifeMin = 1.0f;
-	//fireparams.lifeMax = 1.0f;
-	//fireparams.spawnRateMin = 0.0f;
-	//fireparams.spawnRateMax = 10.0f;
-	//fireparams.acceleration = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	//fireparams.startColor = XMFLOAT4(1.0f, 1.0f, 0.3f, 1.0f);
-	//fireparams.endColor = XMFLOAT4(1.2f, 0.5f, 0.0f, 0.0f);
-	//fireparams.tilesX = FIREBALL_ANIM_TILE_X;
-	//fireparams.tilesY = FIREBALL_ANIM_TILE_Y;
-	//fireparams.coneAngleDegree = 25.0f;
-	//fireparams.coneRadius = 0.6f;
-	//fireparams.coneLength = 5.0f;
-	//fireparams.frameLerpCurve = 1.0f;
-	//fireparams.rotationSpeed = 0.0f;
-	//fireparams.startSpeedMin = 2.0f;
-	//fireparams.startSpeedMax = 3.0f;
-	//IEffectRenderer* effect = EffectSystem::get_instance().SpawnParticleEffect(fireparams);
-	//m_sceneEntityMap[TO_UINT64(SceneID::SCENE_2)].push_back(effect);
 
 	Player* player = GameSystem::get_instance().GetPlayer();
 	
@@ -880,6 +877,8 @@ void Ground::LoadSceneSpringNight(void)
 
 	springConfig.modelPath = "data/MODEL/Level/spring/trees_new.obj";
 	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	SpawnAllSeeds();
 }
 
 void Ground::LoadSceneSummerDay(void)
@@ -907,6 +906,13 @@ void Ground::LoadSceneSummerDay(void)
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
+
 }
 
 void Ground::LoadSceneSummerNight(void)
@@ -933,6 +939,12 @@ void Ground::LoadSceneSummerNight(void)
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
 }
 
 void Ground::LoadSceneAutumnDay(void)
@@ -959,6 +971,12 @@ void Ground::LoadSceneAutumnDay(void)
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
 }
 
 void Ground::LoadSceneAutumnNight(void)
@@ -996,11 +1014,18 @@ void Ground::LoadSceneAutumnNight(void)
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
 }
 
 void Ground::LoadSceneWinterDay(void)
 {
 	m_skybox.SetCurrentTime(DAY_TIME);
+	m_skybox.SetSeason(SeasonID::WINTER);
 
 	GameObjectConfig airwallConfig{};
 	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
@@ -1036,11 +1061,37 @@ void Ground::LoadSceneWinterDay(void)
 
 	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
 	CreateSceneGO(springConfig, SceneID::Winter_Day);
+
+	ParticleEffectParams snowParams;
+	snowParams.type = EffectType::Falling;
+	snowParams.scale = 20.0f; // 粒子の基本スケール（sizeの初期値）
+	snowParams.position = XMFLOAT3(0.0f, 0.0f, 0.0f); // 初期生成位置
+	snowParams.acceleration = XMFLOAT3(0.0f, -45.0f, 0.0f); // 重力方向（Y軸マイナス）
+	snowParams.numParticles = 10000; // 最大粒子数
+	snowParams.startColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	snowParams.endColor = XMFLOAT4(0.8f, 0.8f, 0.8f, 0.0f);   // 寿命で暗く
+
+	// エミット制御（あまり使わないが、baseクラス必須）
+	snowParams.spawnRateMin = 0;
+	snowParams.spawnRateMax = 0;
+	snowParams.lifeMin = 180.0f;
+	snowParams.lifeMax = 180.0f;
+
+	IEffectRenderer* snowParticles = EffectSystem::get_instance().SpawnParticleEffect(snowParams);
+	m_sceneEntityMap[TO_UINT64(SceneID::Winter_Day)].push_back(snowParticles);
+	m_fallingParticles = dynamic_cast<FallingParticleRenderer*>(snowParticles);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
 }
 
 void Ground::LoadSceneWinterNight(void)
 {
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+	m_skybox.SetSeason(SeasonID::WINTER);
 
 	GameObjectConfig airwallConfig{};
 	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
@@ -1067,6 +1118,31 @@ void Ground::LoadSceneWinterNight(void)
 
 	springConfig.modelPath = "data/MODEL/Level/winter/flowers_small_winter.obj";
 	CreateSceneGO(springConfig, SceneID::Winter_Night);
+
+	ParticleEffectParams snowParams;
+	snowParams.type = EffectType::Falling;
+	snowParams.scale = 20.0f; // 粒子の基本スケール（sizeの初期値）
+	snowParams.position = XMFLOAT3(0.0f, 0.0f, 0.0f); // 初期生成位置
+	snowParams.acceleration = XMFLOAT3(0.0f, -45.0f, 0.0f); // 重力方向（Y軸マイナス）
+	snowParams.numParticles = 10000; // 最大粒子数
+	snowParams.startColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	snowParams.endColor = XMFLOAT4(0.8f, 0.8f, 0.8f, 0.0f);   // 寿命で暗く
+
+	// エミット制御（あまり使わないが、baseクラス必須）
+	snowParams.spawnRateMin = 0;
+	snowParams.spawnRateMax = 0;
+	snowParams.lifeMin = 180.0f;
+	snowParams.lifeMax = 180.0f;
+
+	IEffectRenderer* snowParticles = EffectSystem::get_instance().SpawnParticleEffect(snowParams);
+	m_sceneEntityMap[TO_UINT64(SceneID::Winter_Day)].push_back(snowParticles);
+	m_fallingParticles = dynamic_cast<FallingParticleRenderer*>(snowParticles);
+
+	for (auto& item : m_sceneSeed)
+	{
+		if (item)
+			item->SetActive(false);
+	}
 }
 
 void Ground::LoadSceneAll(void)
@@ -1115,33 +1191,84 @@ void Ground::LoadLakeAirWalls(SceneID sceneID)
 
 void Ground::GenerateEnvironmentObj(void*)
 {
-	InstanceParams instanceParams;
-	instanceParams.type = EnvironmentObjectType::Grass_1;
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		3024.0f,		// posX
-		3453.0f,		// posZ
-		0.5 * XM_PI,	// rotY
-		20.0f,			// scl
-		25.0f			// offsetY
-	));
-
-	instanceParams.transformArray.push_back(InstanceTransformInfo(
-		2453.0f,		// posX
-		2453.0f,		// posZ
-		0.5,			// rotY
-		20.0f,			// scl
-		25.0f			// offsetY
-	));
-
 	// 環境オブジェクト管理クラスのインスタンス生成
 	m_environment = new Environment();
-	const char* environmentModelPath = Environment::GetModelPathByType(instanceParams.type);
+
+	InstanceParams grassInstanceParams;
+	grassInstanceParams.type = EnvironmentObjectType::Grass_1;
+
+	float jitter = 0.3f;
+
+	float grassPosX = 894.0f, grassPosZ = 3351.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 3, 0, 7, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 1935.0f, grassPosZ = 4821.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 5, 5, 8, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 3679.0f, grassPosZ = -364.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -2, 3, -2, 3, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = -269.0f, grassPosZ = 42.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -4, 3, -4, 3, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 4785.0f, grassPosZ = -1189.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -8, 2, -1, 3, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 2295.0f, grassPosZ = 1165.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -1, 2, -1, 2, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 6307.0f, grassPosZ = 8627.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -2, 2, -2, 2, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = -2082.0f, grassPosZ = 4003.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, -5, 9, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 912.0f, grassPosZ = 1187.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -1, 3, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 2952.0f, grassPosZ = 11524.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, -3, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 5469.0f, grassPosZ = 11626.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 5412.0f, grassPosZ = 11263.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 6291.0f, grassPosZ = 11774.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 9914.0f, grassPosZ = 9018.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -1, 1, -1, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 6570.0f, grassPosZ = 9475.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -3, 3, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 3741.0f, grassPosZ = 1575.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 1, 0, 2, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 2468.0f, grassPosZ = -637.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, 0, 2, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 3098.0f, grassPosZ = 7042.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -2, 5, -2, 3, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 1803.0f, grassPosZ = 5417.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -1, 1, -1, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 2761.0f, grassPosZ = 5830.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -1, 1, 0, 1, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	grassPosX = 5053.0f, grassPosZ = 7214.0f;
+	CreateInstanceEnvironmentObj(grassInstanceParams, grassPosX, grassPosZ, -2, 3, -1, 3, 20.0f, 0.0f, 350.0f, 25.0f, 350.0f, jitter);
+
+	const char* environmentModelPath = Environment::GetModelPathByType(grassInstanceParams.type);
 
 	// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
 	if (Model::GetModel(environmentModelPath))
 	{
 		m_environment->GenerateInstanceByParams(
-			instanceParams,
+			grassInstanceParams,
 			m_fieldGO->GetModel(),
 			m_fieldGO->GetBoundingBoxWorld());
 	}
@@ -1150,7 +1277,7 @@ void Ground::GenerateEnvironmentObj(void*)
 		// 遅延用コンテキスト構築
 		auto* ctx = new GenerateInstanceContext{
 			m_environment,
-			instanceParams,
+			grassInstanceParams,
 			m_fieldGO,
 			environmentModelPath
 		};
@@ -1184,7 +1311,213 @@ void Ground::GenerateEnvironmentObj(void*)
 		);
 	}
 
-	//m_environment->GenerateRandomInstances(EnvironmentObjectType::Shrubbery_1, 15);
+	//InstanceParams bushInstanceParams;
+	//bushInstanceParams.type = EnvironmentObjectType::Bush_1;
+	//float bushPosX = -82.0f, bushPosZ = 7591.0f;
+	//CreateInstanceEnvironmentObj(bushInstanceParams, bushPosX, bushPosZ, 0, 1, 0, 1, 75.0f, 0.0f, 300.0f, 0.0f, 300.0f);
+
+	//environmentModelPath = Environment::GetModelPathByType(bushInstanceParams.type);
+
+	//// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
+	//if (Model::GetModel(environmentModelPath))
+	//{
+	//	m_environment->GenerateInstanceByParams(
+	//		bushInstanceParams,
+	//		m_fieldGO->GetModel(),
+	//		m_fieldGO->GetBoundingBoxWorld());
+	//}
+	//else // モデルがロードされていない場合は非同期でロードしてから実行
+	//{
+	//	// 遅延用コンテキスト構築
+	//	auto* ctx = new GenerateInstanceContext{
+	//		m_environment,
+	//		bushInstanceParams,
+	//		m_fieldGO,
+	//		environmentModelPath
+	//	};
+	//	DeferredTaskOptions options{};
+	//	options.async = false; // 非同期実行
+	//	options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
+
+	//	RawDeferredTask::Add(
+	//		ctx,
+	//		[](void* ptr)
+	//		{
+	//			auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+	//			GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
+	//			if (!fieldGO) return;
+	//			// 環境オブジェクトのインスタンスを生成
+	//			ctx->environment->GenerateInstanceByParams(
+	//				ctx->instanceParams,
+	//				fieldGO->GetModel(),
+	//				ctx->fieldGO->GetBoundingBoxWorld()
+	//			);
+	//		},
+	//		[](void* ptr)
+	//		{
+	//			// モデルのロード要求を発行（非同期ロードを開始）
+	//			auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+	//			GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
+	//			Model* instanceModel = Model::StoreModel(ctx->modelPath);
+	//			return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
+	//		},
+	//		options
+	//	);
+	//}
+
+	//InstanceParams bushInstanceParams2;
+	//bushInstanceParams2.type = EnvironmentObjectType::Bush_2;
+
+	//float bush2PosX = 4885.0f, bush2PosZ = 4100.0f;
+
+	//for (int i = 0; i < 5; i++)
+	//{
+	//	bushInstanceParams2.transformArray.push_back(InstanceTransformInfo(
+	//		bush2PosX,					// posX
+	//		bush2PosZ - i * 800.0f,		// posZ
+	//		XM_PI * 0.5f,				// rotY
+	//		0.2f,						// scl
+	//		5.0f						// offsetY
+	//	));
+	//}
+
+	//environmentModelPath = Environment::GetModelPathByType(bushInstanceParams2.type);
+
+	//// モデルが既にロード完了している場合は、即座にインスタンス生成を実行
+	//if (Model::GetModel(environmentModelPath))
+	//{
+	//	m_environment->GenerateInstanceByParams(
+	//		bushInstanceParams2,
+	//		m_fieldGO->GetModel(),
+	//		m_fieldGO->GetBoundingBoxWorld());
+	//}
+	//else // モデルがロードされていない場合は非同期でロードしてから実行
+	//{
+	//	// 遅延用コンテキスト構築
+	//	auto* ctx = new GenerateInstanceContext{
+	//		m_environment,
+	//		bushInstanceParams2,
+	//		m_fieldGO,
+	//		environmentModelPath
+	//	};
+	//	DeferredTaskOptions options{};
+	//	options.async = false; // 非同期実行
+	//	options.debugName = "Ground_GenerateInstanceByParams"; // デバッグ用の名前
+
+	//	RawDeferredTask::Add(
+	//		ctx,
+	//		[](void* ptr)
+	//		{
+	//			auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+	//			GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
+	//			if (!fieldGO) return;
+	//			// 環境オブジェクトのインスタンスを生成
+	//			ctx->environment->GenerateInstanceByParams(
+	//				ctx->instanceParams,
+	//				fieldGO->GetModel(),
+	//				ctx->fieldGO->GetBoundingBoxWorld()
+	//			);
+	//		},
+	//		[](void* ptr)
+	//		{
+	//			// モデルのロード要求を発行（非同期ロードを開始）
+	//			auto* ctx = static_cast<GenerateInstanceContext*>(ptr);
+	//			GameObject<ModelInstance>* fieldGO = dynamic_cast<GameObject<ModelInstance>*>(ctx->fieldGO);
+	//			Model* instanceModel = Model::StoreModel(ctx->modelPath);
+	//			return instanceModel != nullptr && fieldGO->GetCollider().isInitialized;
+	//		},
+	//		options
+	//	);
+	//}
+}
+
+void Ground::SpawnSeeds(const XMFLOAT3& pos, int count)
+{
+	if (m_sceneSeed[count] == nullptr)
+	{
+
+		Transform trans;
+		trans.pos = pos;
+		trans.rot = XMFLOAT3(1.0f, 1.0f, 10.0f);
+		trans.scl = XMFLOAT3(SEED_SIZE, SEED_SIZE, SEED_SIZE);
+
+		m_sceneSeed[count] = ItemManager::get_instance().SpawnItem(new Item(ItemType::Seed, trans));
+
+	}
+	else if (!m_sceneSeed[count]->GetPickedUp())
+		m_sceneSeed[count]->SetActive(true);
+}
+
+void Ground::SpawnAllSeeds(void)
+{
+	XMFLOAT3 seedPos = XMFLOAT3(5336.0f, 6414.0f, 6734.0f);
+	SpawnSeeds(seedPos, 0);
+
+	seedPos = XMFLOAT3(6000.0f, 6414.0f, 7000.0f);
+	SpawnSeeds(seedPos, 1);
+
+	seedPos = XMFLOAT3(6175.0f, 6414.0f, 8342.0f);
+	SpawnSeeds(seedPos, 2);
+
+	seedPos = XMFLOAT3(6521.0f, 6414.0f, 8641.0f);
+	SpawnSeeds(seedPos, 3);
+
+	seedPos = XMFLOAT3(6172.0f, 6414.0f, 9378.0f);
+	SpawnSeeds(seedPos, 4);
+
+	seedPos = XMFLOAT3(6918.0f, 6414.0f, 9389.0f);
+	SpawnSeeds(seedPos, 5);
+
+	seedPos = XMFLOAT3(1896.0f, 6414.0f, 6792.0f);
+	SpawnSeeds(seedPos, 6);
+
+	seedPos = XMFLOAT3(513.0f, 6414.0f, 7852.0f);
+	SpawnSeeds(seedPos, 7);
+
+	seedPos = XMFLOAT3(178.0f, 6414.0f, 5513.0f);
+	SpawnSeeds(seedPos, 8);
+
+	seedPos = XMFLOAT3(813.0f, 6414.0f, 4821.0f);
+	SpawnSeeds(seedPos, 9);
+
+	seedPos = XMFLOAT3(614.0f, 6414.0f, 4018.0f);
+	SpawnSeeds(seedPos, 10);
+
+	seedPos = XMFLOAT3(865.0f, 6414.0f, 3331.0f);
+	SpawnSeeds(seedPos, 11);
+
+	seedPos = XMFLOAT3(3168.0f, 6414.0f, 161.0f);
+	SpawnSeeds(seedPos, 12);
+
+	seedPos = XMFLOAT3(3689.0f, 6414.0f, -877.0f);
+	SpawnSeeds(seedPos, 13);
+
+	seedPos = XMFLOAT3(4782.0f, 6414.0f, -624.0f);
+	SpawnSeeds(seedPos, 14);
+
+	seedPos = XMFLOAT3(5768.0f, 6414.0f, -1072.0f);
+	SpawnSeeds(seedPos, 15);
+
+	seedPos = XMFLOAT3(5041.0f, 6414.0f, -1328.0f);
+	SpawnSeeds(seedPos, 16);
+
+	seedPos = XMFLOAT3(4090.0f, 6414.0f, -1446.0f);
+	SpawnSeeds(seedPos, 17);
+
+	seedPos = XMFLOAT3(2803.0f, 6414.0f, -971.0f);
+	SpawnSeeds(seedPos, 18);
+
+	seedPos = XMFLOAT3(859.0f, 6414.0f, -362.0f);
+	SpawnSeeds(seedPos, 19);
+
+	seedPos = XMFLOAT3(518.0f, 6414.0f, 231.0f);
+	SpawnSeeds(seedPos, 20);
+
+	seedPos = XMFLOAT3(-291.0f, 6414.0f, -78.0f);
+	SpawnSeeds(seedPos, 21);
+
+	seedPos = XMFLOAT3(-752.0f, 6414.0f, -943.0f);
+	SpawnSeeds(seedPos, 22);
 }
 
 void Ground::RegisterModelLoadMap(const char* modelPath, bool isPersistent, bool isTerrain)

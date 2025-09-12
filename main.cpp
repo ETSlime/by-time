@@ -15,6 +15,7 @@
 #include "Core/Shader/ShaderResourceBinder.h"
 #include "Core/Graphics/Renderer.h"
 #include "Core/Graphics/ShadowMapRenderer.h"
+#include "Core/AudioManager.h"
 #include "Collision/CollisionManager.h"
 #include "Model/Model.h"
 #include "Model/FBXLoader.h"
@@ -75,6 +76,7 @@ UIManager& uiManager = UIManager::get_instance();
 CursorManager& cursorManager = CursorManager::get_instance();
 ShaderResourceBinder& shaderResourceBinder = ShaderResourceBinder::get_instance();
 TextureMgr& textureMgr = TextureMgr::get_instance();
+AudioManager& audioManager = AudioManager::get_instance();
 
 #ifdef _SHOWFPS
 int		g_CountFPS;							// FPSカウンタ
@@ -331,6 +333,8 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 
 	shadowMapRenderer.Init(CSM_SHADOW_MAP_SIZE, MAX_CASCADES);
 
+	audioManager.Init(hWnd);
+
 	// カメラの初期化
 	camera.Init();
 
@@ -342,9 +346,6 @@ HRESULT Init(HINSTANCE hInstance, HWND hWnd, BOOL bWindow)
 
 	// 入力処理の初期化
 	inputManager.Init(hInstance, hWnd);
-
-
-	//mapEditor.Init();
 
 	// ライトを有効化
 	lightManager.SetLightEnable(TRUE);

@@ -8,6 +8,7 @@
 #include "UI/SaveCompleteModal.h"
 #include "Core/GameSystem.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 
 GameMenuModal::GameMenuModal(GameSystem* gameSystem, SceneID sceneID) : m_gameSystem(gameSystem)
 {
@@ -217,39 +218,48 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 					return;
 				}
 
+				AudioManager::get_instance().StopSound();
 				switch (ctx->currentTimeControl)
 				{
 				case TimeControlButton::Spring_Day:
 					self->m_currentTimeControl = TimeControlButton::Spring_Day;
 					ground.LoadScene(SceneID::Spring_Day);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_spring);
 					break;
 				case TimeControlButton::Spring_Night:
 					self->m_currentTimeControl = TimeControlButton::Spring_Night;
 					ground.LoadScene(SceneID::Spring_Night);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_spring);
 					break;
 				case TimeControlButton::Summer_Day:
 					self->m_currentTimeControl = TimeControlButton::Summer_Day;
 					ground.LoadScene(SceneID::Summer_Day);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_summer);
 					break;
 				case TimeControlButton::Summer_Night:
 					self->m_currentTimeControl = TimeControlButton::Summer_Night;
 					ground.LoadScene(SceneID::Summer_Night);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_summer);
 					break;
 				case TimeControlButton::Autumn_Day:
 					self->m_currentTimeControl = TimeControlButton::Autumn_Day;
 					ground.LoadScene(SceneID::Autumn_Day);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_autumn);
 					break;
 				case TimeControlButton::Autumn_Night:
 					self->m_currentTimeControl = TimeControlButton::Autumn_Night;
 					ground.LoadScene(SceneID::Autumn_Night);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_autumn);
 					break;
 				case TimeControlButton::Winter_Day:
 					self->m_currentTimeControl = TimeControlButton::Winter_Day;
 					ground.LoadScene(SceneID::Winter_Day);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_winter);
 					break;
 				case TimeControlButton::Winter_Night:
 					self->m_currentTimeControl = TimeControlButton::Winter_Night;
 					ground.LoadScene(SceneID::Winter_Night);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_winter);
 					break;
 				default:
 					break;

@@ -9,6 +9,7 @@
 #include "Scene/Ground.h"
 #include "Utility/InputManager.h"
 #include "Core/GameSystem.h"
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -77,6 +78,8 @@ bool Boss::PerformAttack(BossAttackPattern pattern)
 			m_prevPlayerPos = GameSystem::get_instance().GetPlayer()->GetTransform().pos;
 			m_startDashPos = instance.transform.pos;
 		}
+
+
 
 		m_currentAttackPattern = pattern;
 		instance.attributes.isAttacking = true;
@@ -215,10 +218,10 @@ void Boss::Update(void)
 		PlayGeneralAnim(AnimClipName::ANIM_DIE, animSpeed);
 		break;
 	case STATE(EnemyState::BOSS_STAND_UP):
-		PlayGeneralAnim(AnimClipName::ANIM_BOSS_STANDING_UP, animSpeed);
+		PlayGeneralAnim(AnimClipName::ANIM_BOSS_STANDING_UP, animSpeed * 1.5f);
 		break;
 	case STATE(EnemyState::GET_UP):
-		PlayGeneralAnim(AnimClipName::ANIM_GETTING_UP, animSpeed * 1.5f);
+		PlayGeneralAnim(AnimClipName::ANIM_GETTING_UP, animSpeed);
 		break;
 	case STATE(EnemyState::FALL_DOWN):
 		PlayGeneralAnim(AnimClipName::ANIM_FALLING_DOWN, animSpeed);
@@ -326,6 +329,8 @@ void Boss::UpdateIceShard(void)
 	if (m_iceShardMiddle && m_iceShardLeft && m_iceShardRight)
 	{
 		float currentRenderProgress = m_iceShardMiddle->GetRenderProgress();
+		if (currentRenderProgress < m_timer.GetDeltaTime())
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boss_cast);
 
 		// 中央の氷柱を表示
 		if (currentRenderProgress < 1.0f)
@@ -333,6 +338,8 @@ void Boss::UpdateIceShard(void)
 		else
 		{
 			currentRenderProgress = m_iceShardRight->GetRenderProgress();
+			if (currentRenderProgress < m_timer.GetDeltaTime())
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boss_cast);
 
 			// 右の氷柱を表示
 			if (currentRenderProgress < 1.0f)
@@ -340,6 +347,8 @@ void Boss::UpdateIceShard(void)
 			else
 			{
 				currentRenderProgress = m_iceShardLeft->GetRenderProgress();
+				if (currentRenderProgress < m_timer.GetDeltaTime())
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boss_cast);
 
 				// 左の氷柱を表示
 				if (currentRenderProgress < 1.0f)
@@ -453,6 +462,7 @@ void Boss::SetupAnimStateMachine(EnemyState initState)
 	m_stateMachine->SetEndCallback(STATE(EnemyState::BOSS_FIGHT_DASH_TO_PLAYER), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(EnemyState::BOSS_FIGHT_BACK_STEP), &ISkinnedMeshModelChar::OnAttackAnimationEnd);
 	m_stateMachine->SetEndCallback(STATE(EnemyState::DIE), &ISkinnedMeshModelChar::OnDieAnimationEnd);
+	m_stateMachine->SetEndCallback(STATE(EnemyState::BOSS_STAND_UP), &ISkinnedMeshModelChar::OnBossStandUp);
 	m_stateMachine->SetEndCallback(STATE(EnemyState::BOSS_FIGHT_READY), &ISkinnedMeshModelChar::OnBossfightReady);
 	m_stateMachine->SetEndCallback(STATE(EnemyState::GET_UP), &ISkinnedMeshModelChar::OnGetUpAnimationEnd);
 	
@@ -648,8 +658,11 @@ void Boss::PlayLaserAnim(void)
 	if (currentTime < laserStartTime || currentTime > laserEndTime)
 	{
 		m_laserRenderer.End();
+		AudioManager::get_instance().StopSound(SoundLabel::SOUND_LABEL_SE_boss_laser);
 		return;
 	}
+	else
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boss_laser);
 
 	// レーザーの方向と位置を計算
 	XMFLOAT3 playerPos = GameSystem::get_instance().GetPlayer()->GetTransform().pos;
@@ -896,7 +909,9 @@ void Boss::OnDieAnimationEnd()
 {
 	m_enemyAttr.startFadeOut = true;
 	m_bossFightStarted = false;
-
+	Ground::get_instance().SetEnableBossfightRoom(false);
+	AudioManager::get_instance().StopSound(SoundLabel::SOUND_LABEL_BGM_boss);
+	AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_winter);
 }
 
 void Boss::OnGetUpAnimationEnd()
@@ -913,6 +928,13 @@ void Boss::OnBossfightReady()
 	instance.attributes.isAttacking = false;
 	m_currentAttackPattern = BossAttackPattern::None;
 	m_enemyAttr.turnOnBehaviorTree = true;
+	AudioManager::get_instance().StopSound();
+	AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_boss);
+}
+
+void Boss::OnBossStandUp()
+{
+	AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boss_scream);
 }
 
 void Boss::OnIceMeltCallback(const CollisionEvent& event, void* context)

@@ -87,6 +87,7 @@ private:
     bool        m_isEnabled = true;
     bool        m_prevMouseDown = false;
     bool        m_pressedInside = false;
+	bool        m_prevHovering = false;
 
     //--- •`‰æ ---
     bool m_useTintMode = false; // true=F•ÏX•û®

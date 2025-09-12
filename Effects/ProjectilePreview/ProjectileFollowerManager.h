@@ -10,6 +10,7 @@
 #include "Effects/ProjectilePreview/ArcLengthPathFollower.h"
 #include "Scene/GameObject.h"
 #include "Scene/Item/Item.h"
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // \‘¢‘Ì’è‹`
@@ -98,6 +99,7 @@ public:
                 s.entity->SetDestroy(true);
                 s.active = false;
                 s.entity = nullptr;
+                AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boom_long);
             }
         }
     }

@@ -547,6 +547,7 @@ public:
 	virtual void OnThrowAnimationEnd() {}
 	virtual void OnBossfightReady() {}
 	virtual void OnGetUpAnimationEnd() {}
+	virtual void OnBossStandUp() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
 	virtual void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) = 0;

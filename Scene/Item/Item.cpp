@@ -2,6 +2,7 @@
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Effects/DecalRenderer.h"
+#include "Core/AudioManager.h"
 
 Item::Item(ItemType itemType, Transform trans)
 {
@@ -194,6 +195,10 @@ void Item::OnItemCollisionCallback(const CollisionEvent& event, void* context)
 			return;
 
 		self->Pickup();
+		if (self->GetItemType() == ItemType::Key)
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_get_key);
+		else
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_get_seed);
 	}
 	else if (event.colliderA->tag == ColliderTag::ENEMY || event.colliderB->tag == ColliderTag::ENEMY)
 	{
@@ -203,6 +208,7 @@ void Item::OnItemCollisionCallback(const CollisionEvent& event, void* context)
 
 		self->PlayEffect(HitColliderType::Enemy);
 		self->SetDestroy(true);
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boom_long);
 	}
 
 }

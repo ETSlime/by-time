@@ -495,6 +495,8 @@ public:
 
             // ===== 冷却シーケンス =====
             SequenceNode* cooldownSequence = new SequenceNode();
+            // 突進 → 近接 or 魔法
+            cooldownSequence->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/8.0f));
             cooldownSequence->AddChild(new CheckCooldown(boss));
             cooldownSequence->AddChild(new PerformCooldownMovement(boss));
             rootSelector->AddChild(cooldownSequence);
@@ -508,9 +510,6 @@ public:
             // ===== フェーズ1（HP > 60%） =====
             SelectorNode* phase1Behavior = new SelectorNode();
 
-			// 突進 → 近接 or 魔法
-            phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/8.0f));
-
             // 近接攻撃（追跡＋近接 or 魔法fallback）
             phase1Behavior->AddChild(new BossMeleeAttack(boss, /*attackRange*/350.0f, /*chaseTimeout*/6.0f, BossAttackPattern::MeleeAttackCombo2));
 
@@ -522,7 +521,7 @@ public:
             SelectorNode* phase2Behavior = new SelectorNode();
 
 			// 突進 → 3連撃 or 遠距離技
-            phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/6.0f));
+            //phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/6.0f));
 
             // 1. 近接（3連撃）
             phase1Behavior->AddChild(new BossMeleeAttack(boss, /*attackRange*/350.0f, /*chaseTimeout*/6.0f, BossAttackPattern::MeleeAttackCombo3));

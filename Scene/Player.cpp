@@ -11,10 +11,10 @@
 #include "Core/Graphics/Renderer.h"
 #include "Core/GameSystem.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/EnterExitBehavior.h"
-#include "Core/GameSystem.h"
 
 
 //*****************************************************************************
@@ -104,6 +104,7 @@ void Player::Update(void)
 		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_3))
 	{
 		m_playerAttr.isMeleeMode = !m_playerAttr.isMeleeMode;
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_switch_weapon);
 		if (!m_playerAttr.isMeleeMode && !m_playerAttr.finishStoreWeapon && !m_playerAttr.weaponOnBack)
 			m_playerAttr.storeWeaponOnBack = true;
 	}
@@ -705,7 +706,11 @@ void Player::UpdatePlayerAttack(void)
 	{
 
 		if (m_playerAttr.throwMode)
+		{
 			ConfirmThrow();
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_throw);
+		}
+
 
 	}
 
@@ -820,6 +825,7 @@ void Player::HandleInput(void)
 
 	if (m_inputManager.GetKeyboardRelease(KEY_SWITCH_BULLET))
 	{
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_switch_bullet);
 		m_playerAttr.currentProjectile = m_playerAttr.currentProjectile == ProjectileType::Bullet ? ProjectileType::SunBullet : ProjectileType::Bullet;
 	}
 }

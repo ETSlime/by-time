@@ -121,7 +121,7 @@ void Enemy::Update(void)
 			instance.transform.pos.y -= FALLING_SPEED * m_timer.GetScaledDeltaTime();
 		}
 
-		if (!CheckAvailableToMove())
+		if (!CheckAvailableToMove() && m_enemyAttr.enemyType != EnemyType::Boss)
 			return;
 
 		if (m_enemyAttr.turnOnBehaviorTree)
@@ -245,7 +245,7 @@ bool Enemy::UpdateAliveState(void)
 			else if (m_enemyAttr.enemyType == EnemyType::Boss)
 			{
 				Transform trans = instance.transform;
-				trans.pos.y += 10.0f;
+				trans.pos.y += 50.0f;
 				Item* key = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
 				key->Initialize(true);
 			}
@@ -580,6 +580,8 @@ void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 		if (projectileColOwner->GetProjectileAttributes().projectileType == ProjectileType::SunBullet)
 		{
 			projectileColOwner->PlayEffect(HitColliderType::Enemy, XMFLOAT3());
+			self->ReduceHP(50.0f);
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boom_short);
 		}
 
 		// –³“Gó‘Ô‚È‚çƒ_ƒ[ƒW‚ðŽó‚¯‚È‚¢
@@ -597,16 +599,18 @@ void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 		self->SetHitTimer(ENEMY_HIT_WINDOW);
 		if (!self->GetIsHit())
 		{
-			self->ReduceHP(10.0f);
+			self->ReduceHP(200.0f);
 			self->SetIsHit(true);
 			self->SetIsHit2(false);
 		}
 		else if (!self->GetIsHit2())
 		{
-			self->ReduceHP(10.0f);
+			self->ReduceHP(200.0f);
 			self->SetIsHit2(true);
 			self->SetIsHit(false);
 		}
+
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_hit_melee);
 	}
 
 	self->SetChasePlayer(true);

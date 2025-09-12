@@ -3,6 +3,7 @@
 #include "Effects/EffectSystem.h"
 #include "Effects/SpecialEffects/FireBallEffectRenderer.h"
 #include "Core/GameSystem.h"
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -264,6 +265,7 @@ void Projectile::OnHitGroundCallback(const CollisionEvent& event, void* context)
 	XMFLOAT3 hitNormal = *static_cast<const XMFLOAT3*>(event.additionalData);
 	// 衝突エフェクト再生
 	self->PlayEffect(HitColliderType::Environment, hitNormal);
+	AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boom_short);
 }
 
 
