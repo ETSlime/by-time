@@ -19,6 +19,7 @@
 #include "Scene/Item/Interactable/AutumnDoor.h"
 #include "Scene/Item/Interactable/Gate.h"
 #include "Core/GameSystem.h"
+#include "UI/sound.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -187,6 +188,7 @@ void Ground::Initialize(void)
 	}
 
 	m_initialized = true;
+
 }
 
 //=============================================================================
@@ -743,6 +745,8 @@ void Ground::LoadSceneSpringDay(void)
 
 	springConfig.modelPath = "data/MODEL/Level/spring/trees_new.obj";
 	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	m_pendingBGM = SOUND_LABEL_BGM_spring;
 }
 
 void Ground::LoadSceneSpringNight(void)
@@ -880,6 +884,8 @@ void Ground::LoadSceneSpringNight(void)
 
 	springConfig.modelPath = "data/MODEL/Level/spring/trees_new.obj";
 	CreateSceneGO(springConfig, SceneID::Spring_Day);
+
+	m_pendingBGM = SOUND_LABEL_BGM_spring;
 }
 
 void Ground::LoadSceneSummerDay(void)
@@ -907,6 +913,8 @@ void Ground::LoadSceneSummerDay(void)
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	m_pendingBGM = SOUND_LABEL_BGM_summer;
 }
 
 void Ground::LoadSceneSummerNight(void)
@@ -933,6 +941,8 @@ void Ground::LoadSceneSummerNight(void)
 
 	m_skybox.SetSeason(SeasonID::SUMMER);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	m_pendingBGM = SOUND_LABEL_BGM_summer;
 }
 
 void Ground::LoadSceneAutumnDay(void)
@@ -959,6 +969,8 @@ void Ground::LoadSceneAutumnDay(void)
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(DAY_TIME);
+
+	m_pendingBGM = SOUND_LABEL_BGM_autumn;
 }
 
 void Ground::LoadSceneAutumnNight(void)
@@ -996,6 +1008,8 @@ void Ground::LoadSceneAutumnNight(void)
 
 	m_skybox.SetSeason(SeasonID::AUTUMN);
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+
+	m_pendingBGM = SOUND_LABEL_BGM_autumn;
 }
 
 void Ground::LoadSceneWinterDay(void)
@@ -1111,6 +1125,14 @@ void Ground::LoadLakeAirWalls(SceneID sceneID)
 	airwallConfig.position = XMFLOAT3(5426.0f, 4353.0f, 2450.0f);
 	airwallConfig.scale = XMFLOAT3(33.0f, 287.0f, 185.0f);
 	CreateSceneGO(airwallConfig, sceneID);
+}
+
+//=============================================================================
+// 季節ごとのBGMラベルを返す
+//=============================================================================
+int Ground::GetSeasonBGM() const
+{
+	return m_pendingBGM; // 各 LoadSceneX() で季節ごとにセットされた BGM ラベルを返す
 }
 
 void Ground::GenerateEnvironmentObj(void*)

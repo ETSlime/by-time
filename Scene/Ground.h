@@ -78,9 +78,15 @@ public:
 	// 地形モデルのロードが完了しているか
 	bool IsTerrainReady(void) const { return m_currentTerrainModelLoadCnt >= m_totalTerrainModelLoadCnt; }
 
+	int GetSceneBGM() const { return m_pendingBGM; }
+
+	int GetSeasonBGM() const;
+
 	void ReinitializeSceneObjects();
 
 private:
+	int m_pendingBGM = -1;
+
 	void InitTerrain(void);
 	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);
 	GameObject<ModelInstance>* CreateSceneGO(GameObjectConfig config, SceneID sceneID = SceneID::ALL);

@@ -254,6 +254,13 @@ void GameMenuModal::OnSceneSwitchClicked(void* userData)
 				default:
 					break;
 				}
+
+				// ★ここでBGM判定★
+				int newBGM = ground.GetSeasonBGM();
+				if (newBGM >= 0 && newBGM != g_CurrentBGM) {
+					StopSound(g_CurrentBGM);
+					PlaySound(newBGM);
+				}
 					
 				UIManager::get_instance().GetFader().StartFadeIn(); // タイトル画面をフェードアウト表示
 
