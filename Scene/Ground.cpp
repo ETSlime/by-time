@@ -1015,6 +1015,7 @@ void Ground::LoadSceneAutumnNight(void)
 void Ground::LoadSceneWinterDay(void)
 {
 	m_skybox.SetCurrentTime(DAY_TIME);
+	m_skybox.SetSeason(SeasonID::WINTER);
 
 	GameObjectConfig airwallConfig{};
 	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
@@ -1057,6 +1058,7 @@ void Ground::LoadSceneWinterDay(void)
 void Ground::LoadSceneWinterNight(void)
 {
 	m_skybox.SetCurrentTime(NIGHT_TIME);
+	m_skybox.SetSeason(SeasonID::WINTER);
 
 	GameObjectConfig airwallConfig{};
 	airwallConfig.modelPath = "data/MODEL/Environment/Cube.obj";
