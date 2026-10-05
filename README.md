@@ -1,11 +1,22 @@
-# 🎮 bytime Game Engine
+#  bytime Game Engine
 
 Welcome to the repository for ETSlime's custom DirectX 11 game engine, which is used to develop the game, bytime.  
 This engine demonstrates advanced real-time rendering, animation blending, particle systems, behavior trees, and more.
 
 ---
 
-## 📚 Multi-language Documentation
+## Demo & Project Materials / 作品展示
+
+**[GPU 流体模拟 作品展示 — Google Drive](https://drive.google.com/drive/folders/15pzfzUUvyrePwaNwgBBGg9Z6AZEWfb6s?usp=sharing)**
+
+- **中文：**演示视频、项目说明 PDF 和可运行游戏。
+- **English:** Demo video, project PDF, and playable game build.
+- **日本語：**デモ動画、プロジェクト説明 PDF、プレイ可能なゲーム。
+
+
+---
+
+##  Multi-language Documentation
 
 This project provides full technical documentation in three languages. Click below to view the full breakdown of all systems and implementations:
 
@@ -20,7 +31,7 @@ This project provides full technical documentation in three languages. Click bel
 
 ---
 
-## ✨ Features
+##  Features
 
 - Async loading system using ThreadPool + DeferredTaskBinder
 - Forward rendering pipeline with CSM (Cascaded Shadow Maps)
