@@ -7,7 +7,7 @@ This engine demonstrates advanced real-time rendering, animation blending, parti
 
 ## Demo & Project Materials / 作品展示
 
-**[GPU 流体模拟 作品展示 — Google Drive](https://drive.google.com/drive/folders/15pzfzUUvyrePwaNwgBBGg9Z6AZEWfb6s?usp=sharing)**
+**[bytime 作品展示 — Google Drive](https://drive.google.com/drive/folders/15pzfzUUvyrePwaNwgBBGg9Z6AZEWfb6s?usp=sharing)**
 
 - **中文：**演示视频、项目说明 PDF 和可运行游戏。
 - **English:** Demo video, project PDF, and playable game build.
