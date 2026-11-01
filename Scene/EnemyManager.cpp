@@ -44,27 +44,31 @@ void EnemyManager::Init(const Player* player)
 	//	SpawnEnemy(EnemyType::Hilichurl, t, EnemyState::IDLE);
 	//}
 
-	trans.pos = XMFLOAT3(4024.0f, 6270.0f, 3453.0f);
+	trans.pos = XMFLOAT3(9911.0f, 8367.0f, 8640.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, false);
 
 	trans.pos = XMFLOAT3(3224.0f, 6270.0f, 3553.0f);
 	trans.scl = GBMONSTER_SIZE;
 	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 
-	trans.pos = XMFLOAT3(4424.0f, 6270.0f, 3653.0f);
+	trans.pos = XMFLOAT3(5747.0f, 9928.0f, 10947.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, false);
 
-	trans.pos = XMFLOAT3(4624.0f, 6270.0f, 2453.0f);
+	trans.pos = XMFLOAT3(2551.0f, 7364.0f, 9740.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, false);
 
-	trans.pos = XMFLOAT3(4824.0f, 6270.0f, 4153.0f);
+	trans.pos = XMFLOAT3(2419.0f, 7329.0f, 11510.0f);
 	trans.scl = GBMONSTER_SIZE;
-	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, false);
 
 	trans.pos = XMFLOAT3(3524.0f, 6270.0f, 6753.0f);
+	trans.scl = GBMONSTER_SIZE;
+	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
+
+	trans.pos = XMFLOAT3(2771.0f, 6270.0f, 6453.0f);
 	trans.scl = GBMONSTER_SIZE;
 	SpawnEnemy(EnemyType::GBMonster, trans, EnemyState::IDLE, true);
 

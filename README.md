@@ -9,9 +9,9 @@ This engine demonstrates advanced real-time rendering, animation blending, parti
 
 **[bytime 作品展示 — Google Drive](https://drive.google.com/drive/folders/15pzfzUUvyrePwaNwgBBGg9Z6AZEWfb6s?usp=sharing)**
 
-- **中文：**演示视频、项目说明 PDF 和可运行游戏。
+- 中文：演示视频、项目说明 PDF 和可运行游戏。
 - **English:** Demo video, project PDF, and playable game build.
-- **日本語：**デモ動画、プロジェクト説明 PDF、プレイ可能なゲーム。
+- 日本語：デモ動画、プロジェクト説明 PDF、プレイ可能なゲーム。
 
 
 ---

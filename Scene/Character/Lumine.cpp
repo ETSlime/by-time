@@ -10,7 +10,7 @@
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Effects/EffectSystem.h"
 #include "UI/Base/UIManager.h"
-
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // ƒ}ƒNƒ’è‹`
@@ -221,35 +221,43 @@ void Lumine::HandleInput(void)
 		trans.pos = muzzlePos;
 		trans.rot = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-		if (m_playerAttr->fireCooldownSec <= 0.0f)
-		{
-			if (m_playerAttr->currentProjectile == ProjectileType::Bullet)
-			{
-				trans.scl = XMFLOAT3(0.7f, 0.7f, 0.7f);
-				constexpr float bulletSpeed = 25.0f;
-				Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, fireDir, bulletSpeed);
-				projectile->SetPotentialHitPos(targetPoint);
-				m_playerAttr->fireIntervalSec = BULLET_FIRE_INTERVAL;
-				m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
-			}
-			else if (m_playerAttr->currentProjectile == ProjectileType::SunBullet)
-			{
-				if (m_playerAttr->bulletCount > 0)
-				{
-					m_playerAttr->bulletCount--;
-					trans.scl = XMFLOAT3(1.5f, 1.5f, 1.5f);
-					constexpr float bulletSpeed = 40.0f;
-					Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::SunBullet, trans, fireDir, bulletSpeed);
-					projectile->SetPotentialHitPos(targetPoint);
-					m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
-					m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
-				}
-			}
-		}
+		//if (m_playerAttr->fireCooldownSec <= 0.0f)
+		//{
+		//	if (m_playerAttr->currentProjectile == ProjectileType::Bullet)
+		//	{
+		//		trans.scl = XMFLOAT3(0.7f, 0.7f, 0.7f);
+		//		constexpr float bulletSpeed = 25.0f;
+		//		Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::Bullet, trans, fireDir, bulletSpeed);
+		//		projectile->SetPotentialHitPos(targetPoint);
+		//		m_playerAttr->fireIntervalSec = BULLET_FIRE_INTERVAL;
+		//		m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+		//		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_bullet);
+		//	}
+		//	else if (m_playerAttr->currentProjectile == ProjectileType::SunBullet)
+		//	{
+		//		if (m_playerAttr->bulletCount > 0)
+		//		{
+		//			m_playerAttr->bulletCount--;
+		//			trans.scl = XMFLOAT3(1.5f, 1.5f, 1.5f);
+		//			constexpr float bulletSpeed = 40.0f;
+		//			Projectile* projectile = ProjectileManager::get_instance().SpawnProjectile(ProjectileType::SunBullet, trans, fireDir, bulletSpeed);
+		//			projectile->SetPotentialHitPos(targetPoint);
+		//			m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
+		//			m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+		//			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_sun_bullet);
+		//		}
+		//		else
+		//		{
+		//			m_playerAttr->fireIntervalSec = SUN_BULLET_FIRE_INTERVAL;
+		//			m_playerAttr->fireCooldownSec = m_playerAttr->fireIntervalSec;
+		//			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_sun_bullet_stuck);
+		//		}
+		//	}
+		//}
 
 
-		//if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
-		//	m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
+		if (m_waterFluid && VoxelBufferUploader::get_instance().IsBuffersUploaded())
+			m_waterFluid->EmitWater(fireDir, speed, 35.0f, 1, muzzlePos);
 	}
 }
 
@@ -339,7 +347,7 @@ void Lumine::Update(void)
 		PlayGeneralAnim(AnimClipName::ANIM_DASH, animSpeed);
 		break;
 	case STATE(PlayerState::JUMP):
-		PlayJumpAnim(animSpeed);
+		PlayJumpAnim(animSpeed * 1.2f);
 		break;
 	case STATE(PlayerState::ATTACK_1):
 		PlayAttackAnim(animSpeed);
@@ -501,7 +509,6 @@ void Lumine::PlaceItem(ItemType type)
 			m_playerAttr->seedCount--;
 			m_playerAttr->allowControl = false;
 			m_stateMachine->SetCurrentState(STATE(PlayerState::PLANT_SEED));
-			m_playerAttr->plantedSeed = true;
 		}
 		return;
 	}
@@ -774,6 +781,7 @@ bool Lumine::ExecuteAction(ActionEnum action)
 			return false;
 		else
 		{
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_player_melee_attack);
 			if (instance.attributes.attackWindow2)
 			{
 				instance.attributes.isAttacking = false;
@@ -888,7 +896,7 @@ void Lumine::InitEffect(void)
 	waterParams.viscosity = 8.0f;			// ”S«ŒW”i—¬‘Ì‚Ì”S‚è‹Cj
 	waterParams.restitution = 0.0f;			// ”½”­ŒW”iÕ“Ë‚Ì‹““®§Œä—pj
 
-	m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
+	//m_waterFluid = dynamic_cast<WaterFluidParticleRenderer*>(EffectSystem::get_instance().SpawnParticleEffect(waterParams));
 }
 
 void Lumine::FaceToNearestEnemy(void)
@@ -1215,6 +1223,7 @@ void Lumine::OnJumpAnimationEnd(void)
 void Lumine::OnPlantSeedAnimationEnd(void)
 {
 	m_playerAttr->allowControl = true;
+	m_playerAttr->plantedSeed = true;
 	Item* item = ItemManager::get_instance().GetItem(ItemType::Seed);
 	if (item == nullptr || item->GetUsed())
 		return;
@@ -1321,7 +1330,7 @@ void Lumine::OnItemPickupCallback(const CollisionEvent& event, void* context)
 		}
 		else if (item && item->GetItemType() == ItemType::Key)
 		{
-			self->m_playerAttr->keyCount++;
+			self->EnableWeapon(true);
 		}
 		else if (item && item->GetItemType() == ItemType::Bullet)
 		{
@@ -1349,8 +1358,13 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 		if (!self->GetIsHit())
 		{
 			self->SetIsHit(true);
-			// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
-			self->ForwardEnemyAttackHit(event);
+
+			if (self->m_player)
+			{
+				Player* player = static_cast<Player*>(self->m_player);
+				player->TakeDamage(4);
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_projectile_attack);
+			}
 		}
 
 		if (self->m_playerAttr->throwMode)
@@ -1366,8 +1380,13 @@ void Lumine::OnHitCallback(const CollisionEvent& event, void* context)
 			if (!self->GetIsHit())
 			{
 				self->SetIsHit(true);
-				// šÅ‰‚Ì1‰ñ‚¾‚¯ Player ‚É“`‚¦‚é
-				self->ForwardEnemyAttackHit(event);
+
+				if (self->m_player)
+				{
+					Player* player = static_cast<Player*>(self->m_player);
+					player->TakeDamage(8);
+					AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_melee_attack);
+				}
 			}
 
 			if (self->m_playerAttr->throwMode)

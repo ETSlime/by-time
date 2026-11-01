@@ -5,8 +5,8 @@
 //
 //=============================================================================
 #include "Core/GameSystem.h"
-#include "UI/sound.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 #include "UI/PauseModal.h"
 #include "UI/GameMenuModal.h"
 #include "UI/UITitleScene.h"
@@ -16,11 +16,9 @@
 #include "Utility/Debug/Debugproc.h"
 #include "Effects/EffectSystem.h"
 
-void GameSystem::Init(HWND hWnd)
+void GameSystem::Init(void)
 {
     m_mode = GameMode::TITLE;
-
-    InitSound(hWnd); // ←ここで初期化できる
 
     m_deferredTaskSystem.Init(); // DeferredTaskSystemの初期化 *必ず最初に
 
@@ -207,8 +205,6 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
     // 現在のUIを一旦クリアするよっ！
     m_UIManager.Clear();
 
-    StopSound(g_CurrentBGM);
-
     switch (mode)
     {
     case GameMode::TITLE:
@@ -216,13 +212,6 @@ void GameSystem::ChangeMode(GameMode mode, bool skipLoadingFadeIn)
         break;
     case GameMode::GAME:
         InitGame();
-        {
-            int newBGM = m_ground.GetSeasonBGM();
-            if (newBGM >= 0 && newBGM != g_CurrentBGM) {
-                StopSound(g_CurrentBGM);
-                PlaySound(newBGM);
-            }
-        }
         break;
     case GameMode::RESULT:
         InitResult();
@@ -265,6 +254,7 @@ bool GameSystem::AllowSaveAndSwitch(void) const
     bool allow = true;
 
 	allow &= !m_player->GetPlayerAttributes().climbMode; // 登攀中はセーブとシーン切り替えを禁止
+	allow &= !(m_player->GetCurrentState() == PlayerState::PLANT_SEED); // 種まき中はセーブとシーン切り替えを禁止
 
     return allow;
 }
@@ -539,12 +529,29 @@ void GameSystem::UpdateLoading(void)
         {
             // 画面が黒い状態からゲーム画面へフェードインを開始
             m_UIManager.GetFader().StartFadeIn();
+			AudioManager::get_instance().StopSound();
+            switch (m_ground.GetCurrentSceneID())
+            {
+			case SceneID::Spring_Day:
+            case SceneID::Spring_Night:
+                AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_spring);
+				break;
+			case SceneID::Summer_Day:
+			case SceneID::Summer_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_summer);
+				break;
+			case SceneID::Autumn_Day:
+			case SceneID::Autumn_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_autumn);
+				break;
+			case SceneID::Winter_Day:
+			case SceneID::Winter_Night:
+				AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_winter);
+				break;
+            default:
+                break;
+            }
             ChangeMode(GameMode::GAME);
-
-            // ★ロード完了後に初めてBGM再生
-            StopSound();
-            PlaySound(m_ground.GetSceneBGM());
-            SetBGMVolume(0.5f);
         }
     }
 }
@@ -599,9 +606,14 @@ void GameSystem::DrawGame(void)
     m_renderer.SetDepthMode(DepthMode::Effect); // パーティクルの深度設定
     m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
     m_renderer.SetRenderVFX(); // VFXの描画を設定
-    m_player->DrawEffect(); // プレイヤーのエフェクト描画
     m_effectSystem.Draw(); // エフェクトの描画
+
+    m_renderer.SetVFXInputLayout(); // VFXの入力レイアウトを設定
+    m_renderer.SetRenderVFX(); // VFXの描画を設定
+    m_player->DrawEffect(); // プレイヤーのエフェクト描画
+
     m_decalRenderer.Draw(); // デカールの描画
+
 	if (m_enemyManager.GetBoss())
         m_enemyManager.GetBoss()->DrawEffect(); // ボスのエフェクト描画
     m_renderer.SetBlendState(BLEND_MODE_ALPHABLEND); // ブレンドステートを設定
@@ -610,37 +622,4 @@ void GameSystem::DrawGame(void)
 void GameSystem::DrawResult(void)
 {
     // リザルト画面の描画
-}
-
-//=============================================================================
-// サウンド制御
-//=============================================================================
-void GameSystem::SetBGMVolume(float volume)
-{
-    ::SetBGMVolume(volume); // sound.cpp の関数を呼び出す
-}
-
-void GameSystem::SetSEVolume(float volume)
-{
-    ::SetSEVolume(volume);
-}
-
-void GameSystem::IncreaseBGMVolume()
-{
-    ::IncreaseBGMVolume();
-}
-
-void GameSystem::DecreaseBGMVolume()
-{
-    ::DecreaseBGMVolume();
-}
-
-void GameSystem::IncreaseSEVolume()
-{
-    ::IncreaseSEVolume();
-}
-
-void GameSystem::DecreaseSEVolume()
-{
-    ::DecreaseSEVolume();
 }

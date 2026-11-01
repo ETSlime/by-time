@@ -13,7 +13,7 @@
 #include "Scene/Item/Item.h"
 #include "Scene/EventTrigger.h"
 #include "Scene/EnterExitBehavior.h"
-#include "Effects/SpecialEffects/Water/WaterFluidParticleRenderer.h"
+#include "Effects/SpecialEffects/FallingParticleRenderer.h"
 #include "Effects/Skybox.h"
 
 //*****************************************************************************
@@ -36,6 +36,8 @@
 //#define MODEL_TERRAIN_NAME			"spaceland2.fbx"
 #define MODEL_BONFIRE_PATH			"data/MODEL/Environment/bonfire.obj"
 #define MODEL_LAND_PATH				"data/MODEL/Environment/terrain_prototype.obj"
+
+#define MAX_SEED_NUM					99
 
 
 enum class SceneID : uint64_t
@@ -78,20 +80,18 @@ public:
 	// 地形モデルのロードが完了しているか
 	bool IsTerrainReady(void) const { return m_currentTerrainModelLoadCnt >= m_totalTerrainModelLoadCnt; }
 
-	int GetSceneBGM() const { return m_pendingBGM; }
-
-	int GetSeasonBGM() const;
-
 	void ReinitializeSceneObjects();
 
 private:
-	int m_pendingBGM = -1;
-
 	void InitTerrain(void);
 	GameObject<ModelInstance>* CreateTerrainGO(GameObjectConfig config);
 	GameObject<ModelInstance>* CreateSceneGO(GameObjectConfig config, SceneID sceneID = SceneID::ALL);
 	// シーンロードマップの初期化
 	void InitSceneLoadMap(void);
+
+	void CreateInstanceEnvironmentObj(InstanceParams& params, float startPosX, float startPosZ,
+		int startNumX, int endNumX, int startNumZ, int endNumZ,
+		float scale, float rotY, float offSetX, float offsetY, float offsetZ, float jitter = 0.0f);
 
 	// シーンロード関数
 	void LoadSceneSpringDay(void);
@@ -109,6 +109,9 @@ private:
 	// 環境オブジェクトの生成
 	void GenerateEnvironmentObj(void*);
 	bool DeferredIsFieldReady(void*) { return m_fieldGO->GetModel(); }
+
+	void SpawnSeeds(const XMFLOAT3& pos, int count);
+	void SpawnAllSeeds(void);
 
 	// モデルのロードマップ登録
 	void RegisterModelLoadMap(const char* modelPath, bool isPersistent = false, bool isTerrain = true);
@@ -174,7 +177,7 @@ private:
 
 	Town* m_town = nullptr;
 	Environment* m_environment = nullptr;
-	WaterFluidParticleRenderer* m_waterFluid = nullptr;
+	FallingParticleRenderer* m_fallingParticles = nullptr;
 
 	SceneID m_currentSceneID = SceneID::NONE;
 	Scene& m_scene = Scene::get_instance();
@@ -203,13 +206,15 @@ private:
 
 	Item* m_sceneKey = nullptr;
 	Item* m_sceneKey2 = nullptr;
-	Item* m_sceneSeed = nullptr;
 	Item* m_sceneSoil = nullptr;
 	Item* m_scenePSeed = nullptr;
 	Item* m_sceneVines = nullptr;
 	Item* m_scenesADoorL = nullptr;
 	Item* m_scenesADoorR = nullptr;
 	Item* m_scenesGate = nullptr;
+
+	Item* m_sceneSeed[MAX_SEED_NUM] = { nullptr };
+	//Item* m_sceneSeed = nullptr;
 
 	Skybox& m_skybox = Skybox::get_instance();
 	Renderer& m_Renderer = Renderer::get_instance();

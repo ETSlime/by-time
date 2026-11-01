@@ -311,52 +311,40 @@ private:
     BehaviorNode* m_node;
 };
 
-// ======= 攻撃ノード（共通化） =======
-class BossPerformAttack : public BehaviorNode 
-{
-public:
-    BossPerformAttack(Boss* boss, const BossAttackPattern pattern) : m_boss(boss), m_attackPattern(pattern) {}
-    bool Execute() override 
-    {
-        if (!m_boss->CanActNow()) return false;
-        return m_boss->PerformAttack(m_attackPattern); // 攻撃アニメーション終了で true
-    }
-private:
-    Boss* m_boss;
-    BossAttackPattern m_attackPattern;
-};
-
 // ボス：近接攻撃ノード
 class BossMeleeAttack : public BehaviorNode 
 {
 public:
-    BossMeleeAttack(Boss* boss, float attackRange, float chaseTimeout)
-        : m_boss(boss), m_attackRange(attackRange), m_chaseTimeout(chaseTimeout) {}
+    BossMeleeAttack(Boss* boss, float attackRange, float chaseTimeout, BossAttackPattern attackPattern)
+        : m_boss(boss), m_attackRange(attackRange), m_chaseTimeout(chaseTimeout), m_attackPattern(attackPattern) {}
 
     bool Execute() override 
     {
         if (!m_boss->CanActNow()) return false;
+
+        float randVal = GetRandFloat(0.0f, 1.0f);
+		if (randVal < 0.15f)
+		{
+			return false; // 15%の確率で近接攻撃をスキップ（Selectorが次のノードへ）
+		}
 
         float dist = m_boss->DistanceToPlayer();
 
         // 攻撃範囲に入った → 近接攻撃
         if (dist <= m_attackRange) 
         {
-
-            bool finished = m_boss->PerformAttack(BossAttackPattern::MeleeAttackCombo2);
-            if (finished) 
+            // 近接回数が閾値を超えた → 遠距離へ切替
+            if (m_boss->GetConsecutiveMeleeCount() >= 2)
             {
-                m_boss->AddConsecutiveMeleeCount();
-                m_boss->SetLastMeleeTime(Timer::get_instance().GetDeltaTime());
-
-                // 近接回数が閾値を超えた → 遠距離へ切替
-                if (m_boss->GetConsecutiveMeleeCount() >= 3) 
-                {
-                    m_boss->SetConsecutiveMeleeCount(0);
-                    return false; // このノード失敗 → Selector が次のノード（魔法攻撃）に移行
-                }
+                m_boss->SetConsecutiveMeleeCount(0);
+                return false; // このノード失敗 → Selector が次のノード（魔法攻撃）に移行
             }
-            return finished;
+
+            m_boss->PerformAttack(m_attackPattern);
+            m_boss->AddConsecutiveMeleeCount();
+            m_boss->SetLastMeleeTime(Timer::get_instance().GetDeltaTime());
+
+            return true;
         }
 
         // 攻撃範囲外 → 追跡
@@ -375,6 +363,7 @@ private:
     float m_attackRange;
     float m_chaseTimeout;
     float m_elapsed = 0.0f;
+	BossAttackPattern m_attackPattern;
 };
 
 // ボス：魔法攻撃ノード
@@ -393,70 +382,19 @@ public:
         // プレイヤーが近すぎる場合 → 後退してから魔法
         if (dist < m_safeDistance) 
         {
-            if (m_boss->PerformAttack(BossAttackPattern::BackStep)) return false; // 後退中
+            // 後退がまだ進行中（あるいは今フレームで終了）→ このノードが継続的に制御を保持
+            m_boss->PerformAttack(BossAttackPattern::BackStep);
+            return true; // 後退中（Selector が次へ進まない）
         }
 
-        bool finished = m_boss->PerformAttack(BossAttackPattern::IceShard);
-        if (finished) 
-        {
-            m_boss->SetConsecutiveMeleeCount(0); // 魔法を撃ったら近接カウンタリセット
-        }
-        return finished;
-    }
-
-private:
-    Boss* m_boss;
-    float m_safeDistance;
-};
-
-// ボス：近接攻撃（フェーズ2用 3連撃）
-class BossMeleeAttackPhase2 : public BehaviorNode
-{
-public:
-    BossMeleeAttackPhase2(Boss* boss, float attackRange, float chaseTimeout)
-        : m_boss(boss), m_attackRange(attackRange), m_chaseTimeout(chaseTimeout) {}
-
-    bool Execute() override
-    {
-        if (!m_boss->CanActNow()) return false;
-
-        float dist = m_boss->DistanceToPlayer();
-
-        // 攻撃範囲に入った → 近接攻撃（3連撃）
-        if (dist <= m_attackRange)
-        {
-            bool finished = m_boss->PerformAttack(BossAttackPattern::MeleeAttackCombo3);
-            if (finished)
-            {
-                m_boss->AddConsecutiveMeleeCount();
-                m_boss->SetLastMeleeTime(Timer::get_instance().GetDeltaTime());
-
-                // 近接回数が閾値を超えた → 遠距離へ切替
-                if (m_boss->GetConsecutiveMeleeCount() >= 3)
-                {
-                    m_boss->SetConsecutiveMeleeCount(0);
-                    return false; // このノード失敗 → Selector が次のノード（遠距離攻撃）に移行
-                }
-            }
-            return finished;
-        }
-
-        // 攻撃範囲外 → 追跡
-        m_boss->ChasePlayer();
-        m_elapsed += Timer::get_instance().GetDeltaTime();
-        if (m_elapsed > m_chaseTimeout)
-        {
-            m_elapsed = 0.0f;
-            return false; // fallback → 遠距離攻撃
-        }
+        m_boss->PerformAttack(BossAttackPattern::IceShard);
+        m_boss->SetConsecutiveMeleeCount(0); // 魔法を撃ったら近接カウンタリセット
         return true;
     }
 
 private:
     Boss* m_boss;
-    float m_attackRange;
-    float m_chaseTimeout;
-    float m_elapsed = 0.0f;
+    float m_safeDistance;
 };
 
 // ボス：遠距離攻撃（フェーズ2用：魔法 or レーザー）
@@ -484,12 +422,9 @@ public:
             ? BossAttackPattern::IceShard   // 30% 魔法
             : BossAttackPattern::Laser; // 70% レーザー
 
-        bool finished = m_boss->PerformAttack(chosenAttack);
-        if (finished)
-        {
-            m_boss->SetConsecutiveMeleeCount(0); // 遠距離を撃ったら近接カウンタリセット
-        }
-        return finished;
+        m_boss->PerformAttack(chosenAttack);
+        m_boss->SetConsecutiveMeleeCount(0); // 魔法を撃ったら近接カウンタリセット
+        return true;
     }
 
 private:
@@ -519,7 +454,7 @@ public:
 
             if (m_elapsed > m_dashTimeout) 
             {
-                if (m_boss->PerformAttack(BossAttackPattern::DashToPlayer)) return false; // 突進中
+                m_boss->PerformAttack(BossAttackPattern::DashToPlayer); // 突進中
                 m_elapsed = 0.0f;
                 return true; // 突進完了
             }
@@ -560,6 +495,8 @@ public:
 
             // ===== 冷却シーケンス =====
             SequenceNode* cooldownSequence = new SequenceNode();
+            // 突進 → 近接 or 魔法
+            cooldownSequence->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/8.0f));
             cooldownSequence->AddChild(new CheckCooldown(boss));
             cooldownSequence->AddChild(new PerformCooldownMovement(boss));
             rootSelector->AddChild(cooldownSequence);
@@ -573,27 +510,24 @@ public:
             // ===== フェーズ1（HP > 60%） =====
             SelectorNode* phase1Behavior = new SelectorNode();
 
-			// 突進 → 近接 or 魔法
-            phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/8.0f));
-
             // 近接攻撃（追跡＋近接 or 魔法fallback）
-            phase1Behavior->AddChild(new BossMeleeAttack(boss, /*attackRange*/350.0f, /*chaseTimeout*/4.0f));
+            phase1Behavior->AddChild(new BossMeleeAttack(boss, /*attackRange*/350.0f, /*chaseTimeout*/6.0f, BossAttackPattern::MeleeAttackCombo2));
 
             // 魔法攻撃（通常選択肢）
-            phase1Behavior->AddChild(new BossMagicAttack(boss, /*safeDistance*/700.0f));
+            phase1Behavior->AddChild(new BossMagicAttack(boss, /*safeDistance*/600.0f));
             rootSelector->AddChild(new CheckPhaseExecute(boss, 1, phase1Behavior));
 
             // ===== フェーズ2（HP <= 60%） =====
             SelectorNode* phase2Behavior = new SelectorNode();
 
 			// 突進 → 3連撃 or 遠距離技
-            phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/6.0f));
+            //phase1Behavior->AddChild(new BossDashAttack(boss, /*dashThreshold*/700.0f, /*dashTimeout*/6.0f));
 
             // 1. 近接（3連撃）
-            phase2Behavior->AddChild(new BossMeleeAttackPhase2(boss, /*attackRange*/350.0f, /*chaseTimeout*/3.0f));
+            phase1Behavior->AddChild(new BossMeleeAttack(boss, /*attackRange*/350.0f, /*chaseTimeout*/6.0f, BossAttackPattern::MeleeAttackCombo3));
 
             // 2. 遠距離（魔法 or レーザー）
-            phase2Behavior->AddChild(new BossRangedAttackPhase2(boss, /*safeDistance*/700.0f));
+            phase2Behavior->AddChild(new BossRangedAttackPhase2(boss, /*safeDistance*/600.0f));
 
             rootSelector->AddChild(new CheckPhaseExecute(boss, 2, phase2Behavior));
 

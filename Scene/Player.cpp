@@ -11,10 +11,10 @@
 #include "Core/Graphics/Renderer.h"
 #include "Core/GameSystem.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 #include "Scene/Player.h"
 #include "Scene/Weapon/ProjectileManager.h"
 #include "Scene/EnterExitBehavior.h"
-#include "Core/GameSystem.h"
 
 
 //*****************************************************************************
@@ -104,6 +104,7 @@ void Player::Update(void)
 		&& m_playerGO->GetStateMachine()->GetCurrentState() != STATE(PlayerState::ATTACK_3))
 	{
 		m_playerAttr.isMeleeMode = !m_playerAttr.isMeleeMode;
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_switch_weapon);
 		if (!m_playerAttr.isMeleeMode && !m_playerAttr.finishStoreWeapon && !m_playerAttr.weaponOnBack)
 			m_playerAttr.storeWeaponOnBack = true;
 	}
@@ -496,7 +497,7 @@ void Player::UpdateNormalMode(void)
 			m_InteractPromptTexLoc = m_linkedInteractable->GetPromptTextureLocation();
 		}
 
-		if (m_InteractPrompt == nullptr) {
+		if (m_InteractPrompt == nullptr && m_InteractPromptTexLoc != nullptr) {
 			m_InteractPrompt = new UIInteractPrompt();
 
 			const char* promptTexture = m_InteractPromptTexLoc != nullptr? m_InteractPromptTexLoc : "data/TEXTURE/UI/interactUI.png";
@@ -705,7 +706,11 @@ void Player::UpdatePlayerAttack(void)
 	{
 
 		if (m_playerAttr.throwMode)
+		{
 			ConfirmThrow();
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_throw);
+		}
+
 
 	}
 
@@ -803,6 +808,7 @@ void Player::HandleInput(void)
 	else if (m_inputManager.GetKeyboardRelease(KEY_ENTER_THROW_MODE) && m_playerAttr.throwMode)
 	{
 		ConfirmThrow();
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_throw);
 	}
 	else if (m_inputManager.GetKeyboardRelease(KEY_EXIT_THROW_MODE) && m_playerAttr.throwMode)
 	{
@@ -820,6 +826,7 @@ void Player::HandleInput(void)
 
 	if (m_inputManager.GetKeyboardRelease(KEY_SWITCH_BULLET))
 	{
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_switch_bullet);
 		m_playerAttr.currentProjectile = m_playerAttr.currentProjectile == ProjectileType::Bullet ? ProjectileType::SunBullet : ProjectileType::Bullet;
 	}
 }
@@ -876,7 +883,7 @@ void Player::InitHPBar(UIManager* uiManager)
 {
 	if (m_hpBar)
 	{
-		delete m_hpBar;
+		SAFE_DELETE(m_hpBar);
 		m_hpBar = nullptr;
 	}
 

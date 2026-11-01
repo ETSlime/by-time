@@ -152,6 +152,7 @@
     <ClInclude Include="Core\Async\LightweightMutex.h" />
     <ClInclude Include="Core\Async\SpinLock.h" />
     <ClInclude Include="Core\Async\ThreadPool.h" />
+    <ClInclude Include="Core\AudioManager.h" />
     <ClInclude Include="Core\Camera.h" />
     <ClInclude Include="Core\CursorManager.h" />
     <ClInclude Include="Core\GameSystem.h" />
@@ -189,6 +190,7 @@
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePredictor.h" />
     <ClInclude Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.h" />
     <ClInclude Include="Effects\Skybox.h" />
+    <ClInclude Include="Effects\SpecialEffects\FallingParticleRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\FireBallEffectRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\LakeSurfaceRenderer.h" />
     <ClInclude Include="Effects\SpecialEffects\LaserRenderer.h" />
@@ -244,7 +246,6 @@
     <ClInclude Include="UI\Base\UISpriteRenderer.h" />
     <ClInclude Include="UI\GameMenuModal.h" />
     <ClInclude Include="UI\PauseModal.h" />
-    <ClInclude Include="UI\sound.h" />
     <ClInclude Include="UI\SaveCompleteModal.h" />
     <ClInclude Include="UI\UIGameClear.h" />
     <ClInclude Include="UI\UIGameOver.h" />
@@ -279,6 +280,7 @@
     <ClCompile Include="Core\Async\AsyncModelLoader.cpp" />
     <ClCompile Include="Core\Async\AsyncResourceLoader.cpp" />
     <ClCompile Include="Core\Async\DeferredTaskSystem.cpp" />
+    <ClCompile Include="Core\AudioManager.cpp" />
     <ClCompile Include="Core\Camera.cpp" />
     <ClCompile Include="Core\CursorManager.cpp" />
     <ClCompile Include="Core\GameSystem.cpp" />
@@ -306,6 +308,7 @@
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePredictor.cpp" />
     <ClCompile Include="Effects\ProjectilePreview\ProjectilePreviewRenderer.cpp" />
     <ClCompile Include="Effects\Skybox.cpp" />
+    <ClCompile Include="Effects\SpecialEffects\FallingParticleRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\FireBallEffectRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\LakeSurfaceRenderer.cpp" />
     <ClCompile Include="Effects\SpecialEffects\LaserRenderer.cpp" />
@@ -356,7 +359,6 @@
     <ClCompile Include="UI\Base\UIOverlayRenderer.cpp" />
     <ClCompile Include="UI\Base\UISpriteRenderer.cpp" />
     <ClCompile Include="UI\GameMenuModal.cpp" />
-    <ClCompile Include="UI\sound.cpp" />
     <ClCompile Include="UI\UILoadingScene.cpp" />
     <ClCompile Include="UI\UIMainHUD.cpp" />
     <ClCompile Include="Utility\Debug\DebugBoundingBoxRenderer.cpp" />

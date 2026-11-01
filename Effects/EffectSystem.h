@@ -18,6 +18,7 @@
 #define MAX_BILLBOARD_SIMPLE_NUM        64      // 最大ビルボードシンプルエフェクト数
 #define MAX_BILLBOARD_FLIPBOOK_NUM      64      // 最大ビルボードフリップブック数
 #define MAX_WATER_FLUID_NUM             64      // 最大水面フルイドエフェクト数
+#define MAX_FALLING_PARTICLE_NUM        64      // 最大落下パーティクルエフェクト数
 #define MAX_SOFTBODY_EFFECT_NUM         64      // 最大ソフトボディフェークト数
 #define MAX_OTHER_EFFECT_NUM            64      // その他のエフェクト数
 
@@ -98,8 +99,9 @@ private:
 	SimpleArray<IEffectRenderer*> m_billboardSimpleEffects; // ビルボードシンプルエフェクト
 	SimpleArray<IEffectRenderer*> m_billboardFlipbookEffects; // ビルボードフリップブックエフェクト
 	SimpleArray<IEffectRenderer*> m_waterFluidEffects; // 水面フルイドエフェクト
+	SimpleArray<IEffectRenderer*> m_fallingParticleEffects; // 落下パーティクルエフェクト
     SimpleArray<IEffectRenderer*> m_softBodyEffects;  // ソフトボディ
-    SimpleArray<IEffectRenderer*> m_otherEffects;
+	SimpleArray<IEffectRenderer*> m_otherEffects;		// その他のエフェクト
     SimpleArray<IEffectRenderer*> m_toRemove;     // 削除が必要なエフェクトを一時的に保管するリスト
 
     ID3D11Device* m_device = nullptr;

@@ -16,6 +16,7 @@
 #include "Core/Camera.h"
 #include "Scene/Character/Hilichurl.h"
 #include "Scene/Player.h"
+#include "Scene/Ground.h"
 #include "AI/BehaviorTree.h"
 
 //*****************************************************************************
@@ -23,6 +24,7 @@
 //*****************************************************************************
 
 #define	VALUE_MOVE			(3.5f)							// 移動量
+#define VALUE_MOVE_BOSS		(5.0f)							// 移動量(ボス)
 #define VALUE_RUN			(120.0f)
 #define	VALUE_ROTATE		(XM_PI * 0.02f)					// 回転量
 
@@ -120,7 +122,7 @@ void Enemy::Update(void)
 			instance.transform.pos.y -= FALLING_SPEED * m_timer.GetScaledDeltaTime();
 		}
 
-		if (!CheckAvailableToMove())
+		if (!CheckAvailableToMove() && m_enemyAttr.enemyType != EnemyType::Boss)
 			return;
 
 		if (m_enemyAttr.turnOnBehaviorTree)
@@ -172,31 +174,31 @@ void Enemy::Update(void)
 	}
 
 	// 攻撃中の処理
-	if (instance.attributes.isAttacking)
-	{
-		m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
+	//if (instance.attributes.isAttacking)
+	//{
+	//	m_enemyAttr.attackTimer += m_timer.GetScaledDeltaTime();
 
-		bool inHitWindow =
-			(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
-			(m_enemyAttr.attackTimer < m_enemyAttr.attackHitDelay + m_enemyAttr.attackHitWindow);
+	//	bool inHitWindow =
+	//		(m_enemyAttr.attackTimer >= m_enemyAttr.attackHitDelay) &&
+	//		(m_enemyAttr.attackTimer < m_enemyAttr.attackHitDelay + m_enemyAttr.attackHitWindow);
 
-		// 攻撃開始 → 1フレームだけコライダーON
-		if (inHitWindow && !m_enemyAttr.hasDealtDamage)
-		{
-			EnableEnemyAttackCollider(true);
-			m_enemyAttr.hasDealtDamage = true;
+	//	// 攻撃開始 → 1フレームだけコライダーON
+	//	if (inHitWindow && !m_enemyAttr.hasDealtDamage)
+	//	{
+	//		EnableEnemyAttackCollider(true);
+	//		m_enemyAttr.hasDealtDamage = true;
 
-			// すぐOFFにして多重判定を防止
-			EnableEnemyAttackCollider(false);
-		}
+	//		// すぐOFFにして多重判定を防止
+	//		EnableEnemyAttackCollider(false);
+	//	}
 
-		if (m_enemyAttr.attackTimer >= m_enemyAttr.attackTotal)
-		{
-			instance.attributes.isAttacking = false;
-			EnableEnemyAttackCollider(false);
-			m_enemyAttr.hasDealtDamage = false; // 次回攻撃用にリセット
-		}
-	}
+	//	if (m_enemyAttr.attackTimer >= m_enemyAttr.attackTotal)
+	//	{
+	//		instance.attributes.isAttacking = false;
+	//		EnableEnemyAttackCollider(false);
+	//		m_enemyAttr.hasDealtDamage = false; // 次回攻撃用にリセット
+	//	}
+	//}
 }
 
 bool Enemy::UpdateAliveState(void)
@@ -234,7 +236,9 @@ bool Enemy::UpdateAliveState(void)
 			m_enemyAttr.isDead = true;
 			instance.collider.enable = false; // 当たり判定を無効化
 			instance.castShadow = false; // 影を落とさない
-			if (m_enemyAttr.enemyType == EnemyType::GBMonster)
+			if (m_enemyAttr.enemyType == EnemyType::GBMonster && 
+				(Ground::get_instance().GetCurrentSceneID() == SceneID::Summer_Day ||
+					Ground::get_instance().GetCurrentSceneID() == SceneID::Summer_Night))
 			{
 				Transform trans = instance.transform;
 				trans.pos.y += 10.0f;
@@ -244,7 +248,7 @@ bool Enemy::UpdateAliveState(void)
 			else if (m_enemyAttr.enemyType == EnemyType::Boss)
 			{
 				Transform trans = instance.transform;
-				trans.pos.y += 10.0f;
+				trans.pos.y += 50.0f;
 				Item* key = ItemManager::get_instance().SpawnItem(new Item(ItemType::Key, trans));
 				key->Initialize(true);
 			}
@@ -440,7 +444,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::GBMonster:
@@ -450,7 +454,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::Boss:
@@ -460,7 +464,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.viewDistance = HILI_VIEW_DISTANCE;
 		m_enemyAttr.chaseRange = HILI_CHASING_RANGE;
 		m_enemyAttr.attackRange = HILI_ATTACK_RANGE;
-
+		instance.attributes.valueMove = VALUE_MOVE_BOSS;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	case EnemyType::NPC_Fish:
@@ -471,7 +475,7 @@ void Enemy::Initialize(void)
 		m_enemyAttr.chaseRange = 0.0f;
 		m_enemyAttr.attackRange = 0.0f;
 		m_enemyAttr.disableGravity = true;
-
+		instance.attributes.valueMove = VALUE_MOVE;
 		m_behaviorTree = new BehaviorTree(this);
 		break;
 	default:
@@ -579,6 +583,8 @@ void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 		if (projectileColOwner->GetProjectileAttributes().projectileType == ProjectileType::SunBullet)
 		{
 			projectileColOwner->PlayEffect(HitColliderType::Enemy, XMFLOAT3());
+			self->ReduceHP(50.0f);
+			AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_boom_short);
 		}
 
 		// 無敵状態ならダメージを受けない
@@ -596,16 +602,18 @@ void Enemy::OnPlayerHitCallback(const CollisionEvent& event, void* context)
 		self->SetHitTimer(ENEMY_HIT_WINDOW);
 		if (!self->GetIsHit())
 		{
-			self->ReduceHP(10.0f);
+			self->ReduceHP(200.0f);
 			self->SetIsHit(true);
 			self->SetIsHit2(false);
 		}
 		else if (!self->GetIsHit2())
 		{
-			self->ReduceHP(10.0f);
+			self->ReduceHP(200.0f);
 			self->SetIsHit2(true);
 			self->SetIsHit(false);
 		}
+
+		AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_SE_enemy_hit_melee);
 	}
 
 	self->SetChasePlayer(true);
@@ -741,7 +749,7 @@ void Enemy::ChasePlayer(void)
 
 	// プレイヤー方向に移動
 	instance.attributes.isMoving = true;
-	instance.attributes.spd = VALUE_MOVE;
+	instance.attributes.spd = instance.attributes.valueMove;
 }
 
 void Enemy::ChaseAndAttackPlayer(void)

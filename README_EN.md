@@ -178,21 +178,59 @@
 
 ## Effect System
 
-###  FireEffectRenderer (Fire + Smoke)
-- Plays fire animation using texture sheet.
-- Smoke rendered via particle system (toggleable).
-- Exposed `Update()` and `Draw()` interface.
-- Supports Additive and AlphaBlend modes.
-- Includes SoftParticle and Flipbook blending.
+### FireEffectRenderer (Fire + Smoke)
+- Plays fire animations using a texture sheet
+- Renders smoke through a particle system, independently or together with fire
+- Exposes unified `Update()` / `Draw()` interfaces
+- Supports blend modes such as Additive and AlphaBlend
+- Supports soft particles and flipbook animation blending
 
-###  ShaderGroup Architecture
-- Organized by `ShaderGroup` enum to group related effect resources.
-- Supports batch rendering and unified resource binding.
-- `ParticleEffectRendererBase` abstracts common particle pipeline behavior:
-  - Manages `BufferSet` creation: encapsulates `StructuredBuffer`, `SRV`, and `UAV` for particle simulation.
-  - In `Update()` stage, dispatches compute shader to simulate particles.
-  - Handles automatic binding/unbinding of structured buffers for drawing.
-  - Provides `DrawParticles()` as a virtual function for subclasses to implement specific rendering (e.g. billboard, flipbook).
+### Particle–Terrain Collision (Falling.hlsl)
+- Performs particle emission, velocity integration, and position updates on the GPU using compute shaders, with AliveList / FreeList managing active particles and reusable slots
+- Transforms predicted positions into world space and generates Morton codes from voxel coordinates to look up associated triangle indices, narrowing the collision search
+- Constructs a world-space ray from the current frame's displacement and limits intersection tests to that movement distance
+- Corrects the particle position on impact with an offset along the surface normal and clears its velocity, providing contact response against terrain surfaces
+- Expands particles into camera-facing billboards in the geometry shader, using circular clipping and an opacity gradient for a soft appearance
+
+### Water Surface Rendering (LakeSurface.hlsl)
+- Combines two normal maps scrolling in different directions and at different speeds to produce animated surface detail
+- Samples the normal maps in the vertex shader to displace vertices, combining geometric motion with normal perturbation in the pixel shader
+- Uses `g_WaveStrength` to control both displacement amplitude and shading-normal perturbation; setting it to 0 disables displacement and uses a flat surface normal for a calm surface state
+- Computes a Fresnel weight from the viewing direction and surface normal to blend the base water color with a highlight color and adjust opacity
+- Exposes water color, wave strength, Fresnel bias, and Fresnel power through a constant buffer
+
+### Procedural Laser Beam (Laser.hlsl)
+- Receives world-space ribbon vertices from the CPU and uses longitudinal and transverse coordinates to construct the beam appearance in the pixel shader
+- Combines Core, Body, and Rim intensity profiles to represent a bright central core, beam body, and edge halo
+- Modulates longitudinal intensity with a time-dependent sine function to create a flowing pattern without texture sampling
+- Applies smooth attenuation at both ends to soften the beam's endpoints
+- Calculates color intensity and opacity weights separately, with a minimum opacity contribution to retain the visible silhouette; exposes HDR base color, flow speed, and core sharpness controls
+
+### Decal System (Decal.hlsl)
+- Uses per-instance data to configure decal position, size, surface normal, rotation, and lifetime, supporting surface effects such as impact marks, blast marks, and beam contact marks
+- Constructs a local basis from the surface normal to orient planar decals against the contact surface
+- Applies a position offset based on the surface normal and viewing direction to reduce Z-fighting
+- Uses a 4×2 texture atlas, with per-instance UV offsets selecting different decal patterns
+- Calculates opacity attenuation from elapsed time and lifetime to fade marks out gradually
+
+### Trajectory and Area Preview (ProjectilePreview.hlsl)
+- Switches between trajectory and hemispherical area rendering within the same shader using `g_RenderType`
+- Receives externally generated trajectory vertices and uses the Y component of their normals as an opacity modulation parameter to produce an opacity gradient
+- Positions and scales a hemisphere mesh around the supplied hit position to visualize the expected area of effect near the contact point
+- Uses time-dependent sine functions to animate hemisphere scale and opacity, producing a periodic pulsing effect
+- Attenuates opacity based on distance from the hit position, with the attenuation range following the hemisphere's animated scale
+- Exposes hit position, area scale, base color, time, and render type through a shared constant buffer
+
+### ShaderGroup and Particle Effect Architecture
+- Groups related effect shaders and resources using the `ShaderGroup` enum
+- Supports batch rendering and unified resource binding
+- `ParticleEffectRendererBase` abstracts the common GPU pipeline for particle simulation and rendering:
+  - Encapsulates `BufferSet` creation and management, including particle `StructuredBuffer`, `SRV`, and `UAV` resources
+  - Binds resources and dispatches compute shaders during `Update()` for GPU simulation stages such as Emit / Update
+  - Encapsulates resource binding and unbinding across pipeline stages to avoid read/write conflicts
+  - Prepares particle buffers for drawing and manages resource transitions between compute shaders and the graphics pipeline
+  - Provides an abstract `DrawParticles()` interface for derived classes to implement rendering methods such as billboards and flipbooks
+- Particle effects reuse the underlying buffer management and compute dispatch framework while supplying their own simulation parameters and drawing logic
 
 ---
 

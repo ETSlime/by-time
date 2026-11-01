@@ -104,6 +104,7 @@ struct Attributes
 	XMFLOAT4X4		mtxWorld = XMFLOAT4X4();	// ワールドマトリックス
 
 	float			spd = 0.0f;		// 移動スピード
+	float			valueMove = 0.0f; // 移動量
 	float			dir = 0.0f;		// 向き
 	float			targetDir = 0.0f;
 	bool			use = true;
@@ -546,6 +547,7 @@ public:
 	virtual void OnThrowAnimationEnd() {}
 	virtual void OnBossfightReady() {}
 	virtual void OnGetUpAnimationEnd() {}
+	virtual void OnBossStandUp() {}
 	virtual bool ExecuteAction(ActionEnum action) { return true; }
 	bool AlwaysTrue() const { return true; }
 	virtual void AddAnimation(char* animPath, char* animName, AnimClipName clipName, AnimPlayMode animPlayMode = AnimPlayMode::LOOP) = 0;

@@ -29,11 +29,14 @@
 #define VALUE_PLAYEER_RUN_FACTOR	(2.5f)
 #define	VALUE_PLAYER_ROTATE			(XM_PI * 0.02f)					// ‰ñ“]—Ê
 
-#define PLAYER_INIT_POS				XMFLOAT3(4024.0f, 6270.0f, 4453.0f)//XMFLOAT3(9354.0f, 6470.0f, 2096.0f)
+#define PLAYER_INIT_POS				XMFLOAT3(1932.0f, 6370.0f, 1904.0f)
 
 #define BULLET_FIRE_INTERVAL		(0.1f)							// ’e‚Ì”­ŽËŠÔŠui•bj
 #define SUN_BULLET_FIRE_INTERVAL	(0.5f)							// ’e‚Ì”­ŽËŠÔŠui•bj
 
+//*****************************************************************************
+// \‘¢‘Ì’è‹`
+//*****************************************************************************
 struct PlayerAttributes
 {
 	UINT			actionQueueClearTime;
@@ -113,6 +116,8 @@ public:
 	bool HasBullet(void) const { return m_playerAttr.hasBullet; }
 	PlayerAttributes& GetPlayerAttributes(void) { return m_playerAttr; }
 	const BOUNDING_BOX& GetBoundingBox(void) const { return m_playerGO->GetCollider().aabb; }
+
+	PlayerState GetCurrentState(void) const { return static_cast<PlayerState>(m_playerGO->GetStateMachine()->GetCurrentState()); }
 
 	float GetCurrentHP() const { return m_currentHP; }
 	float GetMaxHP() const { return m_maxHP; }

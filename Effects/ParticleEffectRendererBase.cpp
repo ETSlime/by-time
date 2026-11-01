@@ -680,6 +680,29 @@ bool ParticleEffectRendererBase::CreateWaterFluidBuffer(ParticleEffectRendererBa
     return CreateParticleBuffer(self, initData);
 }
 
+bool ParticleEffectRendererBase::CreateFallingParticlesBuffer(ParticleEffectRendererBase* self)
+{
+    // 初期パーティクルデータ
+    SimpleArray<FallingParticle> initData(self->m_maxParticles);
+
+    for (UINT i = 0; i < self->m_maxParticles; ++i)
+    {
+        FallingParticle& p = initData[i];
+
+        p.position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.velocity = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        p.predictedPosition = p.position;
+
+        p.lifeRemaining = 0.0f;
+        p.size = 1.0f;
+
+        // デバッグ用カラー（青っぽく）
+        p.color = self->m_startColor;
+    }
+
+    return CreateParticleBuffer(self, initData);
+}
+
 void ParticleEffectRendererBase::RegisterarticleBufferFactories(void)
 {
     static bool initialized = false;
@@ -690,6 +713,7 @@ void ParticleEffectRendererBase::RegisterarticleBufferFactories(void)
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardSimple)] = &CreateBillboardSimpleBuffer;
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::BillboardFlipbook)] = &CreateBillboardFlipbookBuffer;
     s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::WaterFluid)] = &CreateWaterFluidBuffer;
+    s_bufferFactoryTable[static_cast<UINT>(ParticleShaderGroup::Falling)] = &CreateFallingParticlesBuffer;
 }
 
 void ParticleEffectRendererBase::UpdateParticleUpdateCB(void)
@@ -780,6 +804,9 @@ ParticleShaderGroup ParticleEffectRendererBase::GetShaderGroupForEffect(EffectTy
     case EffectType::WaterFluid:
 		return ParticleShaderGroup::WaterFluid;
 
+	case EffectType::Falling:
+		return ParticleShaderGroup::Falling;
+
     default:
         return ParticleShaderGroup::None;
     }
@@ -797,6 +824,9 @@ ParticleComputeGroup ParticleEffectRendererBase::GetComputeGroupForEffect(Effect
 
 	case EffectType::WaterFluid:
 		return ParticleComputeGroup::WaterFluid;
+
+    case EffectType::Falling:
+		return ParticleComputeGroup::Falling;
 
     default:
         return ParticleComputeGroup::None;

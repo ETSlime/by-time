@@ -10,6 +10,7 @@
 #include "UI/Base/UIButton.h"
 #include "Core/TextureMgr.h"
 #include "Core/SaveSystem.h"
+#include "Core/AudioManager.h"
 
 //*****************************************************************************
 // マクロ定義
@@ -37,8 +38,8 @@ class UITitleScene : public UIElement
 public:
     UITitleScene() {}
 
-	void Init(GameSystem* system)
-	{
+    void Init(GameSystem* system)
+    {
         // タイトルアニメの生成
         m_titleAnim = new UIAnimatedSprite();
 
@@ -54,40 +55,40 @@ public:
         m_titleAnim->SetPosition({ static_cast<float>(SCREEN_CENTER_X), static_cast<float>(SCREEN_CENTER_Y) });
         m_titleAnim->SetSize({ static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT) });
 
-		// 新規ゲームボタンの初期化
-		m_btnNewGame = new UIButton();
+        // 新規ゲームボタンの初期化
+        m_btnNewGame = new UIButton();
         m_btnNewGame->InitWithSingleTexture(
-            UIManager::get_instance().GetSpriteVertexBuffer(), 
+            UIManager::get_instance().GetSpriteVertexBuffer(),
             TITLE_BTN_NEWGAME_TEXTURE_PATH
         );
-        m_btnNewGame->SetPosition({ 
-            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X), 
-            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y) 
+        m_btnNewGame->SetPosition({
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X),
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y)
             });
-        m_btnNewGame->SetSize({ 
-            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X), 
-            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) 
+        m_btnNewGame->SetSize({
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X),
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y)
             });
         m_btnNewGame->SetOnClick(OnClick_NewGame, this);
 
-		// ロードゲームボタンの初期化
+        // ロードゲームボタンの初期化
         m_btnLoadGame = new UIButton();
         m_btnLoadGame->InitWithSingleTexture(
-            UIManager::get_instance().GetSpriteVertexBuffer(), 
+            UIManager::get_instance().GetSpriteVertexBuffer(),
             TITLE_BTN_LOADGAME_TEXTURE_PATH
         );
-        m_btnLoadGame->SetPosition({ 
-            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X + TITLE_BTN_TEXTURE_SPACE_X), 
-            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y) 
+        m_btnLoadGame->SetPosition({
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_X + TITLE_BTN_TEXTURE_SPACE_X),
+            static_cast<float>(TITLE_BTN_NEWGAME_TEXTURE_POS_Y)
             });
-        m_btnLoadGame->SetSize({ 
-            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X), 
-            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y) 
+        m_btnLoadGame->SetSize({
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X),
+            static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y)
             });
-		m_btnLoadGame->SetOnClick(OnClick_LoadGame, this); // ロードゲームボタンのコールバック設定
+        m_btnLoadGame->SetOnClick(OnClick_LoadGame, this); // ロードゲームボタンのコールバック設定
 
-		// ゲーム終了ボタンの初期化
-		m_btnExitGame = new UIButton();
+        // ゲーム終了ボタンの初期化
+        m_btnExitGame = new UIButton();
         m_btnExitGame->InitWithSingleTexture(
             UIManager::get_instance().GetSpriteVertexBuffer(),
             TITLE_BTN_EXITGAME_TEXTURE_PATH
@@ -100,11 +101,13 @@ public:
             static_cast<float>(TITLE_BTN_TEXTURE_SIZE_X),
             static_cast<float>(TITLE_BTN_TEXTURE_SIZE_Y)
             });
-		m_btnExitGame->SetOnClick(OnClickExitGame, nullptr); // ゲーム終了ボタンのコールバック設定
+        m_btnExitGame->SetOnClick(OnClickExitGame, nullptr); // ゲーム終了ボタンのコールバック設定
 
         // 最初はフェードインから始める（必要であれば）
         m_UIManager.GetFader().StartFadeIn(1.0f); // 1秒でフェードイン
-	}
+
+        AudioManager::get_instance().PlaySound(SoundLabel::SOUND_LABEL_BGM_title);
+    }
 
     ~UITitleScene()
     {

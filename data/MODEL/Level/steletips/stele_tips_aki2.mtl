@@ -1,0 +1,49 @@
+newmtl Stele_tips_haru:haru
+illum 4
+Kd 0.00 0.00 0.00
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+map_Kd autumnuv1.png
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00
+newmtl Stele_tips_haru:set1
+illum 4
+Kd 0.10 0.57 0.25
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00
+newmtl Stele_tips_haru:set2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00
+newmtl Stele_tips_haru:set3
+illum 4
+Kd 0.38 0.40 0.55
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00
+newmtl Stele_tips_haru:set4
+illum 4
+Kd 0.13 0.15 0.06
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00
+newmtl Stele_tips_haru:set5
+illum 4
+Kd 0.39 0.94 0.12
+Ka 1.00 1.00 1.00
+Tf 1.00 1.00 1.00
+Ni 1.50
+Ks 0.50 0.50 0.50
+Ns 250.00

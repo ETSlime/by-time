@@ -96,6 +96,10 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "VS",
         "Shaders/WaterFluid.hlsl", "PS",
         "Shaders/WaterFluid.hlsl", "GS", false);
+    RegisterShaderSource(ParticleShaderGroup::Falling, VertexLayoutID::ParticleSimple,
+        "Shaders/Falling.hlsl", "VS",
+        "Shaders/Falling.hlsl", "PS",
+        "Shaders/Falling.hlsl", "GS", false);
     RegisterShaderSource(ShaderSetID::FluidSurface, VertexLayoutID::FluidSurface,
         "Shaders/FluidSurface.hlsl", "VS",
         "Shaders/FluidSurface.hlsl", "PS");
@@ -137,32 +141,36 @@ void ShaderManager::RegisterShaderSourcePaths(void)
         "Shaders/WaterFluid.hlsl", "UpdateCS");
     RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Emit,
         "Shaders/WaterFluid.hlsl", "EmitCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
-        "Shaders/SPHSystem.hlsl", "BuildGirdCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
-        "Shaders/SPHSystem.hlsl", "SimulateCS"); 
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Sparse_Grid,
-        "Shaders/SPHSystem.hlsl", "SPHSimulateSparseCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
-        "Shaders/SPHSystem.hlsl", "SimulateCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Sparse_Grid,
-        "Shaders/SPHSystem.hlsl", "SPHSimulateSparseCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Particle_Thickness,
-        "Shaders/FluidMarchingCubes.hlsl", "FluidThicknessCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::GenerateScalarField,
-        "Shaders/FluidMarchingCubes.hlsl", "GenerateScalarFieldCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MarchingCubes,
-        "Shaders/FluidMarchingCubes.hlsl", "MarchingCubesCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelLabelPropagation,
-        "Shaders/MarchingCubesClusterPartition.hlsl", "LabelPropagationCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelClusterPartition,
-        "Shaders/MarchingCubesClusterPartition.hlsl", "ClusterPartitionCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumLocal,
-        "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumLocalCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumGlobal,
-        "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumGlobalCS");
-    RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumAddOffset,
-        "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumAddOffsetCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::Falling, ComputePassType::Update,
+        "Shaders/Falling.hlsl", "UpdateCS");
+    RegisterComputeShaderSource(ParticleComputeGroup::Falling, ComputePassType::Emit,
+        "Shaders/Falling.hlsl", "EmitCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_BuildGrid,
+    //    "Shaders/SPHSystem.hlsl", "BuildGirdCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
+    //    "Shaders/SPHSystem.hlsl", "SimulateCS"); 
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Sparse_Grid,
+    //    "Shaders/SPHSystem.hlsl", "SPHSimulateSparseCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Dense_Grid,
+    //    "Shaders/SPHSystem.hlsl", "SimulateCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::SPH_Simulate_Sparse_Grid,
+    //    "Shaders/SPHSystem.hlsl", "SPHSimulateSparseCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::Particle_Thickness,
+    //    "Shaders/FluidMarchingCubes.hlsl", "FluidThicknessCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::GenerateScalarField,
+    //    "Shaders/FluidMarchingCubes.hlsl", "GenerateScalarFieldCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MarchingCubes,
+    //    "Shaders/FluidMarchingCubes.hlsl", "MarchingCubesCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelLabelPropagation,
+    //    "Shaders/MarchingCubesClusterPartition.hlsl", "LabelPropagationCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelClusterPartition,
+    //    "Shaders/MarchingCubesClusterPartition.hlsl", "ClusterPartitionCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumLocal,
+    //    "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumLocalCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumGlobal,
+    //    "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumGlobalCS");
+    //RegisterComputeShaderSource(ParticleComputeGroup::WaterFluid, ComputePassType::MCVoxelPrefixSumAddOffset,
+    //    "Shaders/MarchingCubesClusterPartition.hlsl", "PrefixSumAddOffsetCS");
 }
 
 void ShaderManager::RegisterShaderReloadEntry(const char* path, const char* entry, const char* target, void** outputShaderPtr, 
